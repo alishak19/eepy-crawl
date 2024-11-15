@@ -1,4 +1,4 @@
-package cis5550.tools;
+package cis5550.kvs;
 
 public class KeyEncoder {
 

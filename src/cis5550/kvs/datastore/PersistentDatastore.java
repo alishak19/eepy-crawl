@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 
-import static cis5550.tools.KeyEncoder.encode;
+import static cis5550.kvs.KeyEncoder.encode;
 
 public class PersistentDatastore implements Datastore {
     public static final Logger LOGGER = Logger.getLogger(PersistentDatastore.class);

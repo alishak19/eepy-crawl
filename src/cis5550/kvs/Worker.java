@@ -10,9 +10,9 @@ import java.util.SortedMap;
 import java.util.stream.Stream;
 
 import static cis5550.kvs.datamodels.IPPort.fromString;
-import static cis5550.tools.HTMLGenerator.generateTableEntries;
-import static cis5550.tools.HTMLGenerator.generateWorkerEntries;
-import static cis5550.tools.IDGenerator.generateLowerCaseID;
+import static cis5550.kvs.HTMLGenerator.generateTableEntries;
+import static cis5550.kvs.HTMLGenerator.generateWorkerEntries;
+import static cis5550.kvs.IDGenerator.generateLowerCaseID;
 import static cis5550.webserver.Server.*;
 
 public class Worker extends cis5550.generic.Worker {

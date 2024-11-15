@@ -1,8 +1,8 @@
-package cis5550.tools;
-
-import cis5550.kvs.Row;
+package cis5550.kvs;
 
 import java.util.*;
+
+import static cis5550.utils.StringUtils.escapeHtml;
 
 public class HTMLGenerator {
     public static String generateWorkerEntries(Map<String, Integer> aTableSizes) {
@@ -175,14 +175,5 @@ public class HTMLGenerator {
 
         myBuilder.append("</table></body></html>");
         return myBuilder.toString();
-    }
-
-    private static String escapeHtml(String aInput) {
-        if (aInput == null) return "";
-        return aInput.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
     }
 }
