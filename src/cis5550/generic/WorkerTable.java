@@ -53,25 +53,55 @@ public class WorkerTable<K extends Comparable<K>> {
         StringBuilder myStringBuilder = new StringBuilder();
         removeExpired();
 
-        myStringBuilder.append("<table border=\"1\">");
-        myStringBuilder.append("<tr><th>Worker ID</th><th>IP Address</th><th>Port</th></tr>");
+        myStringBuilder.append("""
+        <style>
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 20px 0;
+                font-size: 16px;
+                text-align: left;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+            }
+            th {
+                background-color: #f4f4f4;
+                font-weight: bold;
+            }
+            tr:hover {
+                background-color: #f1f1f1;
+            }
+        </style>
+        <table>
+            <tr>
+                <th>Worker ID</th>
+                <th>IP Address</th>
+                <th>Port</th>
+            </tr>
+    """);
+
         for (K myId : theWorkerMap.keySet()) {
             IPPort myIPPort = theWorkerMap.get(myId);
-            myStringBuilder
-                    .append("<tr><td><a href=\"http://")
+            myStringBuilder.append("<tr>")
+                    .append("<td><a href=\"http://")
                     .append(myIPPort.ip())
                     .append(":")
                     .append(myIPPort.port())
                     .append("\">")
                     .append(myId)
-                    .append("</a></td><td>")
+                    .append("</a></td>")
+                    .append("<td>")
                     .append(myIPPort.ip())
-                    .append("</td><td>")
+                    .append("</td>")
+                    .append("<td>")
                     .append(myIPPort.port())
-                    .append("</td></tr>");
+                    .append("</td>")
+                    .append("</tr>");
         }
-        myStringBuilder.append("</table>");
 
+        myStringBuilder.append("</table>");
         return myStringBuilder.toString();
     }
 
