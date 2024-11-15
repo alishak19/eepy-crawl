@@ -245,6 +245,6 @@ public class FlameContextImpl implements FlameContext, Serializable {
     }
 
     private String getNewTableName() {
-        return "flame_" + theNextJobId++ + "_" + theJarName + "_" + System.currentTimeMillis();
+        return "flame_" + "_" + theJarName + "_" + System.currentTimeMillis() + "_" + theNextJobId++;
     }
 }
