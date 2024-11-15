@@ -2,3 +2,4 @@
 worker*
 bin
 *.jar
+out

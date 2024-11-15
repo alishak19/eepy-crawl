@@ -10,6 +10,24 @@ rm *.jar
 # Compile all Java files
 javac --source-path src -d bin $(find src -name '*.java')
 
+# Compile and create Crawler.jar
+javac -d bin --source-path src src/cis5550/jobs/Crawler.java
+sleep 1
+jar cf crawler.jar bin/cis5550/jobs/Crawler.class
+sleep 1
+
+# Compile and create Indexer.jar
+javac -d bin --source-path src src/cis5550/jobs/Indexer.java
+sleep 1
+jar cf indexer.jar bin/cis5550/jobs/Indexer.class
+sleep 1
+
+# Compile and create PageRank.jar
+javac -d bin --source-path src src/cis5550/jobs/PageRank.java
+sleep 1
+jar cf pagerank.jar bin/cis5550/jobs/PageRank.class
+sleep 1
+
 # Launch KVS Coordinator
 echo "cd '$(PWD)'; java -cp bin cis5550.kvs.Coordinator 8000" > kvscoordinator.sh
 chmod +x kvscoordinator.sh
