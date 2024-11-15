@@ -3,6 +3,8 @@ package cis5550.flame;
 import cis5550.tools.Serializer;
 import cis5550.webserver.Request;
 
+import static cis5550.utils.StringUtils.isNullOrEmpty;
+
 import java.io.File;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -24,12 +26,12 @@ public record OperationParameters(
         String myZeroElement = request.queryParams("zeroElement");
 
         return new OperationParameters(
-                myInputTable != null ? URLDecoder.decode(myInputTable, StandardCharsets.UTF_8) : null,
-                myOutputTable != null ? URLDecoder.decode(myOutputTable, StandardCharsets.UTF_8) : null,
-                myFromKey != null ? URLDecoder.decode(myFromKey, StandardCharsets.UTF_8) : null,
-                myToKeyExclusive != null ? URLDecoder.decode(myToKeyExclusive, StandardCharsets.UTF_8) : null,
-                myKvsCoordinator != null ? URLDecoder.decode(myKvsCoordinator, StandardCharsets.UTF_8) : null,
-                request.bodyAsBytes() != null ? Serializer.byteArrayToObject(request.bodyAsBytes(), aJarFile) : null,
-                myZeroElement != null ? URLDecoder.decode(myZeroElement, StandardCharsets.UTF_8) : null);
+                !isNullOrEmpty(myInputTable) ? URLDecoder.decode(myInputTable, StandardCharsets.UTF_8) : null,
+                !isNullOrEmpty(myOutputTable) ? URLDecoder.decode(myOutputTable, StandardCharsets.UTF_8) : null,
+                !isNullOrEmpty(myFromKey) ? URLDecoder.decode(myFromKey, StandardCharsets.UTF_8) : null,
+                !isNullOrEmpty(myToKeyExclusive) ? URLDecoder.decode(myToKeyExclusive, StandardCharsets.UTF_8) : null,
+                !isNullOrEmpty(myKvsCoordinator) ? URLDecoder.decode(myKvsCoordinator, StandardCharsets.UTF_8) : null,
+                !isNullOrEmpty(request.bodyAsBytes()) ? Serializer.byteArrayToObject(request.bodyAsBytes(), aJarFile) : null,
+                !isNullOrEmpty(myZeroElement) ? URLDecoder.decode(myZeroElement, StandardCharsets.UTF_8) : null);
     }
 }
