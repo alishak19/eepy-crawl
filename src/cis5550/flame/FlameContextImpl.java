@@ -4,36 +4,36 @@ import cis5550.kvs.KVSClient;
 import cis5550.tools.*;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static cis5550.flame.Coordinator.getFlameWorkers;
 
-public class FlameContextImpl implements FlameContext {
+public class FlameContextImpl implements FlameContext, Serializable {
     public static final Logger LOGGER = Logger.getLogger(FlameContextImpl.class);
 
     public static final String COLUMN_NAME = "value";
 
     private final StringBuilder theOutputStringBuilder;
     private final String theJarName;
-    private final KVSClient theKVSClient;
+    private final String theKVSCoordinatorIpPort;
 
     private int theNextJobId = 1;
 
-    public FlameContextImpl(String aJarName, KVSClient aKVSClient) {
+    public FlameContextImpl(String aJarName, String aKVSCoordinatorIpPort) {
         theJarName = aJarName;
-        theKVSClient = aKVSClient;
+        theKVSCoordinatorIpPort = aKVSCoordinatorIpPort;
         theOutputStringBuilder = new StringBuilder();
     }
 
     @Override
     public KVSClient getKVS() {
-        return theKVSClient;
+        return new KVSClient(theKVSCoordinatorIpPort);
     }
 
     @Override
@@ -45,10 +45,10 @@ public class FlameContextImpl implements FlameContext {
     public FlameRDD parallelize(List<String> list) throws Exception {
         String myJobId = getNewTableName();
         for (int i = 0; i < list.size(); i++) {
-            theKVSClient.put(myJobId, Hasher.hash(String.valueOf(i)), COLUMN_NAME, list.get(i));
+            getKVS().put(myJobId, Hasher.hash(String.valueOf(i)), COLUMN_NAME, list.get(i));
         }
 
-        return new FlameRDDImpl(myJobId, theKVSClient, this);
+        return new FlameRDDImpl(myJobId, getKVS(), this);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class FlameContextImpl implements FlameContext {
         if (myOutputTable == null) {
             throw new Exception("Failed to invoke fromTable operation");
         }
-        return new FlameRDDImpl(myOutputTable, theKVSClient, this);
+        return new FlameRDDImpl(myOutputTable, getKVS(), this);
     }
 
     public String getOutput() {
@@ -185,7 +185,7 @@ public class FlameContextImpl implements FlameContext {
                 myWorkerQuery.append("&");
                 myWorkerQuery
                         .append("kvsCoordinator=")
-                        .append(URLEncoder.encode(Coordinator.theKVSClient.getCoordinator(), StandardCharsets.UTF_8));
+                        .append(URLEncoder.encode(getKVS().getCoordinator(), StandardCharsets.UTF_8));
                 if (aPartition.fromKey != null) {
                     myWorkerQuery.append("&");
                     myWorkerQuery
@@ -218,10 +218,10 @@ public class FlameContextImpl implements FlameContext {
         List<String> myKVSWorkerAddresses = new LinkedList<>();
 
         try {
-            int myNumKVSWorkers = theKVSClient.numWorkers();
+            int myNumKVSWorkers = getKVS().numWorkers();
             for (int i = 0; i < myNumKVSWorkers; i++) {
-                myKVSWorkerIDs.add(theKVSClient.getWorkerID(i));
-                myKVSWorkerAddresses.add(theKVSClient.getWorkerAddress(i));
+                myKVSWorkerIDs.add(getKVS().getWorkerID(i));
+                myKVSWorkerAddresses.add(getKVS().getWorkerAddress(i));
             }
         } catch (IOException e) {
             LOGGER.error("Failed to get KVS workers", e);

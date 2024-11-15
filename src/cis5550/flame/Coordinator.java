@@ -6,6 +6,7 @@ import java.io.*;
 import java.lang.reflect.*;
 
 import static cis5550.webserver.Server.*;
+
 import cis5550.kvs.KVSClient;
 import cis5550.tools.*;
 
@@ -15,7 +16,7 @@ class Coordinator extends cis5550.generic.Coordinator {
     private static final String VERSION = "v1.5 Jan 1 2023";
 
     static int theNextJobId = 1;
-    public static KVSClient theKVSClient;
+    private static String theKVSCoordinatorIpPort;
 
     public static void main(String args[]) {
 
@@ -27,7 +28,7 @@ class Coordinator extends cis5550.generic.Coordinator {
         }
 
         int myPort = Integer.valueOf(args[0]);
-        theKVSClient = new KVSClient(args[1]);
+        theKVSCoordinatorIpPort = args[1];
 
         LOGGER.info("Flame coordinator (" + VERSION + ") starting on port " + myPort);
 
@@ -116,7 +117,7 @@ class Coordinator extends cis5550.generic.Coordinator {
             // in which case we'll get an InvocationTargetException. We'll extract the underlying cause and report it
             // back to the user in the HTTP response, to help with debugging.
 
-            FlameContextImpl myFlameContext = new FlameContextImpl(jarName, theKVSClient);
+            FlameContextImpl myFlameContext = new FlameContextImpl(jarName, theKVSCoordinatorIpPort);
 
             try {
                 Loader.invokeRunMethod(jarFile, className, myFlameContext, argVector);
