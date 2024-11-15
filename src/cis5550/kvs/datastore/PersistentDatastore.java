@@ -208,7 +208,20 @@ public class PersistentDatastore implements Datastore {
             return -1;
         }
 
-        return myTableDirectory.listFiles().length;
+        int myCount = 0;
+
+        for (File myRowOrSubdirectory : myTableDirectory.listFiles()) {
+            if (myRowOrSubdirectory.isDirectory()) {
+                File[] myRowFiles = myRowOrSubdirectory.listFiles();
+                if (myRowFiles != null) {
+                    myCount += myRowFiles.length;
+                }
+            } else {
+                myCount++;
+            }
+        }
+
+        return myCount;
     }
 
     @Override
