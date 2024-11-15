@@ -45,7 +45,6 @@ public class HTTPRequestParser {
         while (!hasReachedEnd(myByteList)) {
             byte myCurrByte = (byte) aInputStream.read();
             if (myCurrByte == -1) {
-                LOGGER.error("Failed to read byte");
                 return null;
             }
             myByteList.add(myCurrByte);
