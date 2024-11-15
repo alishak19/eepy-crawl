@@ -32,6 +32,6 @@ public record OperationParameters(
                 !isNullOrEmpty(myToKeyExclusive) ? URLDecoder.decode(myToKeyExclusive, StandardCharsets.UTF_8) : null,
                 !isNullOrEmpty(myKvsCoordinator) ? URLDecoder.decode(myKvsCoordinator, StandardCharsets.UTF_8) : null,
                 !isNullOrEmpty(request.bodyAsBytes()) ? Serializer.byteArrayToObject(request.bodyAsBytes(), aJarFile) : null,
-                !isNullOrEmpty(myZeroElement) ? URLDecoder.decode(myZeroElement, StandardCharsets.UTF_8) : null);
+                myZeroElement != null ? URLDecoder.decode(myZeroElement, StandardCharsets.UTF_8) : null);
     }
 }

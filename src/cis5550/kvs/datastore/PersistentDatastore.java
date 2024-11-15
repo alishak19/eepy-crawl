@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 
@@ -208,6 +209,45 @@ public class PersistentDatastore implements Datastore {
         }
 
         return myTableDirectory.listFiles().length;
+    }
+
+    @Override
+    public OpStatus fromMap(String aTableName, ConcurrentMap<String, Row> aTable) {
+        File myTableDirectory = new File(getTableDirectory(aTableName));
+
+        if (myTableDirectory.exists()) {
+            return OpStatus.TABLE_ALREADY_EXISTS;
+        }
+
+        for (Map.Entry<String, Row> myEntry : aTable.entrySet()) {
+            String myRowFileName = getRowFileName(aTableName, myEntry.getKey());
+            File myRowFile = new File(myRowFileName);
+            if (!myRowFile.getParentFile().exists()) {
+                if (!myRowFile.getParentFile().mkdirs()) {
+                    LOGGER.error("Failed to create directory");
+                    return OpStatus.SERVER_ERROR;
+                }
+            }
+
+            try (FileOutputStream myWriter = new FileOutputStream(myRowFile)) {
+                if (myEntry.getValue() != null) {
+                    myWriter.write(myEntry.getValue().toByteArray());
+                }
+                myWriter.flush();
+            } catch (IOException e) {
+                LOGGER.error("Failed to write to file", e);
+                return OpStatus.SERVER_ERROR;
+            }
+        }
+        return OpStatus.SUCCESS;
+    }
+
+    @Override
+    public ConcurrentMap<String, Row> getMap(String aTableName) {
+        SortedMap<String, Row> myRows = recursiveAddRows(new File(getTableDirectory(aTableName)), null);
+        ConcurrentMap<String, Row> myResult = new ConcurrentSkipListMap<>();
+        myResult.putAll(myRows);
+        return myResult;
     }
 
     private String getRowFileName(String aTable, String aKey) {

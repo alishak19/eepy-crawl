@@ -58,10 +58,10 @@ public class Indexer {
 
             List<String> myUrls = new LinkedList<>(Arrays.asList(a.split(COMMA)));
             String[] myUrlWord = b.split(COLON);
-            int myWordCount = myUrlWord[3].split(SPACE).length;
+            int myWordCount = myUrlWord[1].split(SPACE).length;
             for (int i = 0; i < myUrls.size(); i++) {
                 String[] myUrlWordCount = myUrls.get(i).split(COLON);
-                int myCount = myUrlWordCount[3].split(SPACE).length;
+                int myCount = myUrlWordCount[1].split(SPACE).length;
                 if (myWordCount > myCount) {
                     myUrls.add(i, b);
                     return String.join(COMMA, myUrls);

@@ -137,4 +137,29 @@ public class InMemoryDatastore implements Datastore {
         }
         return theMemoryData.get(aTable).size();
     }
+
+    @Override
+    public OpStatus fromMap(String aTableName, ConcurrentMap<String, Row> aTable) {
+        if (theMemoryData.containsKey(aTableName)) {
+            return OpStatus.TABLE_ALREADY_EXISTS;
+        }
+        ConcurrentMap<String, ConcurrentLinkedDeque<Row>> myTable = new ConcurrentSkipListMap<>();
+        aTable.forEach((aKey, aRow) -> {
+            ConcurrentLinkedDeque<Row> myRowDeque = new ConcurrentLinkedDeque<>();
+            myRowDeque.add(aRow);
+            myTable.put(aKey, myRowDeque);
+        });
+        theMemoryData.put(aTableName, myTable);
+        return OpStatus.SUCCESS;
+    }
+
+    @Override
+    public ConcurrentMap<String, Row> getMap(String aTableName) {
+        ConcurrentMap<String, Row> myResult = new ConcurrentHashMap<>();
+        if (!theMemoryData.containsKey(aTableName)) {
+            return myResult;
+        }
+        theMemoryData.get(aTableName).forEach((aKey, aRowDeque) -> myResult.put(aKey, aRowDeque.peekLast()));
+        return myResult;
+    }
 }

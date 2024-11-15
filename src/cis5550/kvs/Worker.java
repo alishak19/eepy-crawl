@@ -84,6 +84,9 @@ public class Worker extends cis5550.generic.Worker {
         startPingThread(myId, myPort, myCoordinatorIPPort);
 
         get("/", getTables());
+        before((req, res) -> {
+            LOGGER.debug("Received request: " + req.requestMethod() + " " + req.url());
+        });
         get("/view/:table", getTableRows());
         get("/data/:table/:row", getRow());
         get("/data/:table", streamRows());
@@ -271,18 +274,23 @@ public class Worker extends cis5550.generic.Worker {
 
             switch (theData.rename(myTable, myNewName)) {
                 case SUCCESS:
+                    LOGGER.info("Renamed table " + myTable + " to " + myNewName);
                     res.status(200, "OK");
                     return "OK";
                 case TABLE_NOT_FOUND:
+                    LOGGER.info("Table " + myTable + " not found");
                     res.status(404, "Not found");
                     return "Not found";
                 case TABLE_ALREADY_EXISTS:
+                    LOGGER.info("Table " + myNewName + " already exists");
                     res.status(409, "Conflict");
                     return "Conflict";
                 case WRONG_NAME_FORMAT:
+                    LOGGER.info("Table name " + myNewName + " is invalid");
                     res.status(400, "Bad Request");
                     return "Bad Request";
                 default:
+                    LOGGER.error("Failed to rename table");
                     res.status(500, "Internal Server Error");
                     return "Internal Server Error";
             }

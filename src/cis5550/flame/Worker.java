@@ -1,15 +1,12 @@
 package cis5550.flame;
 
 import java.util.*;
-import java.net.*;
 import java.io.*;
-import java.util.function.Function;
 
 import static cis5550.flame.FlameContextImpl.COLUMN_NAME;
 import static cis5550.webserver.Server.*;
 import cis5550.tools.Hasher;
 import cis5550.tools.Logger;
-import cis5550.tools.Serializer;
 import cis5550.kvs.*;
 import cis5550.webserver.Request;
 
@@ -36,6 +33,10 @@ class Worker extends cis5550.generic.Worker {
             fos.write(request.bodyAsBytes());
             fos.close();
             return "OK";
+        });
+
+        before((req, res) -> {
+            LOGGER.debug("Received request: " + req.requestMethod() + " " + req.url());
         });
 
         post(FlameOperation.FLATMAP.getPath(), (request, response) -> {
@@ -139,7 +140,6 @@ class Worker extends cis5550.generic.Worker {
 
                 for (String myColumn : myRow.columns()) {
                     String myValue = myRow.get(myColumn);
-                    System.out.println("myValue: " + myValue);
                     myAccumulatedValue = myLambda.op(myAccumulatedValue, myValue);
                 }
 

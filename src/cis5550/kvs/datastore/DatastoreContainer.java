@@ -5,6 +5,7 @@ import cis5550.kvs.datamodels.OpStatus;
 
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
 public class DatastoreContainer implements Datastore {
@@ -96,16 +97,32 @@ public class DatastoreContainer implements Datastore {
             }
             return thePersistentDatastore.rename(aTable, aNewName);
         } else {
-            if (isPersistent(aNewName)) {
-                return OpStatus.WRONG_NAME_FORMAT;
+            ConcurrentMap<String, Row> myTable = theInMemoryDatastore.getMap(aTable);
+            OpStatus myResult = thePersistentDatastore.fromMap(aNewName, myTable);
+            if (myResult == OpStatus.SUCCESS) {
+                theInMemoryDatastore.delete(aTable);
             }
-            return theInMemoryDatastore.rename(aTable, aNewName);
+            return myResult;
         }
     }
 
     @Override
     public int count(String aTable) {
         return isPersistent(aTable) ? thePersistentDatastore.count(aTable) : theInMemoryDatastore.count(aTable);
+    }
+
+    @Override
+    public OpStatus fromMap(String aTableName, ConcurrentMap<String, Row> aTable) {
+        if (isPersistent(aTableName)) {
+            return thePersistentDatastore.fromMap(aTableName, aTable);
+        } else {
+            return theInMemoryDatastore.fromMap(aTableName, aTable);
+        }
+    }
+
+    @Override
+    public ConcurrentMap<String, Row> getMap(String aTableName) {
+        return isPersistent(aTableName) ? thePersistentDatastore.getMap(aTableName) : theInMemoryDatastore.getMap(aTableName);
     }
 
     private boolean isPersistent(String aTable) {

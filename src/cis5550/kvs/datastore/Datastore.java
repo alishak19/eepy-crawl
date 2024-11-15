@@ -5,6 +5,7 @@ import cis5550.kvs.Row;
 
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
 public interface Datastore {
@@ -18,4 +19,6 @@ public interface Datastore {
     OpStatus delete(String aTable);
     OpStatus rename(String aTable, String aNewName);
     int count(String aTable);
+    OpStatus fromMap(String aTableName, ConcurrentMap<String, Row> aTable);
+    ConcurrentMap<String, Row> getMap(String aTableName);
 }
