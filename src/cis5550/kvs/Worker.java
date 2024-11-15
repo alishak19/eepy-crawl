@@ -40,7 +40,7 @@ public class Worker extends cis5550.generic.Worker {
             System.exit(1);
         }
 
-        LOGGER.info("Starting Worker on port " + myPort + " with directory " + myDirectory + " and coordinator "
+        LOGGER.info("Starting KVS worker on port " + myPort + " with directory " + myDirectory + " and coordinator "
                 + myCoordinatorIPPort);
 
         File myDir = new File(myDirectory);

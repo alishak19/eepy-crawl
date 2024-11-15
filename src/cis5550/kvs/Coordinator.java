@@ -14,7 +14,7 @@ public class Coordinator extends cis5550.generic.Coordinator {
             System.exit(1);
         }
 
-        LOGGER.info("Starting Coordinator on port " + args[0]);
+        LOGGER.info("Starting KVS coordinator on port " + args[0]);
 
         int myPort = Integer.parseInt(args[0]);
         port(myPort);
