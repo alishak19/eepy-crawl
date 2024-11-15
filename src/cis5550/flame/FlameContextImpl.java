@@ -23,6 +23,8 @@ public class FlameContextImpl implements FlameContext {
     private final String theJarName;
     private final KVSClient theKVSClient;
 
+    private int theNextJobId = 1;
+
     public FlameContextImpl(String aJarName, KVSClient aKVSClient) {
         theJarName = aJarName;
         theKVSClient = aKVSClient;
@@ -41,12 +43,12 @@ public class FlameContextImpl implements FlameContext {
 
     @Override
     public FlameRDD parallelize(List<String> list) throws Exception {
-        UUID myJobId = UUID.randomUUID();
+        String myJobId = getNewTableName();
         for (int i = 0; i < list.size(); i++) {
-            theKVSClient.put(myJobId.toString(), Hasher.hash(String.valueOf(i)), COLUMN_NAME, list.get(i));
+            theKVSClient.put(myJobId, Hasher.hash(String.valueOf(i)), COLUMN_NAME, list.get(i));
         }
 
-        return new FlameRDDImpl(myJobId.toString(), theKVSClient, this);
+        return new FlameRDDImpl(myJobId, theKVSClient, this);
     }
 
     @Override
@@ -68,7 +70,7 @@ public class FlameContextImpl implements FlameContext {
 
     public String invokeOperation(
             String aInputTable, FlameOperation aFlameOperation, byte[] aLambda, String aZeroElement) {
-        UUID myOutputTable = UUID.randomUUID();
+        String myOutputTable = getNewTableName();
 
         ConcurrentLinkedDeque<HTTP.Response> myResponses = new ConcurrentLinkedDeque<>();
         List<Thread> myThreads = new LinkedList<>();
@@ -80,7 +82,7 @@ public class FlameContextImpl implements FlameContext {
                     aFlameOperation,
                     aLambda,
                     aInputTable,
-                    myOutputTable.toString(),
+                    myOutputTable,
                     myPartition,
                     aZeroElement,
                     myResponses);
@@ -108,7 +110,7 @@ public class FlameContextImpl implements FlameContext {
             }
         }
 
-        return myOutputTable.toString();
+        return myOutputTable;
     }
 
     public String invokeOperation(String aInputTable, FlameOperation aFlameOperation, byte[] aLambda) {
@@ -240,5 +242,9 @@ public class FlameContextImpl implements FlameContext {
         myFlameWorkers.forEach(myPartitioner::addFlameWorker);
 
         return myPartitioner.assignPartitions();
+    }
+
+    private String getNewTableName() {
+        return "flame_" + theNextJobId++ + "_" + theJarName + "_" + System.currentTimeMillis();
     }
 }
