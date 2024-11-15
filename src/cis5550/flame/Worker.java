@@ -490,9 +490,9 @@ class Worker extends cis5550.generic.Worker {
         });
 
         post(FlameOperation.FOLD.getPath(), (request, response) -> {
-            OperationParameters myParams = getAndValidateParams(request, myJAR);
+            OperationParameters myParams = getAndValidateFoldParams(request, myJAR);
 
-            if (myParams == null || myParams.zeroElement() == null || myParams.lambda() == null) {
+            if (myParams == null) {
                 response.status(400, "Bad request");
                 return "Bad request";
             }
@@ -648,6 +648,20 @@ class Worker extends cis5550.generic.Worker {
         }
 
         if (myParams.inputTable() == null || myParams.outputTable() == null) {
+            return null;
+        }
+
+        return myParams;
+    }
+
+    private static OperationParameters getAndValidateFoldParams(Request aRequest, File aJar) {
+        OperationParameters myParams = OperationParameters.fromRequest(aRequest, aJar);
+
+        if (myParams.kvsCoordinator() == null) {
+            return null;
+        }
+
+        if (myParams.inputTable() == null || myParams.zeroElement() == null || myParams.lambda() == null) {
             return null;
         }
 

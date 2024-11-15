@@ -153,7 +153,7 @@ public class FlameContextImpl implements FlameContext, Serializable {
 
         for (HTTP.Response myResponse : myResponses) {
             if (myResponse == null || myResponse.statusCode() != 200) {
-                LOGGER.error("Operation failed on at least one worker");
+                LOGGER.error("Operation failed on at least one worker with status code: " + (myResponse == null ? "response is null" : myResponse.statusCode()));
                 return null;
             }
 

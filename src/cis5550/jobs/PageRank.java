@@ -176,7 +176,6 @@ public class PageRank {
                     aContext.getKVS()
                             .put(PAGERANK_TABLE, myUrlHash, TableColumns.RANK.value(), String.valueOf(myPageRank));
                     return List.of();
-                })
-                .saveAsTable(PAGERANK_TABLE);
+                });
     }
 }
