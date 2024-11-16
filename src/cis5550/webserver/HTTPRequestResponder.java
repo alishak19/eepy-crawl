@@ -21,7 +21,7 @@ public class HTTPRequestResponder {
     private static final String HTTP_VERSION = "HTTP/1.1";
     private static final String SERVER_NAME = "CIS5550-WebServer";
 
-    public static boolean generateResponse(
+    public static boolean generateAndSendResponse(
             RequestImpl aRequest, RoutesContainer aRoutesContainer, StaticFiles aStaticFiles, Socket aSocket) throws IOException {
         boolean myKeepAlive = true;
 
@@ -31,16 +31,20 @@ public class HTTPRequestResponder {
         myResponse.header(Header.DATE.getHeaderString(), DateParser.formatDate(new Date().getTime()));
 
         if (!aRequest.isValid()) {
+            LOGGER.debug("Request is invalid");
             myResponse.errorStatus(HTTPStatus.BAD_REQUEST);
             sendResponse(myResponse, aSocket);
         } else if (Objects.isNull(aRequest.requestMethod())
                 || (RequestType.fromString(aRequest.requestMethod()) == RequestType.INVALID)) {
+            LOGGER.debug("Request method is invalid or null");
             myResponse.errorStatus(HTTPStatus.NOT_IMPLEMENTED);
             sendResponse(myResponse, aSocket);
         } else if (Objects.isNull(aRequest.protocol()) || (aRequest.protocol().compareTo(HTTP_VERSION) != 0)) {
+            LOGGER.debug("Protocol is invalid or null");
             myResponse.errorStatus(HTTPStatus.VERSION_NOT_SUPPORTED);
             sendResponse(myResponse, aSocket);
         } else if (Objects.isNull(aRequest.headers(Header.HOST.getHeaderString()))) {
+            LOGGER.debug("Host header is null");
             myResponse.errorStatus(HTTPStatus.BAD_REQUEST);
             sendResponse(myResponse, aSocket);
         } else {
@@ -125,12 +129,15 @@ public class HTTPRequestResponder {
         ResponseImpl myResponse = new ResponseImpl();
         File myFile = new File(aPath);
         if (aPath.contains("..")) {
+            LOGGER.debug("Path contains .., is forbidden");
             myResponse.errorStatus(HTTPStatus.FORBIDDEN);
         } else if (!myFile.exists() || myFile.isDirectory()) {
+            LOGGER.debug("File does not exist or is a directory");
             myResponse.errorStatus(HTTPStatus.NOT_FOUND);
         } else if (!Objects.isNull(aRequest.headers(Header.IF_MODIFIED_SINCE.getHeaderString()))
                 && myFile.lastModified()
                         <= DateParser.parseDate(aRequest.headers(Header.IF_MODIFIED_SINCE.getHeaderString()))) {
+            LOGGER.debug("File has not been modified since last request");
             myResponse.errorStatus(HTTPStatus.NOT_MODIFIED);
         } else {
             String aExtension = aPath.substring(aPath.lastIndexOf(".") + 1);
@@ -151,6 +158,7 @@ public class HTTPRequestResponder {
                     myResponse.bodyAsBytes(myBody);
                 }
             } else if (Objects.isNull(myBody)) {
+                LOGGER.debug("File is null or forbidden");
                 myResponse.errorStatus(HTTPStatus.FORBIDDEN);
             } else if (aRequest.requestMethod().compareTo(RequestType.HEAD.toString()) == 0) {
                 myResponse.header(Header.CONTENT_LENGTH.getHeaderString(), String.valueOf(myBody.length));
@@ -176,7 +184,7 @@ public class HTTPRequestResponder {
         if (aSocket == null) {
             throw new IOException("Socket is null");
         }
-        LOGGER.info("Sending headers for response " + aResponse.toString());
+        LOGGER.debug("Sending headers for response " + aResponse.toString());
         OutputStream myOutputStream = aSocket.getOutputStream();
         myOutputStream.write(
                 (HTTP_VERSION + " " + aResponse.getStatusCode() + " " + aResponse.getReasonPhrase() + "\r\n")

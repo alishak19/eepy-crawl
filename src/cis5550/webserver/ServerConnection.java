@@ -46,8 +46,8 @@ public class ServerConnection implements Runnable {
 
                 LOGGER.info("Received request " + myRequest);
 
-                if (!HTTPRequestResponder.generateResponse(myRequest, theRoutesContainer, theStaticFiles, theSocket)) {
-                    LOGGER.info("Used write(): closing connection " + theSocket.getInetAddress());
+                if (!HTTPRequestResponder.generateAndSendResponse(myRequest, theRoutesContainer, theStaticFiles, theSocket)) {
+                    LOGGER.debug("Used write(): closing connection " + theSocket.getInetAddress());
                     break;
                 }
             } catch (IOException e) {

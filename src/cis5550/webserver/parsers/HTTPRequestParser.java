@@ -30,6 +30,7 @@ public class HTTPRequestParser {
     public RequestImpl parseRequest(Socket aSocket, SessionsContainer aSessionsContainer) throws IOException {
         byte[] myRequestBytes = readBytes(aSocket.getInputStream());
         if (Objects.isNull(myRequestBytes)) {
+            LOGGER.debug("Request is null");
             return null;
         }
 
@@ -45,6 +46,7 @@ public class HTTPRequestParser {
         while (!hasReachedEnd(myByteList)) {
             byte myCurrByte = (byte) aInputStream.read();
             if (myCurrByte == -1) {
+                LOGGER.debug("End of stream");
                 return null;
             }
             myByteList.add(myCurrByte);
