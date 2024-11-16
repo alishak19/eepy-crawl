@@ -4,6 +4,7 @@ import java.util.*;
 import java.io.*;
 
 import static cis5550.flame.FlameContextImpl.COLUMN_NAME;
+import static cis5550.utils.HTTPStatus.*;
 import static cis5550.webserver.Server.*;
 import cis5550.tools.Hasher;
 import cis5550.tools.Logger;
@@ -43,7 +44,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -53,8 +54,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -74,7 +75,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -82,7 +83,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -92,8 +93,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -109,7 +110,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -117,7 +118,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null || myParams.zeroElement() == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -127,8 +128,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -148,7 +149,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -156,7 +157,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -166,8 +167,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -183,7 +184,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -191,7 +192,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -202,8 +203,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -214,7 +215,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -222,7 +223,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -234,8 +235,8 @@ class Worker extends cis5550.generic.Worker {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
                 myOtherRows = myKVS.scan((String) myParams.lambda(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -253,7 +254,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -261,7 +262,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -271,8 +272,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -286,7 +287,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -294,7 +295,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -304,8 +305,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -319,7 +320,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -327,7 +328,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -337,8 +338,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -358,7 +359,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -366,7 +367,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -376,8 +377,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -399,7 +400,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -407,7 +408,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -417,8 +418,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -444,7 +445,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -452,7 +453,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -463,8 +464,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -485,7 +486,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -493,7 +494,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateFoldParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -503,8 +504,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -517,7 +518,7 @@ class Worker extends cis5550.generic.Worker {
                 myAccumulatedValue = myLambda.op(myAccumulatedValue, myValue);
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return myAccumulatedValue;
         });
 
@@ -525,7 +526,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -536,8 +537,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -549,7 +550,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
@@ -557,7 +558,7 @@ class Worker extends cis5550.generic.Worker {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -568,8 +569,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -588,15 +589,16 @@ class Worker extends cis5550.generic.Worker {
                 myI++;
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
 
         post(FlameOperation.COGROUP.getPath(), (request, response) -> {
+            LOGGER.error("Cogroup is NOT fully supported and is prone to bugs.");
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
             if (myParams == null) {
-                response.status(400, "Bad request");
+                setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
 
@@ -607,8 +609,8 @@ class Worker extends cis5550.generic.Worker {
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
             } catch (IOException e) {
-                e.printStackTrace();
-                response.status(500, "Internal error");
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
                 return "Internal error";
             }
 
@@ -635,7 +637,7 @@ class Worker extends cis5550.generic.Worker {
                         "[" + String.join(",", myRowValues) + "],[" + String.join(",", myOtherRowValues) + "]");
             }
 
-            response.status(200, "OK");
+            setResponseStatus(response, OK);
             return "OK";
         });
     }
