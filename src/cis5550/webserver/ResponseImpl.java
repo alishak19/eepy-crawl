@@ -1,6 +1,6 @@
 package cis5550.webserver;
 
-import cis5550.webserver.datamodels.HTTPStatus;
+import cis5550.utils.HTTPStatus;
 import cis5550.webserver.datamodels.Header;
 
 import java.io.IOException;

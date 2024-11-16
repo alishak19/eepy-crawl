@@ -1,4 +1,6 @@
-package cis5550.webserver.datamodels;
+package cis5550.utils;
+
+import cis5550.webserver.Response;
 
 public enum HTTPStatus {
     OK(200, "OK"),
@@ -12,6 +14,8 @@ public enum HTTPStatus {
     FORBIDDEN(403, "Forbidden"),
     NOT_FOUND(404, "Not Found"),
     NOT_ALLOWED(405, "Method Not Allowed"),
+    CONFLICT(409, "Conflict"),
+    PRECONDITION_FAILED(412, "Precondition Failed"),
     INVALID_RANGE(416, "Requested Range Not Satisfiable"),
     INTERNAL_SERVER_ERROR(500, "Internal Server Error"),
     NOT_IMPLEMENTED(501, "Not Implemented"),
@@ -54,5 +58,9 @@ public enum HTTPStatus {
             case 505 -> VERSION_NOT_SUPPORTED;
             default -> NULL;
         };
+    }
+
+    public static void setResponseStatus(Response aResponse, HTTPStatus aStatus) {
+        aResponse.status(aStatus.getCode(), aStatus.getMessage());
     }
 }

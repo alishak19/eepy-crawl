@@ -13,6 +13,7 @@ import static cis5550.kvs.datamodels.IPPort.fromString;
 import static cis5550.kvs.HTMLGenerator.generateTableEntries;
 import static cis5550.kvs.HTMLGenerator.generateWorkerEntries;
 import static cis5550.kvs.IDGenerator.generateLowerCaseID;
+import static cis5550.utils.HTTPStatus.*;
 import static cis5550.webserver.Server.*;
 
 public class Worker extends cis5550.generic.Worker {
@@ -106,7 +107,8 @@ public class Worker extends cis5550.generic.Worker {
             byte[] myValue = req.bodyAsBytes();
 
             if (myTable == null || myRow == null || myColumn == null || myValue == null) {
-                res.status(400, "Bad Request");
+                LOGGER.debug("Bad Request: " + myTable + " " + myRow + " " + myColumn + " " + myValue);
+                setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
 
@@ -118,6 +120,7 @@ public class Worker extends cis5550.generic.Worker {
                 if (myRowObject == null
                         || myRowObject.get(myIfColumn) == null
                         || !myIfEquals.equals(myRowObject.get(myIfColumn))) {
+                    setResponseStatus(res, PRECONDITION_FAILED);
                     return "FAIL";
                 }
             }
@@ -125,7 +128,7 @@ public class Worker extends cis5550.generic.Worker {
             int myVersion = theData.put(myTable, myRow, myColumn, myValue);
 
             res.header("Version", String.valueOf(myVersion));
-            res.status(200, "OK");
+            setResponseStatus(res, OK);
             return "OK";
         };
     }
@@ -136,17 +139,17 @@ public class Worker extends cis5550.generic.Worker {
             String myRow = req.params("row");
 
             if (myTable == null || myRow == null) {
-                res.status(400, "Bad Request");
+                setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
 
             Row myRowObject = theData.get(myTable, myRow);
             if (myRowObject == null) {
-                res.status(404, "Not Found");
+                setResponseStatus(res, NOT_FOUND);
                 return "Not Found";
             }
 
-            res.status(200, "OK");
+            setResponseStatus(res, OK);
             res.type("application/octet-stream");
             res.bodyAsBytes(myRowObject.toByteArray());
             return null;
@@ -160,7 +163,7 @@ public class Worker extends cis5550.generic.Worker {
             String myColumn = req.params("column");
 
             if (myTable == null || myRow == null || myColumn == null) {
-                res.status(400, "Bad Request");
+                setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
 
@@ -171,7 +174,7 @@ public class Worker extends cis5550.generic.Worker {
             if (myVersionString == null) {
                 myRowObject = theData.get(myTable, myRow);
                 if (myRowObject == null) {
-                    res.status(404, "Not Found");
+                    setResponseStatus(res, NOT_FOUND);
                     return "Not Found";
                 }
 
@@ -181,23 +184,23 @@ public class Worker extends cis5550.generic.Worker {
                     myVersion = Integer.parseInt(myVersionString);
                 } catch (NumberFormatException e) {
                     LOGGER.error("Failed to parse version", e);
-                    res.status(400, "Bad Request");
+                    setResponseStatus(res, BAD_REQUEST);
                     return "Bad Request";
                 }
 
                 myRowObject = theData.get(myTable, myRow, myVersion);
                 if (myRowObject == null) {
-                    res.status(404, "Not Found");
+                    setResponseStatus(res, NOT_FOUND);
                     return "Not Found";
                 }
             }
 
             if (myRowObject.get(myColumn) == null) {
-                res.status(404, "Not Found");
+                setResponseStatus(res, NOT_FOUND);
                 return "Not Found";
             }
 
-            res.status(200, "OK");
+            setResponseStatus(res, OK);
             res.bodyAsBytes(myRowObject.getBytes(myColumn));
             res.header("Version", String.valueOf(myVersion));
             return null;
@@ -211,12 +214,12 @@ public class Worker extends cis5550.generic.Worker {
             String myEndRowExclusive = req.queryParams("endRowExclusive");
 
             if (myTable == null) {
-                res.status(400, "Bad Request");
+                setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
             Stream<Row> myRowStream = theData.getRowDataStream(myTable, myStartRow, myEndRowExclusive);
             if (myRowStream == null) {
-                res.status(404, "Not Found");
+                setResponseStatus(res, NOT_FOUND);
                 return "Not Found";
             }
             res.type("text/plain");
@@ -243,19 +246,19 @@ public class Worker extends cis5550.generic.Worker {
             String myTable = req.params("table");
 
             if (myTable == null) {
-                res.status(400, "Bad Request");
+                setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
 
             switch (theData.delete(myTable)) {
                 case SUCCESS:
-                    res.status(200, "OK");
+                    setResponseStatus(res, OK);
                     return "OK";
                 case TABLE_NOT_FOUND:
-                    res.status(404, "Not found");
+                    setResponseStatus(res, NOT_FOUND);
                     return "Not found";
                 default:
-                    res.status(500, "Internal Server Error");
+                    setResponseStatus(res, INTERNAL_SERVER_ERROR);
                     return "Internal Server Error";
             }
         };
@@ -268,30 +271,30 @@ public class Worker extends cis5550.generic.Worker {
             String myNewName = req.body();
 
             if (myTable == null || myNewName == null) {
-                res.status(400, "Bad Request");
+                setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
 
             switch (theData.rename(myTable, myNewName)) {
                 case SUCCESS:
                     LOGGER.info("Renamed table " + myTable + " to " + myNewName);
-                    res.status(200, "OK");
+                    setResponseStatus(res, OK);
                     return "OK";
                 case TABLE_NOT_FOUND:
                     LOGGER.info("Table " + myTable + " not found");
-                    res.status(404, "Not found");
+                    setResponseStatus(res, NOT_FOUND);
                     return "Not found";
                 case TABLE_ALREADY_EXISTS:
                     LOGGER.info("Table " + myNewName + " already exists");
-                    res.status(409, "Conflict");
+                    setResponseStatus(res, CONFLICT);
                     return "Conflict";
                 case WRONG_NAME_FORMAT:
                     LOGGER.info("Table name " + myNewName + " is invalid");
-                    res.status(400, "Bad Request");
+                    setResponseStatus(res, BAD_REQUEST);
                     return "Bad Request";
                 default:
                     LOGGER.error("Failed to rename table");
-                    res.status(500, "Internal Server Error");
+                    setResponseStatus(res, INTERNAL_SERVER_ERROR);
                     return "Internal Server Error";
             }
         };
@@ -302,25 +305,25 @@ public class Worker extends cis5550.generic.Worker {
             String myTable = req.params("table");
 
             if (myTable == null) {
-                res.status(400, "Bad Request");
+                setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
 
             int myCount = theData.count(myTable);
 
             if (myCount < 0) {
-                res.status(404, "Not Found");
+                setResponseStatus(res, NOT_FOUND);
                 return "Not Found";
             }
 
-            res.status(200, "OK");
+            setResponseStatus(res, OK);
             return myCount;
         };
     }
 
     private static Route getTables() {
         return (req, res) -> {
-            res.status(200, "OK");
+            setResponseStatus(res, OK);
             return generateWorkerEntries(theData.getTables());
         };
     }
@@ -330,10 +333,10 @@ public class Worker extends cis5550.generic.Worker {
             String myTable = req.params("table");
             String myFromRow = req.queryParams("fromRow");
             if (myTable == null) {
-                res.status(400, "Bad Request");
+                setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
-            res.status(200, "OK");
+            setResponseStatus(res, OK);
             SortedMap<String, Row> myRows = theData.getRows(myTable, myFromRow, PAGE_SIZE);
 
             return generateTableEntries(myTable, theData.getRows(myTable, myFromRow, PAGE_SIZE), PAGE_SIZE);

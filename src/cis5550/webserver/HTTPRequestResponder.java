@@ -1,6 +1,7 @@
 package cis5550.webserver;
 
 import cis5550.tools.Logger;
+import cis5550.utils.HTTPStatus;
 import cis5550.webserver.datamodels.*;
 import cis5550.webserver.parsers.DateParser;
 import cis5550.webserver.parsers.RangeParser;
@@ -15,6 +16,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Date;
 import java.util.Objects;
+
+import static cis5550.utils.HTTPStatus.setResponseStatus;
 
 public class HTTPRequestResponder {
     private static final Logger LOGGER = Logger.getLogger(HTTPRequestResponder.class);
@@ -67,7 +70,7 @@ public class HTTPRequestResponder {
                         return myKeepAlive;
                     }
 
-                    myResponse.status(HTTPStatus.OK.getCode(), HTTPStatus.OK.getMessage());
+                    setResponseStatus(myResponse, HTTPStatus.OK);
                     myResponse.header(Header.CONTENT_TYPE.getHeaderString(), ContentType.HTML.getTypeString());
 
                     Object myRouteResult = myBeforeAfterRoute.handleRoute(aRequest, myResponse);
@@ -142,7 +145,7 @@ public class HTTPRequestResponder {
         } else {
             String aExtension = aPath.substring(aPath.lastIndexOf(".") + 1);
 
-            myResponse.status(HTTPStatus.OK.getCode(), HTTPStatus.OK.getMessage());
+            setResponseStatus(myResponse, HTTPStatus.OK);
             byte[] myBody = FileReader.readFile(aPath);
             if (!Objects.isNull(myBody) && aRequest.requestMethod().compareTo(RequestType.GET.toString()) == 0) {
                 Range myRange = RangeParser.parseRange(aRequest.headers(Header.RANGE.getHeaderString()));
