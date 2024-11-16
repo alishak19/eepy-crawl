@@ -164,4 +164,12 @@ public class ResponseImpl implements Response {
                 ", headers=" + theHeaders +
                 '}';
     }
+
+    public String debugString() {
+        return "ResponseImpl{" +
+                "statusCode=" + theStatusCode +
+                ", reasonPhrase='" + theReasonPhrase + '\'' +
+                ", headers=" + theHeaders +
+                '}';
+    }
 }

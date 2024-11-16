@@ -174,7 +174,7 @@ public class HTTPRequestResponder {
     }
 
     public static void sendResponse(ResponseImpl aResponse, Socket aSocket) throws IOException {
-        LOGGER.info("Sending response " + aResponse.toString());
+        LOGGER.info("Sending response " + aResponse.debugString());
         OutputStream myOutputStream = aSocket.getOutputStream();
         sendHeaders(aResponse, aSocket);
         if (aResponse.getBody() != null) {

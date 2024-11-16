@@ -173,4 +173,15 @@ public class RequestImpl implements Request {
                 + params + ", bodyRaw="
                 + Arrays.toString(bodyRaw) + '}';
     }
+
+    public String debugString() {
+        return "RequestImpl{" + "method='"
+                + method + '\'' + ", url='"
+                + url + '\'' + ", protocol='"
+                + protocol + '\'' + ", remoteAddr="
+                + remoteAddr + ", headers="
+                + headers + ", queryParams="
+                + queryParams + ", params="
+                + params;
+    }
 }
