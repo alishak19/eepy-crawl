@@ -96,6 +96,9 @@ public class Worker extends cis5550.generic.Worker {
         put("/delete/:table", deleteTable());
         put("/rename/:table", renameTable());
         get("/count/:table", rowCount());
+        after((req, res) -> {
+            LOGGER.debug("Completed request " + req.requestMethod() + " " + req.url());
+        });
     }
 
     private static Route putCell() {
@@ -344,9 +347,11 @@ public class Worker extends cis5550.generic.Worker {
     }
 
     private static void forwardPutRequest(Request aReq) {
-        if (aReq.queryParams("replica") != null) {
-            return;
-        }
-        theReplicationManager.forwardPuts(aReq);
+        // turn off replication for now!
+        return;
+//        if (aReq.queryParams("replica") != null) {
+//            return;
+//        }
+//        theReplicationManager.forwardPuts(aReq);
     }
 }

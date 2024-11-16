@@ -1,8 +1,11 @@
 package cis5550.generic;
 
+import cis5550.tools.Logger;
+
 import java.util.List;
 import java.util.Vector;
 
+import static cis5550.webserver.Server.after;
 import static cis5550.webserver.Server.get;
 
 public class Coordinator {

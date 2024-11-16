@@ -43,6 +43,8 @@ class Worker extends cis5550.generic.Worker {
         post(FlameOperation.FLATMAP.getPath(), (request, response) -> {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
+            LOGGER.debug("Received flatMap request, parsed parameters");
+
             if (myParams == null) {
                 setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
@@ -50,6 +52,8 @@ class Worker extends cis5550.generic.Worker {
 
             KVSClient myKVS = new KVSClient(myParams.kvsCoordinator());
             Iterator<Row> myRows;
+
+            LOGGER.debug("Getting KVS client and scanning rows");
 
             try {
                 myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
@@ -59,16 +63,22 @@ class Worker extends cis5550.generic.Worker {
                 return "Internal error";
             }
 
+            LOGGER.debug("Scanned rows");
+
             FlameRDD.StringToIterable myLambda = (FlameRDD.StringToIterable) myParams.lambda();
 
             int myI = 0;
             while (myRows.hasNext()) {
+                LOGGER.debug("New Row");
                 Row myRow = myRows.next();
                 String myValue = myRow.get(COLUMN_NAME);
                 Iterable<String> myResults = myLambda.op(myValue);
 
+                LOGGER.debug("Got results");
+
                 if (myResults != null) {
                     for (String myResult : myResults) {
+                        LOGGER.debug("Putting result");
                         myKVS.put(myParams.outputTable(), createUniqueRowKey(myRow.key(), myI), COLUMN_NAME, myResult);
                         myI++;
                     }
@@ -639,6 +649,10 @@ class Worker extends cis5550.generic.Worker {
 
             setResponseStatus(response, OK);
             return "OK";
+        });
+
+        after((req, res) -> {
+            LOGGER.debug("Completed request: " + req.requestMethod() + " " + req.url());
         });
     }
 

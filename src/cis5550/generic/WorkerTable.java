@@ -7,15 +7,16 @@ import java.util.TreeSet;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class WorkerTable<K extends Comparable<K>> {
     private static final long MAX_DURATION_MILLIS = 15000;
-    private final ConcurrentMap<K, IPPort> theWorkerMap;
-    private final ConcurrentMap<K, Long> theLastPing;
+    private final ConcurrentSkipListMap<K, IPPort> theWorkerMap;
+    private final ConcurrentSkipListMap<K, Long> theLastPing;
 
     public WorkerTable() {
-        theWorkerMap = new ConcurrentHashMap<>();
-        theLastPing = new ConcurrentHashMap<>();
+        theWorkerMap = new ConcurrentSkipListMap<>();
+        theLastPing = new ConcurrentSkipListMap<>();
     }
 
     public void addOrUpdate(K aKey, String aIP, int aPort) {

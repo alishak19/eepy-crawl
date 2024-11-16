@@ -18,6 +18,7 @@ public class FlameContextImpl implements FlameContext, Serializable {
     public static final Logger LOGGER = Logger.getLogger(FlameContextImpl.class);
 
     public static final String COLUMN_NAME = "value";
+    public static final long MAX_WAIT_TIME = 10000;
 
     private final StringBuilder theOutputStringBuilder;
     private final String theJarName;
@@ -70,6 +71,7 @@ public class FlameContextImpl implements FlameContext, Serializable {
 
     public String invokeOperation(
             String aInputTable, FlameOperation aFlameOperation, byte[] aLambda, String aZeroElement) {
+        LOGGER.debug("Invoking operation " + aFlameOperation + " on table " + aInputTable);
         String myOutputTable = getNewTableName();
 
         ConcurrentLinkedDeque<HTTP.Response> myResponses = new ConcurrentLinkedDeque<>();
@@ -92,14 +94,14 @@ public class FlameContextImpl implements FlameContext, Serializable {
 
         for (Thread myThread : myThreads) {
             try {
-                myThread.join();
+                myThread.join(MAX_WAIT_TIME);
             } catch (InterruptedException e) {
                 LOGGER.error("Failed to join thread", e);
             }
         }
 
         if (myResponses.size() != myThreads.size()) {
-            LOGGER.error("Failed to send operation to all workers");
+            LOGGER.error("Failed to send operation to all workers, received responses: " + myResponses.size());
             return null;
         }
 
