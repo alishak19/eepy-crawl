@@ -3,18 +3,19 @@ package cis5550.generic;
 import cis5550.kvs.datamodels.IPPort;
 
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class WorkerTable<K extends Comparable<K>> {
     private static final long MAX_DURATION_MILLIS = 15000;
-    private final TreeMap<K, IPPort> theWorkerMap;
-    private final TreeMap<K, Long> theLastPing;
+    private final ConcurrentMap<K, IPPort> theWorkerMap;
+    private final ConcurrentMap<K, Long> theLastPing;
 
     public WorkerTable() {
-        theWorkerMap = new TreeMap<>();
-        theLastPing = new TreeMap<>();
+        theWorkerMap = new ConcurrentHashMap<>();
+        theLastPing = new ConcurrentHashMap<>();
     }
 
     public void addOrUpdate(K aKey, String aIP, int aPort) {
@@ -105,7 +106,7 @@ public class WorkerTable<K extends Comparable<K>> {
         return myStringBuilder.toString();
     }
 
-    private void removeExpired() {
+    private synchronized void removeExpired() {
         long myCurrentTime = System.currentTimeMillis();
         Set<K> myKeysToRemove = new TreeSet<>();
         theLastPing.forEach((myId, myTime) -> {

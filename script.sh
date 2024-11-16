@@ -1,8 +1,8 @@
 #!/bin/bash
 
 PWD=`pwd`
-kvsWorkers=1 # number of kvs workers to launch
-flameWorkers=1 # number of flame workers to launch
+kvsWorkers=5 # number of kvs workers to launch
+flameWorkers=5 # number of flame workers to launch
 
 rm -r worker1
 rm *.jar
