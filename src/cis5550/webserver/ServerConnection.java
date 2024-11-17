@@ -51,7 +51,7 @@ public class ServerConnection implements Runnable {
                     break;
                 }
             } catch (IOException e) {
-                LOGGER.error("Failed to process request", e);
+                LOGGER.debug("Failed to process request", e);
                 break;
             }
         }
