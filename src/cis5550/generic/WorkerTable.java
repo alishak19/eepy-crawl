@@ -5,8 +5,6 @@ import cis5550.kvs.datamodels.IPPort;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class WorkerTable<K extends Comparable<K>> {

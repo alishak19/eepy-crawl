@@ -94,14 +94,14 @@ public class FlameContextImpl implements FlameContext, Serializable {
 
         for (Thread myThread : myThreads) {
             try {
-                myThread.join(MAX_WAIT_TIME);
+                myThread.join();
             } catch (InterruptedException e) {
                 LOGGER.error("Failed to join thread", e);
             }
         }
 
         if (myResponses.size() != myThreads.size()) {
-            LOGGER.error("Failed to send operation to all workers, received responses: " + myResponses.size());
+            LOGGER.error("Failed to send operation to all workers, received responses: " + myResponses.size() + ", expected: " + myThreads.size());
             return null;
         }
 

@@ -4,16 +4,15 @@ import cis5550.kvs.datamodels.OpStatus;
 import cis5550.kvs.Row;
 import cis5550.tools.Logger;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 
 import static cis5550.kvs.KeyEncoder.encode;
+import static cis5550.utils.FileIOUtils.readRowFromFile;
+import static cis5550.utils.FileIOUtils.writeRowToFile;
 
 public class PersistentDatastore implements Datastore {
     public static final Logger LOGGER = Logger.getLogger(PersistentDatastore.class);
@@ -40,7 +39,7 @@ public class PersistentDatastore implements Datastore {
             }
         } else if (myFile.exists()) {
             try {
-                myRow = Row.readFrom(new FileInputStream(myFile));
+                myRow = readRowFromFile(myFileName);
             } catch (Exception e) {
                 LOGGER.error("Failed to read from file", e);
                 return -1;
@@ -49,11 +48,7 @@ public class PersistentDatastore implements Datastore {
 
         myRow.put(aColumn, aValue);
 
-        try (FileOutputStream myWriter = new FileOutputStream(myFile)) {
-            myWriter.write(myRow.toByteArray());
-            myWriter.flush();
-        } catch (IOException e) {
-            LOGGER.error("Failed to write to file", e);
+        if (!writeRowToFile(myFileName, myRow)) {
             return -1;
         }
 
@@ -70,7 +65,7 @@ public class PersistentDatastore implements Datastore {
         }
 
         try {
-            return Row.readFrom(new FileInputStream(myFile));
+            return readRowFromFile(myFileName);
         } catch (Exception e) {
             LOGGER.error("Failed to read from file", e);
             return null;
@@ -131,9 +126,9 @@ public class PersistentDatastore implements Datastore {
             return null;
         }
 
-        File[] myRowFilesorSubdirectories = myTableDirectory.listFiles();
+        File[] myRowFilesOrSubdirectories = myTableDirectory.listFiles();
 
-        return Arrays.stream(myRowFilesorSubdirectories)
+        return Arrays.stream(myRowFilesOrSubdirectories)
                 .flatMap(myRowFileOrSubdirectory -> {
                     if (myRowFileOrSubdirectory.isDirectory()) {
                         return Arrays.stream(myRowFileOrSubdirectory.listFiles());
@@ -141,23 +136,8 @@ public class PersistentDatastore implements Datastore {
                         return Stream.of(myRowFileOrSubdirectory);
                     }
                 })
-                .map(myRowFile -> {
-                    try {
-                        return new FileInputStream(myRowFile);
-                    } catch (IOException e) {
-                        LOGGER.error("Failed to read from file", e);
-                        return null;
-                    }
-                })
                 .filter(Objects::nonNull)
-                .map(myFileStream -> {
-                    try {
-                        return Row.readFrom(myFileStream);
-                    } catch (Exception e) {
-                        LOGGER.error("Failed to parse file stream", e);
-                        return null;
-                    }
-                })
+                .map(myFile -> readRowFromFile(myFile.getAbsolutePath()))
                 .filter(Objects::nonNull);
     }
 
@@ -242,13 +222,7 @@ public class PersistentDatastore implements Datastore {
                 }
             }
 
-            try (FileOutputStream myWriter = new FileOutputStream(myRowFile)) {
-                if (myEntry.getValue() != null) {
-                    myWriter.write(myEntry.getValue().toByteArray());
-                }
-                myWriter.flush();
-            } catch (IOException e) {
-                LOGGER.error("Failed to write to file", e);
+            if (!writeRowToFile(myRowFileName, myEntry.getValue())) {
                 return OpStatus.SERVER_ERROR;
             }
         }
@@ -301,7 +275,7 @@ public class PersistentDatastore implements Datastore {
             } else {
                 try {
                     LOGGER.info("Reading from file: " + myRowFileOrSubdirectory.getName());
-                    Row myRow = Row.readFrom(new FileInputStream(myRowFileOrSubdirectory));
+                    Row myRow = readRowFromFile(myRowFileOrSubdirectory.getAbsolutePath());
                     if (myRow != null && (aFromRow == null || myRow.key().compareTo(aFromRow) >= 0)) {
                         myResult.put(myRow.key(), myRow);
                     }
