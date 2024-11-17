@@ -6,6 +6,7 @@ import cis5550.tools.Logger;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
@@ -21,6 +22,8 @@ public class PersistentDatastore implements Datastore {
     public static final int KEY_SUBSTRING_LENGTH = 2;
 
     private final String theDataDirectory;
+
+    private final ConcurrentHashMap<File, Object> fileLocks = new ConcurrentHashMap<>();
 
     public PersistentDatastore(String aDirectory) {
         theDataDirectory = aDirectory;
@@ -48,11 +51,10 @@ public class PersistentDatastore implements Datastore {
 
         myRow.put(aColumn, aValue);
 
-        if (!writeRowToFile(myFileName, myRow)) {
-            return -1;
+        Object fileLock = fileLocks.computeIfAbsent(myFile, k -> new Object());
+        synchronized (fileLock) {
+            return writeRowToFile(myFileName, myRow) ? 0 : -1;
         }
-
-        return 0;
     }
 
     @Override
@@ -67,7 +69,10 @@ public class PersistentDatastore implements Datastore {
             }
         }
 
-        return writeRowToFile(myFileName, aRow) ? 0 : -1;
+        Object fileLock = fileLocks.computeIfAbsent(myFile, k -> new Object());
+        synchronized (fileLock) {
+            return writeRowToFile(myFileName, aRow) ? 0 : -1;
+        }
     }
 
     @Override
@@ -152,7 +157,12 @@ public class PersistentDatastore implements Datastore {
                     }
                 })
                 .filter(Objects::nonNull)
-                .map(myFile -> readRowFromFile(myFile.getAbsolutePath()))
+                .map(myFile -> {
+                    Object fileLock = fileLocks.computeIfAbsent(myFile, k -> new Object());
+                    synchronized (fileLock) {
+                        return readRowFromFile(myFile.getAbsolutePath());
+                    }
+                })
                 .filter(Objects::nonNull);
     }
 

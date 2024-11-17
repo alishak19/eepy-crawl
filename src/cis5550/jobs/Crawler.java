@@ -24,11 +24,10 @@ public class Crawler {
     private static final Logger LOGGER = Logger.getLogger(Crawler.class);
 
     public static final String CRAWLER_NAME = "cis5550-crawler";
-    public static final int THREAD_SLEEP = 10;
-
     private static final String CRAWL_TABLE = "pt-crawl";
     private static final String HOSTS_TABLE = "hosts";
     private static final String CONTENT_TABLE = "content-hashes";
+    public static final int THREAD_SLEEP = 10;
 
     public static void run(FlameContext context, String[] args) throws Exception {
         if (!(args.length <= 2)) {
@@ -60,7 +59,7 @@ public class Crawler {
                 KVSClient client = context.getKVS();
 
                 // EC #2
-                List<Pattern> blacklistPatterns = new ArrayList<>();
+                List<Pattern> blacklistPatterns;
                 if (args.length == 2) {
                     String blacklistTable = args[1];
                     LOGGER.debug("Getting blacklisted urls from: " + blacklistTable);
@@ -204,20 +203,19 @@ public class Crawler {
                                 String normalizedUrl = normalizeURL(url, href);
                                 if (normalizedUrl != null) {
                                     newUrls.add(normalizedUrl);
-
-                                    if (!anchorTexts.isEmpty() && isUrlAllowed(robotsTxt, normalizedUrl) &&
-                                            !isBlacklisted(url, blacklistPatterns)) {
-                                        String combinedAnchorText = String.join(" ", anchorTexts);
-
-                                        Row targetRow = client.getRow(CRAWL_TABLE, Hasher.hash(normalizedUrl));
-                                        LOGGER.debug("Adding anchor to: " + normalizedUrl + " with key " + Hasher.hash(normalizedUrl));
-                                        if (targetRow == null) {
-                                            targetRow = new Row(Hasher.hash(normalizedUrl));
-                                        }
-
-                                        targetRow.put(TableColumns.ANCHOR_PREFIX.value() + Hasher.hash(url), combinedAnchorText);
-                                        client.putRow(CRAWL_TABLE, targetRow);
-                                    }
+//                                    if (!anchorTexts.isEmpty() && isUrlAllowed(robotsTxt, normalizedUrl) &&
+//                                            !isBlacklisted(url, blacklistPatterns)) {
+//                                        String combinedAnchorText = String.join(" ", anchorTexts);
+//
+//                                        Row targetRow = client.getRow(CRAWL_TABLE, Hasher.hash(normalizedUrl));
+//                                        LOGGER.debug("Adding anchor to: " + normalizedUrl + " with key " + Hasher.hash(normalizedUrl));
+//                                        if (targetRow == null) {
+//                                            targetRow = new Row(Hasher.hash(normalizedUrl));
+//                                        }
+//
+//                                        targetRow.put(TableColumns.ANCHOR_PREFIX.value() + Hasher.hash(url), combinedAnchorText);
+//                                        client.putRow(CRAWL_TABLE, targetRow);
+//                                    }
                                 }
                             }
 
