@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 public interface Datastore {
     int put(String aTable, String aKey, String aColumn, byte[] aValue);
+    int putRow(String aTable, String aKey, Row aRow);
     Row get(String aTable, String aKey);
     Row get(String aTable, String aKey, int aVersion);
     int getVersion(String aTable, String aKey);

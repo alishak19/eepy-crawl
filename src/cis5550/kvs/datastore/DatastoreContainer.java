@@ -32,6 +32,16 @@ public class DatastoreContainer implements Datastore {
     }
 
     @Override
+    public int putRow(String aTable, String aKey, Row aRow) {
+        LOGGER.debug("Putting row into table: " + aTable + " key: " + aKey);
+        if (isPersistent(aTable)) {
+            return thePersistentDatastore.putRow(aTable, aKey, aRow);
+        } else {
+            return theInMemoryDatastore.putRow(aTable, aKey, aRow);
+        }
+    }
+
+    @Override
     public Row get(String aTable, String aKey) {
         LOGGER.debug("Getting from table: " + aTable + " key: " + aKey);
         if (isPersistent(aTable)) {

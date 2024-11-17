@@ -91,6 +91,7 @@ public class Worker extends cis5550.generic.Worker {
         get("/view/:table", getTableRows());
         get("/data/:table/:row", getRow());
         get("/data/:table", streamRows());
+        put("/data/:table", putRow());
         put("/data/:table/:row/:column", putCell());
         get("/data/:table/:row/:column", getCell());
         put("/delete/:table", deleteTable());
@@ -229,17 +230,38 @@ public class Worker extends cis5550.generic.Worker {
             myRowStream.forEach(myRow -> {
                 try {
                     res.write(myRow.toByteArray());
-                    res.write(new byte[] {'\n'});
+                    res.write(new byte[]{'\n'});
                 } catch (Exception e) {
                     LOGGER.error("Failed to write row to response", e);
                 }
             });
             try {
-                res.write(new byte[] {'\n'});
+                res.write(new byte[]{'\n'});
             } catch (Exception e) {
                 LOGGER.error("Failed to write final LF", e);
             }
             return null;
+        };
+    }
+
+    private static Route putRow() {
+        return (req, res) -> {
+            forwardPutRequest(req);
+            String myTable = req.params("table");
+            byte[] myValue = req.bodyAsBytes();
+
+            if (myTable == null || myValue == null) {
+                setResponseStatus(res, BAD_REQUEST);
+                return "Bad Request";
+            }
+
+            Row myRow = Row.readFrom(new ByteArrayInputStream(myValue));
+
+            int myVersion = theData.putRow(myTable, myRow.key(), myRow);
+
+            res.header("Version", String.valueOf(myVersion));
+            setResponseStatus(res, OK);
+            return "OK";
         };
     }
 

@@ -39,6 +39,14 @@ public class InMemoryDatastore implements Datastore {
     }
 
     @Override
+    public int putRow(String aTable, String aKey, Row aRow) {
+        theMemoryData.putIfAbsent(aTable, new ConcurrentSkipListMap<>());
+        theMemoryData.get(aTable).putIfAbsent(aKey, new ConcurrentLinkedDeque<>());
+        theMemoryData.get(aTable).get(aKey).add(aRow);
+        return theMemoryData.get(aTable).get(aKey).size();
+    }
+
+    @Override
     public Row get(String aTable, String aKey) {
         return get(aTable, aKey, -1);
     }

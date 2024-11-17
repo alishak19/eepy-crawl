@@ -56,6 +56,21 @@ public class PersistentDatastore implements Datastore {
     }
 
     @Override
+    public int putRow(String aTable, String aKey, Row aRow) {
+        String myFileName = getRowFileName(aTable, aKey);
+
+        File myFile = new File(myFileName);
+        if (!myFile.getParentFile().exists()) {
+            if (!myFile.getParentFile().mkdirs()) {
+                LOGGER.error("Failed to create directory");
+                return -1;
+            }
+        }
+
+        return writeRowToFile(myFileName, aRow) ? 0 : -1;
+    }
+
+    @Override
     public Row get(String aTable, String aKey) {
         String myFileName = getRowFileName(aTable, aKey);
 
