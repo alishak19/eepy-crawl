@@ -3,297 +3,261 @@ package cis5550.jobs;
 import cis5550.flame.FlameContext;
 import cis5550.flame.FlameRDD;
 import cis5550.jobs.datamodels.TableColumns;
-import cis5550.tools.*;
+import cis5550.kvs.KVSClient;
+import cis5550.kvs.Row;
+import cis5550.tools.Hasher;
+import cis5550.tools.Logger;
 
+import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.regex.Pattern;
 
-import static cis5550.tools.URLNormalizer.*;
+import static cis5550.tools.RobotsHelper.*;
+import static cis5550.tools.URLHelper.*;
 
 public class Crawler {
+
+    private static final Logger LOGGER = Logger.getLogger(Crawler.class);
+
     public static final String CRAWLER_NAME = "cis5550-crawler";
     public static final int THREAD_SLEEP = 10;
 
     private static final String CRAWL_TABLE = "pt-crawl";
     private static final String HOSTS_TABLE = "hosts";
-    private static final String CONTENT_TABLE = "content";
+    private static final String CONTENT_TABLE = "content-hashes";
 
-    private static Logger LOGGER = Logger.getLogger(Crawler.class);
-
-    public static void run(FlameContext aContext, String[] aArgs) throws Exception {
-        if (aArgs.length < 1) {
-            aContext.output("Usage: Crawler <seed-url>");
-            System.exit(1);
+    public static void run(FlameContext context, String[] args) throws Exception {
+        if (!(args.length <= 2)) {
+            context.output("Error: Expected argument 1 to be a single seed URL. Optional argument 2 for blacklist " +
+                    "table address");
+            return;
         }
 
-        aContext.output("OK");
+        List<String> initialURL = new ArrayList<>();
+        String normalizedURL = normalizeURL(args[0], args[0]);
+        initialURL.add(normalizedURL);
+        LOGGER.debug(normalizedURL);
 
-        String myInitUrl = aArgs[0];
-        String myDenylistTable;
+        FlameRDD urlQueue = context.parallelize(initialURL);
 
-        if (aArgs.length == 2) {
-            myDenylistTable = aArgs[1];
-        } else {
-            myDenylistTable = null;
-        }
+        while (urlQueue.count() > 0) {
+            urlQueue = urlQueue.flatMap(url -> {
 
-        FlameRDD myUrlQueue = aContext.parallelize(List.of(myInitUrl));
-
-        while (myUrlQueue.count() != 0) {
-            Thread.sleep(THREAD_SLEEP);
-            myUrlQueue = myUrlQueue.distinct().flatMap(myURLString -> {
-                String[] myUrlParts = cleanupUrl(myURLString);
-                String myCleanedUrl = myUrlParts[0] + "://" + myUrlParts[1] + ":" + myUrlParts[2] + myUrlParts[3];
-
-                RobotRuleFollower myRobotRuleFollower = getRobotRuleFollower(aContext, myUrlParts);
-
-                if (!myRobotRuleFollower.isAllowed(myUrlParts[3])) {
-                    return new LinkedList<>();
+                if (url == null || url.isEmpty()) {
+                    context.output("Error: Received a null or empty URL.");
+                    return Collections.emptyList();
                 }
 
-                Denylist myDenylist = Denylist.fromKVSTable(aContext.getKVS(), myDenylistTable);
+                URI uri = new URI(url);
+                URL urlObj = uri.toURL();
+                String host = uri.getHost();
+                LOGGER.debug("Processing URL: " + url);
 
-                if (myDenylist.isBlocked(myCleanedUrl)) {
-                    return new LinkedList<>();
+                KVSClient client = context.getKVS();
+
+                // EC #2
+                List<Pattern> blacklistPatterns = new ArrayList<>();
+                if (args.length == 2) {
+                    String blacklistTable = args[1];
+                    LOGGER.debug("Getting blacklisted urls from: " + blacklistTable);
+                    blacklistPatterns = loadBlacklistPatterns(context.getKVS(), blacklistTable);
+                    if (isBlacklisted(url, blacklistPatterns)) {
+                        LOGGER.debug("URL is blacklisted: " + url);
+                        return Collections.emptyList();
+                    }
                 }
 
-                if (hasPassedTime(aContext, myRobotRuleFollower.getCrawlDelay(), myUrlParts[1])) {
-                    aContext.getKVS()
-                            .put(
-                                    HOSTS_TABLE,
-                                    Hasher.hash(myUrlParts[1]),
-                                    TableColumns.TIMESTAMP.value(),
-                                    String.valueOf(System.currentTimeMillis()));
+                // Robots.txt
+                String robotsTxt = getRobotsTxt(client, host);
+                long crawlDelay = 1000;
+
+                if (!isUrlAllowed(robotsTxt, url)) {
+                    LOGGER.debug("URL is not allowed by robots.txt: " + url);
+                    return Collections.emptyList();
                 } else {
-                    return List.of(myURLString);
+                    Double robotsDelay = getCrawlDelay(robotsTxt);
+                    if (robotsDelay != null) {
+                        crawlDelay = (long) (1000 * robotsDelay);
+                        LOGGER.debug("Crawl delay updated: " + crawlDelay);
+                    } else {
+                        LOGGER.debug("Using default crawl delay");
+                    }
                 }
 
-                URL myUrl = new URL(myCleanedUrl);
-
-                HttpURLConnection myHeadConnection = (HttpURLConnection) myUrl.openConnection();
-                myHeadConnection.setRequestMethod("HEAD");
-                myHeadConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
-                myHeadConnection.setInstanceFollowRedirects(false);
-
-                int myHeadResponseCode = myHeadConnection.getResponseCode();
-                String myContentType = myHeadConnection.getContentType();
-                int myContentLength = myHeadConnection.getContentLength();
-
-                if (isRedirectCode(myHeadResponseCode)) {
-                    putPageInTable(
-                            aContext, myCleanedUrl, myHeadResponseCode, myContentType, myContentLength, null, null);
-                    String myLocation = myHeadConnection.getHeaderField("Location");
-                    if (myLocation != null) {
-                        String myNormalizedRedirectUrl = normalizeAndFilterUrl(myLocation, myUrlParts);
-                        if (myNormalizedRedirectUrl != null && !alreadyTraversed(aContext, myNormalizedRedirectUrl)) {
-                            return List.of(myNormalizedRedirectUrl);
-                        }
-                        return new LinkedList<>();
-                    }
-                } else if (myHeadResponseCode == 200) {
-                    HttpURLConnection myConnection = (HttpURLConnection) myUrl.openConnection();
-                    myConnection.setRequestMethod("GET");
-                    myConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
-                    myConnection.setInstanceFollowRedirects(false);
-
-                    int myResponseCode = myConnection.getResponseCode();
-                    if (myResponseCode != 200) {
-                        return new LinkedList<>();
-                    }
-                    byte[] myContent = null;
-                    if (myContentType != null && myContentType.compareTo("text/html") == 0) {
-                        myContent = myConnection.getInputStream().readAllBytes();
-                    }
-
-                    String myCanonicalUrl = hasSeenContent(aContext, myContent);
-                    if (myCanonicalUrl != null && !myCanonicalUrl.equals(myCleanedUrl)) {
-                        putPageInTable(
-                                aContext,
-                                myCleanedUrl,
-                                myResponseCode,
-                                myContentType,
-                                myContentLength,
-                                null,
-                                myCanonicalUrl);
-                        return new LinkedList<>();
-                    }
-
-                    Map<String, List<String>> myAnchors =
-                            extractAnchors(new String(myContent), myUrlParts, myRobotRuleFollower, myDenylist);
-
-                    putPageInTable(
-                            aContext, myCleanedUrl, myResponseCode, myContentType, myContentLength, myContent, null);
-
-                    putPageContentInSeen(aContext, myContent, myCleanedUrl);
-
-                    putAnchorsInTable(aContext, myCleanedUrl, myAnchors);
-
-                    List<String> myUrls = extractUrls(new String(myContent));
-                    List<String> myNormalizedUrls = normalizeAndFilterUrls(myUrls, myUrlParts);
-                    List<String> myToTraverseUrls = new LinkedList<>();
-                    for (String myNormalizedUrl : myNormalizedUrls) {
-                        if (!alreadyTraversed(aContext, myNormalizedUrl)) {
-                            myToTraverseUrls.add(myNormalizedUrl);
-                        }
-                    }
-                    return myToTraverseUrls;
-                } else {
-                    putPageInTable(
-                            aContext, myCleanedUrl, myHeadResponseCode, myContentType, myContentLength, null, null);
+                // Duplicate crawls
+                String urlHash = Hasher.hash(url);
+                Row dupRow = client.getRow(CRAWL_TABLE, urlHash);
+                if (dupRow != null && dupRow.get(TableColumns.URL.value()) != null) {
+                    LOGGER.debug("Skipping already seen URL: " + url);
+                    return Collections.emptyList();
                 }
-                return new LinkedList<>();
+
+                // Rate limiting based on host access time
+                Row hostRow = client.getRow(HOSTS_TABLE, host);
+                long currentTime = System.currentTimeMillis();
+                if (hostRow != null) {
+                    long lastAccessed = Long.parseLong(hostRow.get(TableColumns.LAST_ACCESSED.value()));
+                    if ((currentTime - lastAccessed) < crawlDelay) {
+                        LOGGER.debug("Rerun due to crawl delay");
+                        return Collections.singletonList(url);
+                    }
+                }
+
+                LOGGER.debug("Updating last accessed time to " + currentTime);
+                Row newHostRow = new Row(host);
+                newHostRow.put(TableColumns.LAST_ACCESSED.value(), String.valueOf(currentTime));
+                client.putRow(HOSTS_TABLE, newHostRow);
+
+                // Request to get header and status
+                LOGGER.debug("HEAD request");
+                HttpURLConnection headConnection = (HttpURLConnection) urlObj.openConnection();
+                headConnection.setRequestMethod("HEAD");
+                headConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
+                headConnection.setInstanceFollowRedirects(false);
+                headConnection.connect();
+
+                int responseCode = headConnection.getResponseCode();
+                String contentType = headConnection.getContentType();
+                int contentLength = headConnection.getContentLength();
+                String location = headConnection.getHeaderField("Location");
+
+                Row contentRow = client.getRow(CRAWL_TABLE, urlHash);
+                if (contentRow == null) {
+                    contentRow = new Row(urlHash);
+                }
+                contentRow.put(TableColumns.URL.value(), url);
+                contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(responseCode));
+
+                if (contentType != null) {
+                    contentRow.put(TableColumns.CONTENT_TYPE.value(), contentType);
+                }
+                if (contentLength != -1) {
+                    contentRow.put(TableColumns.CONTENT_LENGTH.value(), String.valueOf(contentLength));
+                }
+
+                client.putRow(CRAWL_TABLE, contentRow);
+
+                // Handle redirects
+                if (responseCode == 301 || responseCode == 302 || responseCode == 303 ||
+                        responseCode == 307 || responseCode == 308
+                ) {
+                    List<String> newUrls = new ArrayList<>();
+
+                    if (location != null && !location.isEmpty()) {
+                        LOGGER.debug("Redirecting to: " + location);
+                        String newUrl = normalizeURL(url, location);
+                        if (newUrl != null) {
+                            newUrls.add(newUrl);
+                        }
+                    }
+                    return newUrls;
+                }
+
+                if (responseCode == 200 && contentType != null && contentType.startsWith("text/html")) {
+                    LOGGER.debug("GET request");
+
+                    HttpURLConnection getConnection = (HttpURLConnection) urlObj.openConnection();
+                    getConnection.setRequestMethod("GET");
+                    getConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
+                    getConnection.connect();
+
+                    int getResponseCode = getConnection.getResponseCode();
+                    if (getResponseCode == 200) {
+                        InputStream is = getConnection.getInputStream();
+                        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+                        byte[] buffer = new byte[4096];
+                        int bytesRead;
+                        while ((bytesRead = is.read(buffer)) != -1) {
+                            byteBuffer.write(buffer, 0, bytesRead);
+                        }
+                        byte[] contentBytes = byteBuffer.toByteArray();
+                        is.close();
+
+                        // EC #1
+                        String contentHash = Hasher.hash(new String(contentBytes, StandardCharsets.UTF_8));
+                        Row existingHashRow = client.getRow(CONTENT_TABLE, contentHash);
+                        if (existingHashRow != null) {
+                            LOGGER.debug("Adding existing content from URL: " + url);
+                            contentRow.put(TableColumns.CANONICAL_URL.value(), existingHashRow.get(TableColumns.URL.value()));
+                            contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(getResponseCode));
+                            client.putRow(CRAWL_TABLE, contentRow);
+                            return Collections.emptyList();
+                        } else {
+                            LOGGER.debug("Adding new URL: " + url);
+
+                            contentRow.put(TableColumns.PAGE.value(), contentBytes);
+                            contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(getResponseCode));
+                            client.putRow(CRAWL_TABLE, contentRow);
+
+                            LOGGER.debug("Extracting new URLs");
+                            List<String> newUrls = new ArrayList<>();
+                            Map<String, List<String>> extractedUrlsMap = extractUrlsAndAnchors(contentBytes);
+
+                            for (Map.Entry<String, List<String>> entry : extractedUrlsMap.entrySet()) {
+                                String href = entry.getKey();
+                                List<String> anchorTexts = entry.getValue();
+
+                                String normalizedUrl = normalizeURL(url, href);
+                                if (normalizedUrl != null) {
+                                    newUrls.add(normalizedUrl);
+
+                                    if (!anchorTexts.isEmpty() && isUrlAllowed(robotsTxt, normalizedUrl) &&
+                                            !isBlacklisted(url, blacklistPatterns)) {
+                                        String combinedAnchorText = String.join(" ", anchorTexts);
+
+                                        Row targetRow = client.getRow(CRAWL_TABLE, Hasher.hash(normalizedUrl));
+                                        LOGGER.debug("Adding anchor to: " + normalizedUrl + " with key " + Hasher.hash(normalizedUrl));
+                                        if (targetRow == null) {
+                                            targetRow = new Row(Hasher.hash(normalizedUrl));
+                                        }
+
+                                        targetRow.put(TableColumns.ANCHOR_PREFIX.value() + Hasher.hash(url), combinedAnchorText);
+                                        client.putRow(CRAWL_TABLE, targetRow);
+                                    }
+                                }
+                            }
+
+                            LOGGER.debug("Caching content of page");
+                            Row hashRow = new Row(contentHash);
+                            hashRow.put(TableColumns.URL.value(), url);
+                            client.putRow(CONTENT_TABLE, hashRow);
+
+                            return newUrls;
+                        }
+                    }
+                }
+                return Collections.emptyList();
             });
+            Thread.sleep(THREAD_SLEEP);
         }
     }
 
-    private static List<String> extractUrls(String aContent) {
-        List<String> myUrls = new LinkedList<>();
-
-        Pattern myTagPattern = Pattern.compile("<\\s*a\\b[^>]*>", Pattern.CASE_INSENSITIVE);
-        Pattern myHrefPattern = Pattern.compile("href\\s*=\\s*\"([^\"]*)\"", Pattern.CASE_INSENSITIVE);
-
-        Matcher myTagMatcher = myTagPattern.matcher(aContent);
-        while (myTagMatcher.find()) {
-            String myTag = myTagMatcher.group();
-
-            Matcher myHrefMatcher = myHrefPattern.matcher(myTag);
-            if (myHrefMatcher.find()) {
-                String myUrl = myHrefMatcher.group(1);
-                myUrls.add(myUrl);
+    private static boolean isBlacklisted(String url, List<Pattern> blacklistPatterns) {
+        for (Pattern pattern : blacklistPatterns) {
+            if (pattern.matcher(url).matches()) {
+                return true;
             }
         }
-        return myUrls;
+        return false;
     }
 
-    private static Map<String, List<String>> extractAnchors(
-            String aContent, String[] aBaseUrl, RobotRuleFollower aRobotRuleFollower, Denylist aDenylist)
-            throws Exception {
-        String myAnchorPattern = "<a\\s+[^>]*href=\"([^\"]*)\"[^>]*>(.*?)</a>";
-        Pattern myPattern = Pattern.compile(myAnchorPattern, Pattern.CASE_INSENSITIVE);
-        Matcher myMatcher = myPattern.matcher(aContent);
-
-        Map<String, List<String>> myAnchorsMap = new HashMap<>();
-
-        while (myMatcher.find()) {
-            String myHref = myMatcher.group(1).trim();
-            String myAnchorText = myMatcher.group(2).trim();
-
-            String myCleaned = URLNormalizer.normalizeAndFilterUrl(myHref, aBaseUrl);
-            String[] myURLParts = URLNormalizer.cleanupUrl(myCleaned);
-            if (myCleaned == null) {
-                continue;
-            }
-            if (aRobotRuleFollower.isAllowed(myURLParts[3]) && !aDenylist.isBlocked(myCleaned)) {
-                myAnchorsMap.computeIfAbsent(myCleaned, k -> new LinkedList<>()).add(myAnchorText);
+    private static List<Pattern> loadBlacklistPatterns(KVSClient client, String tableName) throws IOException {
+        List<Pattern> patterns = new ArrayList<>();
+        Iterator<Row> rows = client.scan(tableName);
+        while (rows.hasNext()) {
+            Row row = rows.next();
+            String pattern = row.get(TableColumns.PATTERNS.value());
+            if (pattern != null) {
+                String regexPattern = pattern
+                        .replace(".", "\\.")
+                        .replace("*", ".*");
+                patterns.add(Pattern.compile(regexPattern));
             }
         }
-        return myAnchorsMap;
-    }
-
-    private static boolean isRedirectCode(int aCode) {
-        return aCode == 301 || aCode == 302 || aCode == 303 || aCode == 307 || aCode == 308;
-    }
-
-    private static boolean alreadyTraversed(FlameContext aContext, String aUrl) throws Exception {
-        return aContext.getKVS().get(CRAWL_TABLE, Hasher.hash(aUrl), TableColumns.RESPONSE_CODE.value()) != null;
-    }
-
-    private static void putPageInTable(
-            FlameContext aContext,
-            String aUrl,
-            int aResponseCode,
-            String aContentType,
-            int aContentLength,
-            byte[] aBody,
-            String aCanonicalUrl)
-            throws Exception {
-        String myHashedUrl = Hasher.hash(aUrl);
-        aContext.getKVS().put(CRAWL_TABLE, myHashedUrl, TableColumns.URL.value(), aUrl);
-        aContext.getKVS()
-                .put(CRAWL_TABLE, myHashedUrl, TableColumns.RESPONSE_CODE.value(), String.valueOf(aResponseCode));
-        if (aContentType != null) {
-            aContext.getKVS().put(CRAWL_TABLE, myHashedUrl, TableColumns.CONTENT_TYPE.value(), aContentType);
-        }
-        if (aContentLength >= 0) {
-            aContext.getKVS()
-                    .put(CRAWL_TABLE, myHashedUrl, TableColumns.CONTENT_LENGTH.value(), String.valueOf(aContentLength));
-        }
-        if (aBody != null) {
-            aContext.getKVS().put(CRAWL_TABLE, myHashedUrl, TableColumns.PAGE.value(), aBody);
-        }
-        if (aCanonicalUrl != null) {
-            aContext.getKVS().put(CRAWL_TABLE, myHashedUrl, TableColumns.CANONICAL_URL.value(), aCanonicalUrl);
-        }
-    }
-
-    private static void putPageContentInSeen(FlameContext aContext, byte[] aContent, String aCanonicalUrl)
-            throws Exception {
-        aContext.getKVS()
-                .put(
-                        CONTENT_TABLE,
-                        Hasher.hash(new String(aContent)),
-                        TableColumns.CANONICAL_URL.value(),
-                        aCanonicalUrl);
-    }
-
-    private static void putAnchorsInTable(FlameContext aContext, String aBaseUrl, Map<String, List<String>> aAnchors)
-            throws Exception {
-        for (String myAnchorUrl : aAnchors.keySet()) {
-            String myAnchorString = String.join(" ", aAnchors.get(myAnchorUrl));
-            aContext.getKVS()
-                    .put(
-                            CRAWL_TABLE,
-                            Hasher.hash(myAnchorUrl),
-                            TableColumns.ANCHOR_PREFIX.value() + aBaseUrl,
-                            myAnchorString);
-        }
-    }
-
-    private static boolean hasPassedTime(FlameContext aContext, long aDelay, String aHost) throws Exception {
-        byte[] myLastAccessedTimeRaw =
-                aContext.getKVS().get(HOSTS_TABLE, Hasher.hash(aHost), TableColumns.TIMESTAMP.value());
-        if (myLastAccessedTimeRaw == null || myLastAccessedTimeRaw.length == 0) {
-            return true;
-        }
-        long myLastAccessedTime = Long.valueOf(new String(myLastAccessedTimeRaw));
-        return System.currentTimeMillis() - myLastAccessedTime > aDelay;
-    }
-
-    private static RobotRuleFollower getRobotRuleFollower(FlameContext aContext, String[] aUrl) throws Exception {
-        byte[] myRobotFile = aContext.getKVS().get(HOSTS_TABLE, Hasher.hash(aUrl[1]), TableColumns.ROBOTS.value());
-        if (myRobotFile == null) {
-            URL myHostUrl = new URL(aUrl[0] + "://" + aUrl[1] + ":" + aUrl[2] + "/robots.txt");
-            HttpURLConnection myConnection = (HttpURLConnection) myHostUrl.openConnection();
-            myConnection.setRequestMethod("GET");
-            myConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
-
-            int myResponseCode = myConnection.getResponseCode();
-            if (myResponseCode == 200) {
-                myRobotFile = myConnection.getInputStream().readAllBytes();
-                aContext.getKVS().put(HOSTS_TABLE, Hasher.hash(aUrl[1]), TableColumns.ROBOTS.value(), myRobotFile);
-            } else {
-                return RobotRuleFollower.fromRobotsTxt(null, CRAWLER_NAME);
-            }
-        }
-
-        return RobotRuleFollower.fromRobotsTxt(new String(myRobotFile), CRAWLER_NAME);
-    }
-
-    private static String hasSeenContent(FlameContext aContext, byte[] aContent) throws Exception {
-        if (aContent == null || aContent.length == 0) {
-            return null;
-        }
-        byte[] myCanonicalUrlBytes = aContext.getKVS()
-                .get(CONTENT_TABLE, Hasher.hash(new String(aContent)), TableColumns.CANONICAL_URL.value());
-        if (myCanonicalUrlBytes == null || myCanonicalUrlBytes.length == 0) {
-            return null;
-        }
-        return new String(myCanonicalUrlBytes);
+        return patterns;
     }
 }

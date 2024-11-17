@@ -11,6 +11,8 @@ public enum TableColumns {
     CANONICAL_URL("canonicalUrl"),
     ANCHOR_PREFIX("anchors:"),
     RANK("rank"),
+    PATTERNS("pattern"),
+    LAST_ACCESSED("lastAccessed"),
     ;
 
     private final String columnName;

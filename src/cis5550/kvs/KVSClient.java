@@ -24,8 +24,6 @@ public class KVSClient implements KVS {
         }
     }
 
-    ;
-
     Vector<WorkerEntry> workers;
     boolean haveWorkers;
 
