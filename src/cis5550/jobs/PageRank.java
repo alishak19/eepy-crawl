@@ -13,6 +13,7 @@ import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
 import cis5550.tools.Hasher;
 import cis5550.jobs.Crawler;
+import cis5550.tools.URLHelper;
 
 import java.io.*;
 import java.util.*;
@@ -55,11 +56,11 @@ public class PageRank {
 			String page = s.substring(s.indexOf(",") + 1);
 			
 			if (page != null) {
-				List<String> extractedUrls = Crawler.extractURL(page);
+				List<String> extractedUrls = URLHelper.extractUrls(page);
 				String L = "";
 				HashSet<String> noRepeats = new HashSet<>();
 				for (String extrUrl : extractedUrls) {
-					String normLink = Crawler.normalizeFilter(url, extrUrl);
+					String normLink = URLHelper.normalizeURL(url, extrUrl);
 					noRepeats.add(normLink);
 				}
 				
