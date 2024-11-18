@@ -125,14 +125,24 @@ public class HTTPRequestParser {
             }
         }
 
-        String myContentLength =
-                myHeaders.get(Header.CONTENT_LENGTH.getHeaderString().toLowerCase());
+        String myContentLength = myHeaders.get(Header.CONTENT_LENGTH.getHeaderString().toLowerCase());
         if (Objects.nonNull(myContentLength)) {
             int myContentLengthInt = Integer.parseInt(myContentLength);
             myBody = new byte[myContentLengthInt];
-            int myBytesRead = myInputStream.read(myBody, 0, myContentLengthInt);
-            if (myBytesRead != myContentLengthInt) {
-                LOGGER.error("Failed to read body");
+
+            int totalBytesRead = 0;
+            while (totalBytesRead < myContentLengthInt) {
+                int myBytesRead = myInputStream.read(myBody, totalBytesRead, myContentLengthInt - totalBytesRead);
+                if (myBytesRead == -1) {
+                    LOGGER.error("End of stream reached unexpectedly");
+                    myIsValid = false;
+                    break;
+                }
+                totalBytesRead += myBytesRead;
+            }
+
+            if (totalBytesRead != myContentLengthInt) {
+                LOGGER.error("Failed to read the expected body length");
                 myIsValid = false;
             }
         }

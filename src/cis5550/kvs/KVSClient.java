@@ -5,6 +5,7 @@ import java.net.*;
 import java.io.*;
 
 import cis5550.tools.HTTP;
+import cis5550.tools.Logger;
 
 public class KVSClient implements KVS {
 
