@@ -22,6 +22,7 @@ public class PageRank {
 	
 	public static void run(FlameContext context, String[] arr) throws Exception {
 		double threshold = Double.parseDouble(arr[0]);
+		context.output("OK");
 		double convergence = -1.0;
 		
 		if (arr.length == 2) {
@@ -44,7 +45,7 @@ public class PageRank {
 		for (String url : mappedStrings.collect()) {
 			String u = url.substring(0, url.indexOf(","));
 			
-			String uNorm = Crawler.normalizeFilter(u, u);
+			String uNorm = URLHelper.normalizeFilter(u, u);
 			u = Hasher.hash(u);
 			uNorm = Hasher.hash(uNorm);
 			
@@ -56,11 +57,11 @@ public class PageRank {
 			String page = s.substring(s.indexOf(",") + 1);
 			
 			if (page != null) {
-				List<String> extractedUrls = URLHelper.extractUrls(page);
+				List<String> extractedUrls = URLHelper.extractURL(page);
 				String L = "";
 				HashSet<String> noRepeats = new HashSet<>();
 				for (String extrUrl : extractedUrls) {
-					String normLink = URLHelper.normalizeURL(url, extrUrl);
+					String normLink = URLHelper.normalizeFilter(url, extrUrl);
 					noRepeats.add(normLink);
 				}
 				
@@ -73,7 +74,7 @@ public class PageRank {
 				}
 
 				if (url != null) {
-					url = Crawler.normalizeFilter(url, url);
+					url = URLHelper.normalizeFilter(url, url);
 					FlamePair pair = new FlamePair(Hasher.hash(url), "1.0,1.0," + L);
 					return pair;
 				}
