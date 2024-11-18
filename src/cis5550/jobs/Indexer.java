@@ -1,114 +1,159 @@
 package cis5550.jobs;
+import java.io.*;
 
-import cis5550.jobs.datamodels.TableColumns;
-import cis5550.tools.PorterStemmer;
-import cis5550.flame.FlameContext;
-import cis5550.flame.FlamePair;
-import cis5550.flame.FlamePairRDD;
-import cis5550.flame.FlameRDD;
-import cis5550.tools.Logger;
-
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
+import cis5550.external.PorterStemmer;
+// import static cis5550.external.PorterStemmer;
+import cis5550.external.PorterStemmer.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import cis5550.kvs.*;
+import cis5550.flame.*;
+import cis5550.flame.FlameContext.RowToString;
+import cis5550.flame.FlamePairRDD.PairToPairIterable;
+import cis5550.flame.FlamePairRDD.TwoStringsToString;
+import cis5550.flame.FlameRDD.StringToPair;
 
 public class Indexer {
+	
+	public static void run(FlameContext context, String[] arr) throws Exception {
+		KVSClient client = context.getKVS();
+		RowToString lambda1 = (Row r) -> {
+			if (r.columns().contains("url") && r.columns().contains("page")) {
+				String url = r.get("url");
+				String page = r.get("page");
+				
+				return url + "," + page;
+			} else {
+				return null;
+			}
+		};
+		FlameRDD mappedStrings = context.fromTable("pt-crawl", lambda1);
+		
+		StringToPair lambda2 = (String s) -> {
+			int index = s.indexOf(",");
+			FlamePair pair = new FlamePair(s.substring(0, index), s.substring(index + 1));
+			
+			return pair;
+		};
+		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
+		
+		PairToPairIterable lambda3 = (FlamePair f) -> {
+			List<FlamePair> wordPairs = new ArrayList<>();
+			String page = f._2();
+			
+			String removedTags = "";
+			boolean tag = false;
+			
+			for (int i = 0; i < page.length(); i++) {
+				if (page.charAt(i) == '<') {
+					tag = true;
+				} else if (page.charAt(i) == '>') {
+					tag = false;
+					removedTags += " ";
+				} else if (!tag) {
+					removedTags += page.charAt(i);
+				}
+			}
+			String[] wordsList = removedTags.split(" ");
+			HashSet<String> words = new HashSet<>();
+			HashMap<String, String> wordPositions = new HashMap<>();
+			int index = 0;
+			
+			for (String word : wordsList) {
+				index++;
+				if (word.equals("\n")) {
+					continue;
+				}
+				
+				word = removePunctuation(word);
+				if (word.equals(" ") || word.equals("")) {
+					continue;
+				}
 
-    private static final Logger LOGGER = Logger.getLogger(Indexer.class);
-
-    private static final String CRAWL_TABLE = "pt-crawl";
-    private static final String INDEX_TABLE = "pt-index";
-
-    private static final String COLON = ":";
-    private static final String SPACE = " ";
-    private static final String COMMA = ",";
-    private static final String EMPTY = "";
-
-    public static void run(FlameContext context, String[] args) throws Exception {
-
-        LOGGER.debug("Starting Indexer run job...");
-
-        FlameRDD urlPageStrings = context.fromTable(CRAWL_TABLE, row -> {
-            String url = row.get(TableColumns.URL.value());
-            String pageContent = row.get(TableColumns.PAGE.value());
-            return url + COMMA + pageContent;
-        });
-
-        FlamePairRDD urlPagePairs = urlPageStrings.mapToPair(record -> {
-            String[] parts = record.split(COMMA, 2);
-            String url = parts[0];
-            String pageContent = parts[1];
-            return new FlamePair(url, pageContent);
-        });
-
-        Pattern htmlTagPattern = Pattern.compile("<[^>]*>");
-
-        FlamePairRDD wordUrlPairs = urlPagePairs.flatMapToPair(pair -> {
-            String url = URLDecoder.decode(pair._1(), StandardCharsets.UTF_8);
-            String content = pair._2();
-
-            content = htmlTagPattern.matcher(content).replaceAll(SPACE);
-            content = content.replaceAll("[\\p{Punct}\r\n\t]", SPACE).toLowerCase();
-            List<String> words = Arrays.asList(content.split("\\s+"));
-
-            Map<String, List<Integer>> wordPositions = new HashMap<>();
-            for (int i = 0; i < words.size(); i++) {
-                String word = words.get(i);
-                if (!word.isEmpty()) {
-                    wordPositions.computeIfAbsent(word, k -> new ArrayList<>()).add(i + 1); // 1-indexed
-                }
-            }
-
-            List<FlamePair> pairs = new ArrayList<>();
-            for (Map.Entry<String, List<Integer>> entry : wordPositions.entrySet()) {
-                String word = entry.getKey();
-                String positions = entry.getValue().stream().sorted().map(String::valueOf).collect(Collectors.joining(SPACE));
-
-                PorterStemmer stemmer = new PorterStemmer();
-                stemmer.add(word.toCharArray(), word.length());
-                stemmer.stem();
-                String stemmedWord = stemmer.toString();
-
-                if (!word.equals(stemmedWord)) {
-                    LOGGER.debug("Adding a stem of " + word + ": " + stemmedWord);
-                    pairs.add(new FlamePair(stemmedWord, url + COLON + positions));
-                    pairs.add(new FlamePair(word, url + COLON + positions));
-                } else {
-                    pairs.add(new FlamePair(word, url + COLON + positions));
-                }
-            }
-
-            return pairs;
-        });
-
-        FlamePairRDD invertedIndex = wordUrlPairs.foldByKey(
-                EMPTY,
-                (existingUrls, newUrl) -> {
-                    if (existingUrls.isEmpty()) {
-                        return newUrl;
-                    } else {
-                        List<String> combinedUrls = new ArrayList<>(Arrays.asList(existingUrls.split(COMMA)));
-                        combinedUrls.add(newUrl);
-                        combinedUrls.sort((url1, url2) -> {
-                            String[] parts1 = url1.split(":(?=[^:]+$)");
-                            String[] parts2 = url2.split(":(?=[^:]+$)");
-
-                            String positions1 = parts1.length > 1 ? parts1[1] : EMPTY;
-                            String positions2 = parts2.length > 1 ? parts2[1] : EMPTY;
-
-                            int count1 = positions1.split(SPACE).length;
-                            int count2 = positions2.split(SPACE).length;
-
-                            return Integer.compare(count2, count1);
-                        });
-                        return String.join(COMMA, combinedUrls);
-                    }
-                }
-        );
-
-        invertedIndex.saveAsTable(INDEX_TABLE);
-        LOGGER.debug("Indexer run job complete!");
-    }
+				word = word.toLowerCase();
+				if (word.contains("/")) {
+					List<String> slashSplit = Arrays.asList(word.split("/"));
+					words.addAll(slashSplit);
+					for (String w : slashSplit) {
+						if (wordPositions.containsKey(w)) {
+							wordPositions.put(w, wordPositions.get(w) + " " + index);
+						} else {
+							wordPositions.put(w, index + "");
+						}
+					}
+				} else if (word.contains(" ")) {
+					List<String> spaceSplit = Arrays.asList(word.split(" "));
+//					if (spaceSplit.size() > 1 && !spaceSplit.get(1).equals("")) {
+//						// index--;
+//					}
+					for (String wordX : spaceSplit) {
+						if (!wordX.equals("") && !wordX.equals(" ")) {
+//							if (spaceSplit.size() > 1 && !spaceSplit.get(1).equals("")) {
+//								// index++;
+//							}
+							words.add(wordX);
+							if (wordPositions.containsKey(wordX)) {
+								wordPositions.put(wordX, wordPositions.get(wordX) + " " + index);
+							} else {
+								wordPositions.put(wordX, index + "");
+							}
+						}
+					}
+					
+				} else {
+					words.add(word);
+					if (wordPositions.containsKey(word)) {
+						wordPositions.put(word, wordPositions.get(word) + " " + index);
+					} else {
+						wordPositions.put(word, index + "");
+					}
+					// to do: word positions
+				}
+			}
+			
+			for (String w : words) {
+				String positions = wordPositions.get(w);
+				PorterStemmer p = new PorterStemmer();
+				for (char c : w.toCharArray()) {
+					p.add(c);
+				}
+				p.stem();
+				String stemmed = p.toString();
+				if (!stemmed.equals(w)) {
+					FlamePair currS = new FlamePair(stemmed, f._1() + ":" + wordPositions.get(w));
+					wordPairs.add(currS);
+				}
+				FlamePair curr = new FlamePair(w, f._1() + ":" + wordPositions.get(w));
+				wordPairs.add(curr);
+			}
+			return wordPairs;
+		};
+		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
+		
+		TwoStringsToString lambda4 = (String one, String two) -> {
+			if (one.equals("")) {
+				return two;
+			}
+			return one + "," + two;
+		};
+		FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
+		invertedList.saveAsTable("pt-index");
+		
+	}
+	
+	public static String removePunctuation(String s) {
+		String punctuation = ".,:;!?\'\"()-";
+		String ans = "";
+		
+		for (char c : s.toCharArray()) {
+			if (!punctuation.contains(c + "") && c != '\n' && c != '\r' && c != '\t') {
+				ans += c + "";
+			} else {
+				ans += " ";
+			}
+		}
+		
+		return ans;
+	}
 }
