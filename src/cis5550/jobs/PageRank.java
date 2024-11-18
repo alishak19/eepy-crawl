@@ -44,7 +44,7 @@ public class PageRank {
 		for (String url : mappedStrings.collect()) {
 			String u = url.substring(0, url.indexOf(","));
 			
-			String uNorm = Crawler.normalizeFilter(u, u);
+			String uNorm = URLHelper.normalizeURL(u, u);
 			u = Hasher.hash(u);
 			uNorm = Hasher.hash(uNorm);
 			
@@ -56,7 +56,7 @@ public class PageRank {
 			String page = s.substring(s.indexOf(",") + 1);
 			
 			if (page != null) {
-				List<String> extractedUrls = URLHelper.extractUrls(page);
+				List<String> extractedUrls = URLHelper.extractUrls(page.getBytes());
 				String L = "";
 				HashSet<String> noRepeats = new HashSet<>();
 				for (String extrUrl : extractedUrls) {
@@ -73,7 +73,7 @@ public class PageRank {
 				}
 
 				if (url != null) {
-					url = Crawler.normalizeFilter(url, url);
+					url = URLHelper.normalizeURL(url, url);
 					FlamePair pair = new FlamePair(Hasher.hash(url), "1.0,1.0," + L);
 					return pair;
 				}
