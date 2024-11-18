@@ -23,8 +23,6 @@ public class PersistentDatastore implements Datastore {
 
     private final String theDataDirectory;
 
-    private final ConcurrentHashMap<File, Object> fileLocks = new ConcurrentHashMap<>();
-
     public PersistentDatastore(String aDirectory) {
         theDataDirectory = aDirectory;
     }
@@ -51,10 +49,7 @@ public class PersistentDatastore implements Datastore {
 
         myRow.put(aColumn, aValue);
 
-        Object fileLock = fileLocks.computeIfAbsent(myFile, k -> new Object());
-        synchronized (fileLock) {
-            return writeRowToFile(myFileName, myRow) ? 0 : -1;
-        }
+        return writeRowToFile(myFileName, myRow) ? 0 : -1;
     }
 
     @Override
@@ -69,10 +64,7 @@ public class PersistentDatastore implements Datastore {
             }
         }
 
-        Object fileLock = fileLocks.computeIfAbsent(myFile, k -> new Object());
-        synchronized (fileLock) {
-            return writeRowToFile(myFileName, aRow) ? 0 : -1;
-        }
+        return writeRowToFile(myFileName, aRow) ? 0 : -1;
     }
 
     @Override
@@ -157,12 +149,7 @@ public class PersistentDatastore implements Datastore {
                     }
                 })
                 .filter(Objects::nonNull)
-                .map(myFile -> {
-                    Object fileLock = fileLocks.computeIfAbsent(myFile, k -> new Object());
-                    synchronized (fileLock) {
-                        return readRowFromFile(myFile.getAbsolutePath());
-                    }
-                })
+                .map(myFile -> readRowFromFile(myFile.getAbsolutePath()))
                 .filter(Objects::nonNull);
     }
 

@@ -11,7 +11,6 @@ import cis5550.tools.Hasher;
 import cis5550.tools.Logger;
 import cis5550.tools.URLHelper;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -51,8 +50,7 @@ public class PageRank {
 
         FlameRDD urlPageStrings = context.fromTable(CRAWL_TABLE, row -> {
             String url = row.get(TableColumns.URL.value());
-            byte[] contentBytes = row.getBytes(TableColumns.PAGE.value());
-            String pageContent = new String(contentBytes, StandardCharsets.UTF_8);
+            String pageContent = TableColumns.PAGE.value();
             return url + COMMA + pageContent;
         });
 
