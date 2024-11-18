@@ -1,5 +1,7 @@
 package cis5550.kvs;
 
+import cis5550.tools.Logger;
+
 import java.util.*;
 import java.io.*;
 
@@ -89,7 +91,12 @@ public class Row implements Serializable {
             if (keyOrMarker == null)
                 return newRow;
 
-            int len = Integer.parseInt(readStringSpace(in));
+            String lenString = readStringSpace(in);
+            if (lenString == null) {
+                throw new Exception("Format error: Length field missing for key '" + keyOrMarker + "'");
+            }
+
+            int len = Integer.parseInt(lenString);
             byte[] theValue = new byte[len];
             int bytesRead = 0;
             while (bytesRead < len) {

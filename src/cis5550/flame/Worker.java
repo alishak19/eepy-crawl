@@ -376,10 +376,12 @@ class Worker extends cis5550.generic.Worker {
         post(FlameOperation.PAIR_FLATMAP.getPath(), (request, response) -> {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
+
             if (myParams == null) {
                 setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
+
 
             KVSClient myKVS = new KVSClient(myParams.kvsCoordinator());
             Iterator<Row> myRows;

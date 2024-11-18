@@ -65,6 +65,7 @@ public class PersistentDatastore implements Datastore {
         }
 
         return writeRowToFile(myFileName, aRow) ? 0 : -1;
+
     }
 
     @Override

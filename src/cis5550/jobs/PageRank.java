@@ -20,12 +20,11 @@ public class PageRank {
 
     private static final String CRAWL_TABLE = "pt-crawl";
     private static final String PAGERANK_TABLE = "pt-pageranks";
-    private static final String STATE_TABLE = "pt-state";
-    private static final String NEW_RANKS_TABLE = "pt-new-ranks";
 
     private static final String COMMA = ",";
+    private static final String EMPTY = "";
     private static final String ZERO_DOUBLE = "0.0";
-    private static final String ORIG_STATE = "1.0,1.0,";
+    private static final String ORIG_RANK = "1.0";
     private static final String ONE_SINGLETON = "1";
     private static final String ZERO_SINGLETON = "0";
 
@@ -50,7 +49,7 @@ public class PageRank {
 
         FlameRDD urlPageStrings = context.fromTable(CRAWL_TABLE, row -> {
             String url = row.get(TableColumns.URL.value());
-            String pageContent = TableColumns.PAGE.value();
+            String pageContent = row.get(TableColumns.PAGE.value());
             return url + COMMA + pageContent;
         });
 
@@ -67,19 +66,16 @@ public class PageRank {
                     .map(Hasher::hash)
                     .collect(Collectors.toSet()));
 
-            String stateValue = ORIG_STATE + normalizedLinks;
+            String stateValue = ORIG_RANK + COMMA + ORIG_RANK + COMMA + normalizedLinks;
             return new FlamePair(Hasher.hash(url), stateValue);
         });
 
-        stateTable.saveAsTable(STATE_TABLE);
-
         int iteration = 1;
         while (true) {
-            LOGGER.debug("Starting iteration: " + iteration);
-            KVSClient client = context.getKVS();
+            System.out.println("Starting iteration: " + iteration);
 
             FlamePairRDD transferTable = stateTable.flatMapToPair(pair -> {
-                LOGGER.debug("Original pair: " + pair._1() + ", " + pair._2());
+                System.out.println("Original pair: " + pair._1() + ", " + pair._2());
 
                 String urlHash = pair._1();
                 String[] stateParts = pair._2().split(COMMA, 3);
@@ -98,27 +94,26 @@ public class PageRank {
                 }
 
                 transferPairs.forEach(pairOutput ->
-                        LOGGER.debug("Emitted pair: (" + pairOutput._1() + ", " + pairOutput._2() + ")")
+                        System.out.println("Emitted pair: (" + pairOutput._1() + ", " + pairOutput._2() + ")")
                 );
 
                 return transferPairs;
             });
 
-            FlamePairRDD aggregatedTransfers = transferTable.foldByKey(ZERO_DOUBLE, (totalRankStr, transferStr) -> {
-                double totalRank = Double.parseDouble(totalRankStr);
-                double transferValue = Double.parseDouble(transferStr);
-
-                double newRank = totalRank + transferValue;
-                return String.valueOf(newRank);
+            FlamePairRDD aggregatedTransfers = transferTable.foldByKey(EMPTY, (totalRankStr, transferStr) -> {
+                if (totalRankStr.isEmpty()) {
+                    return transferStr;
+                } else {
+                    double newRank = Double.parseDouble(totalRankStr) + Double.parseDouble(transferStr);
+                    return String.valueOf(newRank);
+                }
             });
 
-            client.delete(NEW_RANKS_TABLE);
-            aggregatedTransfers.saveAsTable(NEW_RANKS_TABLE);
+            stateTable = stateTable.join(aggregatedTransfers)
+                    .flatMapToPair(pair1 -> {
+                        String urlHash = pair1._1();
+                        String[] stateAndTransfer = pair1._2().split(COMMA, -1);
 
-            FlamePairRDD newStateTable = stateTable.join(aggregatedTransfers)
-                    .flatMapToPair(pair -> {
-                        String urlHash = pair._1();
-                        String[] stateAndTransfer = pair._2().split(COMMA, -1);
                         if (stateAndTransfer.length < 4) {
                             return Collections.emptyList();
                         }
@@ -132,10 +127,6 @@ public class PageRank {
                         return Collections.singletonList(new FlamePair(urlHash,
                                 newCurrentRank + COMMA + currentRank + COMMA + String.join(COMMA, linkHashes)));
                     });
-
-            client.delete(STATE_TABLE);
-            newStateTable.saveAsTable(STATE_TABLE);
-            stateTable = newStateTable;
 
             FlameRDD rankChanges = stateTable.flatMap(pair -> {
                 String[] stateValues = pair._2().split(COMMA, -1);
@@ -157,7 +148,7 @@ public class PageRank {
                 return String.valueOf(Math.max(accumulatedChange, currentChange));
             }));
 
-            LOGGER.debug("Maximum rank change: " + maxRankChange);
+            System.out.println("Maximum rank change: " + maxRankChange);
 
             FlameRDD convergedUrls = stateTable.flatMap(pair -> {
                 String[] stateValues = pair._2().split(COMMA, -1);
@@ -183,21 +174,21 @@ public class PageRank {
             double totalUrls = rankChanges.count();
             double convergedPercentage = (convergedCount / totalUrls) * 100;
 
-            LOGGER.debug("Converged URLs: " + convergedCount + "/" + totalUrls + " (" + convergedPercentage + "%)");
+            System.out.println("Converged URLs: " + convergedCount + "/" + totalUrls + " (" + convergedPercentage + "%)");
 
             if (convergedPercentage >= convergencePercentage) {
-                LOGGER.debug("Convergence achieved with " + convergedPercentage + "% of URLs on iteration " + iteration);
+                System.out.println("Convergence achieved with " + convergedPercentage + "% of URLs on iteration " + iteration);
                 break;
             } else if (maxRankChange < convergenceRate) {
-                LOGGER.debug("Convergence achieved on iteration " + iteration);
+                System.out.println("Convergence achieved on iteration " + iteration);
                 break;
             } else {
-                LOGGER.debug("Continuing iterations with maximum rank change: " + maxRankChange);
+                System.out.println("Continuing iterations with maximum rank change: " + maxRankChange);
                 iteration += 1;
             }
         }
 
-        LOGGER.debug("Storing final pageranks!");
+        System.out.println("Storing final pageranks!");
         stateTable.flatMap(pair -> {
             String urlHash = pair._1();
             String[] stateValues = pair._2().split(COMMA);
