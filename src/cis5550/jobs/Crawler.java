@@ -12,10 +12,10 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import static cis5550.tools.CrawlerBlacklist.*;
 import static cis5550.tools.RobotsHelper.*;
 import static cis5550.tools.URLHelper.*;
 
@@ -23,11 +23,19 @@ public class Crawler {
 
     private static final Logger LOGGER = Logger.getLogger(Crawler.class);
 
-    public static final String CRAWLER_NAME = "cis5550-crawler";
+    private static final String CRAWLER_NAME = "cis5550-crawler";
     private static final String CRAWL_TABLE = "pt-crawl";
     private static final String HOSTS_TABLE = "hosts";
-    private static final String CONTENT_TABLE = "content-hashes";
-    public static final int THREAD_SLEEP = 10;
+    private static final int THREAD_SLEEP = 10;
+    private static final int DEFAULT_CRAWL_DELAY = 1000;
+    private static final int CONNECT_TIMEOUT = 10000;
+    private static final int READ_TIMEOUT = 60000;
+
+    private static final String RESPONSE_CODE = "responseCode";
+    private static final String CONTENT_TYPE = "contentType";
+    private static final String CONTENT_LENGTH = "contentLength";
+    private static final String LOCATION = "location";
+    private static final String CONTENT = "content";
 
     public static void run(FlameContext context, String[] args) throws Exception {
         if (!(args.length <= 2)) {
@@ -39,7 +47,7 @@ public class Crawler {
         List<String> initialURL = new ArrayList<>();
         String normalizedURL = normalizeURL(args[0], args[0]);
         initialURL.add(normalizedURL);
-        LOGGER.debug(normalizedURL);
+        LOGGER.debug("Starting crawler from" + normalizedURL);
 
         FlameRDD urlQueue = context.parallelize(initialURL);
 
@@ -72,15 +80,18 @@ public class Crawler {
 
                 // Robots.txt
                 String robotsTxt = getRobotsTxt(client, host);
-                long crawlDelay = 1000;
+                long crawlDelay = DEFAULT_CRAWL_DELAY;
 
-                if (!isUrlAllowed(robotsTxt, url)) {
+                if (robotsTxt == null) {
+                    LOGGER.debug("Unexpected response code from: " + url);
+                    return Collections.emptyList();
+                } else if (!isUrlAllowed(robotsTxt, url)) {
                     LOGGER.debug("URL is not allowed by robots.txt: " + url);
                     return Collections.emptyList();
                 } else {
                     Double robotsDelay = getCrawlDelay(robotsTxt);
                     if (robotsDelay != null) {
-                        crawlDelay = (long) (1000 * robotsDelay);
+                        crawlDelay = (long) (DEFAULT_CRAWL_DELAY * robotsDelay);
                         LOGGER.debug("Crawl delay updated: " + crawlDelay);
                     } else {
                         LOGGER.debug("Using default crawl delay");
@@ -113,39 +124,56 @@ public class Crawler {
 
                 // Request to get header and status
                 LOGGER.debug("HEAD request");
-                HttpURLConnection headConnection = (HttpURLConnection) urlObj.openConnection();
-                headConnection.setRequestMethod("HEAD");
-                headConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
-                headConnection.setInstanceFollowRedirects(false);
-                headConnection.connect();
+                Map<String, Object> headerAttr = new HashMap<>();
+                HttpURLConnection headConnection;
 
-                int responseCode = headConnection.getResponseCode();
-                String contentType = headConnection.getContentType();
-                int contentLength = headConnection.getContentLength();
-                String location = headConnection.getHeaderField("Location");
+                try {
+                    headConnection = (HttpURLConnection) urlObj.openConnection();
+                    headConnection.setRequestMethod("HEAD");
+                    headConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
+                    headConnection.setInstanceFollowRedirects(false);
+                    headConnection.setConnectTimeout(CONNECT_TIMEOUT);
+                    headConnection.setReadTimeout(READ_TIMEOUT);
+                    headConnection.connect();
 
-                Row contentRow = client.getRow(CRAWL_TABLE, urlHash);
-                if (contentRow == null) {
-                    contentRow = new Row(urlHash);
-                }
-                contentRow.put(TableColumns.URL.value(), url);
-                contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(responseCode));
-
-                if (contentType != null) {
-                    contentRow.put(TableColumns.CONTENT_TYPE.value(), contentType);
-                }
-                if (contentLength != -1) {
-                    contentRow.put(TableColumns.CONTENT_LENGTH.value(), String.valueOf(contentLength));
+                    headerAttr.put(RESPONSE_CODE, headConnection.getResponseCode());
+                    headerAttr.put(CONTENT_TYPE, headConnection.getContentType());
+                    headerAttr.put(CONTENT_LENGTH, headConnection.getContentLength());
+                    headerAttr.put(LOCATION, headConnection.getHeaderField("Location"));
+                } catch (Exception e) {
+                    LOGGER.error("HEAD connection failed: " + e.getMessage());
+                    return Collections.emptyList();
                 }
 
-                client.putRow(CRAWL_TABLE, contentRow);
+                try {
+                    Row contentRow = client.getRow(CRAWL_TABLE, urlHash);
+                    if (contentRow == null) {
+                        contentRow = new Row(urlHash);
+                    }
+                    contentRow.put(TableColumns.URL.value(), url);
+                    contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(headerAttr.get(RESPONSE_CODE)));
+
+                    if (headerAttr.get(CONTENT_TYPE) != null) {
+                        contentRow.put(TableColumns.CONTENT_TYPE.value(), (String) headerAttr.get(CONTENT_TYPE));
+                    }
+                    if ((int) headerAttr.get(CONTENT_LENGTH) != -1) {
+                        contentRow.put(TableColumns.CONTENT_LENGTH.value(), String.valueOf(headerAttr.get(CONTENT_LENGTH)));
+                    }
+
+                    client.putRow(CRAWL_TABLE, contentRow);
+                } catch (Exception e) {
+                    LOGGER.error("Updating crawl table with header data failed: " + e.getMessage());
+                    return Collections.emptyList();
+                }
 
                 // Handle redirects
+                int responseCode = (int) headerAttr.get(RESPONSE_CODE);
+                String location = (String) headerAttr.get(LOCATION);
+
                 if (responseCode == 301 || responseCode == 302 || responseCode == 303 ||
                         responseCode == 307 || responseCode == 308
                 ) {
                     List<String> newUrls = new ArrayList<>();
-
                     if (location != null && !location.isEmpty()) {
                         LOGGER.debug("Redirecting to: " + location);
                         String newUrl = normalizeURL(url, location);
@@ -156,106 +184,76 @@ public class Crawler {
                     return newUrls;
                 }
 
-                if (responseCode == 200 && contentType != null && contentType.startsWith("text/html")) {
+                if (responseCode == 200 && headerAttr.get(CONTENT_TYPE) != null &&
+                        ((String) headerAttr.get(CONTENT_TYPE)).startsWith("text/html")) {
                     LOGGER.debug("GET request");
+                    HttpURLConnection getConnection;
+                    Map<String, Object> bodyAttr = new HashMap<>();
 
-                    HttpURLConnection getConnection = (HttpURLConnection) urlObj.openConnection();
-                    getConnection.setRequestMethod("GET");
-                    getConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
-                    getConnection.connect();
+                    try {
+                        getConnection = (HttpURLConnection) urlObj.openConnection();
+                        getConnection.setRequestMethod("GET");
+                        getConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
+                        getConnection.setConnectTimeout(CONNECT_TIMEOUT);
+                        getConnection.setReadTimeout(READ_TIMEOUT);
+                        getConnection.connect();
+                    } catch (Exception e) {
+                        LOGGER.error("GET connection failed: " + e.getMessage());
+                        return Collections.emptyList();
+                    }
 
-                    int getResponseCode = getConnection.getResponseCode();
-                    if (getResponseCode == 200) {
-                        InputStream is = getConnection.getInputStream();
-                        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
-                        byte[] buffer = new byte[4096];
-                        int bytesRead;
-                        while ((bytesRead = is.read(buffer)) != -1) {
-                            byteBuffer.write(buffer, 0, bytesRead);
-                        }
-                        byte[] contentBytes = byteBuffer.toByteArray();
-                        is.close();
-
-                        // EC #1
-                        String contentHash = Hasher.hash(new String(contentBytes, StandardCharsets.UTF_8));
-                        Row existingHashRow = client.getRow(CONTENT_TABLE, contentHash);
-                        if (existingHashRow != null) {
-                            LOGGER.debug("Adding existing content from URL: " + url);
-                            contentRow.put(TableColumns.CANONICAL_URL.value(), existingHashRow.get(TableColumns.URL.value()));
-                            contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(getResponseCode));
-                            client.putRow(CRAWL_TABLE, contentRow);
-                            return Collections.emptyList();
-                        } else {
-                            LOGGER.debug("Adding new URL: " + url);
-
-                            contentRow.put(TableColumns.PAGE.value(), contentBytes);
-                            contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(getResponseCode));
-                            client.putRow(CRAWL_TABLE, contentRow);
-
-                            LOGGER.debug("Extracting new URLs");
-                            List<String> newUrls = new ArrayList<>();
-                            Map<String, List<String>> extractedUrlsMap = extractUrlsAndAnchors(contentBytes);
-
-                            for (Map.Entry<String, List<String>> entry : extractedUrlsMap.entrySet()) {
-                                String href = entry.getKey();
-                                List<String> anchorTexts = entry.getValue();
-
-                                String normalizedUrl = normalizeURL(url, href);
-                                if (normalizedUrl != null) {
-                                    newUrls.add(normalizedUrl);
-//                                    if (!anchorTexts.isEmpty() && isUrlAllowed(robotsTxt, normalizedUrl) &&
-//                                            !isBlacklisted(url, blacklistPatterns)) {
-//                                        String combinedAnchorText = String.join(" ", anchorTexts);
-//
-//                                        Row targetRow = client.getRow(CRAWL_TABLE, Hasher.hash(normalizedUrl));
-//                                        LOGGER.debug("Adding anchor to: " + normalizedUrl + " with key " + Hasher.hash(normalizedUrl));
-//                                        if (targetRow == null) {
-//                                            targetRow = new Row(Hasher.hash(normalizedUrl));
-//                                        }
-//
-//                                        targetRow.put(TableColumns.ANCHOR_PREFIX.value() + Hasher.hash(url), combinedAnchorText);
-//                                        client.putRow(CRAWL_TABLE, targetRow);
-//                                    }
-                                }
+                    try {
+                        bodyAttr.put(RESPONSE_CODE, getConnection.getResponseCode());
+                        if ((int) bodyAttr.get(RESPONSE_CODE) == 200) {
+                            InputStream is = getConnection.getInputStream();
+                            ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+                            byte[] buffer = new byte[4096];
+                            int bytesRead;
+                            while ((bytesRead = is.read(buffer)) != -1) {
+                                byteBuffer.write(buffer, 0, bytesRead);
                             }
+                            byte[] contentBytes = byteBuffer.toByteArray();
+                            is.close();
 
-                            LOGGER.debug("Caching content of page");
-                            Row hashRow = new Row(contentHash);
-                            hashRow.put(TableColumns.URL.value(), url);
-                            client.putRow(CONTENT_TABLE, hashRow);
-
-                            return newUrls;
+                            bodyAttr.put(CONTENT, contentBytes);
                         }
+                    } catch (Exception e) {
+                        LOGGER.error("Crawler failed while reading GET connection: " + e.getMessage());
+                        return Collections.emptyList();
+                    }
+
+                    try {
+                        Row contentRow = client.getRow(CRAWL_TABLE, urlHash);
+                        if (contentRow == null) {
+                            contentRow = new Row(urlHash);
+                        }
+
+                        LOGGER.debug("Adding new URL: " + url);
+                        contentRow.put(TableColumns.PAGE.value(), (byte[]) bodyAttr.get(CONTENT));
+                        contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf((int) bodyAttr.get(RESPONSE_CODE)));
+                        client.putRow(CRAWL_TABLE, contentRow);
+
+                        LOGGER.debug("Extracting new URLs");
+                        List<String> newUrls = new ArrayList<>();
+                        Map<String, List<String>> extractedUrlsMap = extractUrlsAndAnchors((byte[]) bodyAttr.get(CONTENT));
+
+                        for (Map.Entry<String, List<String>> entry : extractedUrlsMap.entrySet()) {
+                            String href = entry.getKey();
+                            String normalizedUrl = normalizeURL(url, href);
+                            if (normalizedUrl != null) {
+                                newUrls.add(normalizedUrl);
+                            }
+                        }
+
+                        return newUrls;
+                    } catch (Exception e) {
+                        LOGGER.error("Crawler failed while updating crawl table with body: " + e.getMessage());
+                        return Collections.emptyList();
                     }
                 }
                 return Collections.emptyList();
             });
             Thread.sleep(THREAD_SLEEP);
         }
-    }
-
-    private static boolean isBlacklisted(String url, List<Pattern> blacklistPatterns) {
-        for (Pattern pattern : blacklistPatterns) {
-            if (pattern.matcher(url).matches()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static List<Pattern> loadBlacklistPatterns(KVSClient client, String tableName) throws IOException {
-        List<Pattern> patterns = new ArrayList<>();
-        Iterator<Row> rows = client.scan(tableName);
-        while (rows.hasNext()) {
-            Row row = rows.next();
-            String pattern = row.get(TableColumns.PATTERNS.value());
-            if (pattern != null) {
-                String regexPattern = pattern
-                        .replace(".", "\\.")
-                        .replace("*", ".*");
-                patterns.add(Pattern.compile(regexPattern));
-            }
-        }
-        return patterns;
     }
 }
