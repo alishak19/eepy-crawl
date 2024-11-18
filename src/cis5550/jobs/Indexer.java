@@ -1,9 +1,9 @@
 package cis5550.jobs;
 import java.io.*;
 
-import cis5550.external.PorterStemmer;
+import cis5550.tools.PorterStemmer;
 // import static cis5550.external.PorterStemmer;
-import cis5550.external.PorterStemmer.*;
+import cis5550.tools.PorterStemmer.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
