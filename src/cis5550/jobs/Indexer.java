@@ -15,7 +15,6 @@ import cis5550.flame.FlamePairRDD.TwoStringsToString;
 import cis5550.flame.FlameRDD.StringToPair;
 
 public class Indexer {
-	
 	public static void run(FlameContext context, String[] arr) throws Exception {
 		KVSClient client = context.getKVS();
 		RowToString lambda1 = (Row r) -> {
@@ -37,8 +36,12 @@ public class Indexer {
 			return pair;
 		};
 		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
-		mappedStrings.destroy();
-		
+		try {
+			mappedStrings.destroy();
+		} catch (Exception e) {
+
+		}
+
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			List<FlamePair> wordPairs = new ArrayList<>();
 			String page = f._2();
@@ -124,7 +127,11 @@ public class Indexer {
 			return wordPairs;
 		};
 		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
-		pairs.destroy();
+		try {
+			pairs.destroy();
+		} catch (Exception e) {
+
+		}
 		
 		TwoStringsToString lambda4 = (String one, String two) -> {
 			if (one.equals("")) {
@@ -133,7 +140,11 @@ public class Indexer {
 			return one + "," + two;
 		};
 		FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
-		inverted.destroy();
+		try {
+			inverted.destroy();
+		} catch (Exception e) {
+
+		}
 		invertedList.saveAsTable("pt-index");
 		
 	}
