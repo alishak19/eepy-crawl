@@ -36,11 +36,7 @@ public class Indexer {
 			return pair;
 		};
 		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
-		try {
-			mappedStrings.destroy();
-		} catch (Exception e) {
-
-		}
+		mappedStrings.destroy();
 
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			List<FlamePair> wordPairs = new ArrayList<>();
@@ -127,11 +123,7 @@ public class Indexer {
 			return wordPairs;
 		};
 		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
-		try {
-			pairs.destroy();
-		} catch (Exception e) {
-
-		}
+		pairs.destroy();
 		
 		TwoStringsToString lambda4 = (String one, String two) -> {
 			if (one.equals("")) {
@@ -140,11 +132,7 @@ public class Indexer {
 			return one + "," + two;
 		};
 		FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
-		try {
-			inverted.destroy();
-		} catch (Exception e) {
-
-		}
+		inverted.destroy();
 		invertedList.saveAsTable("pt-index");
 		
 	}
