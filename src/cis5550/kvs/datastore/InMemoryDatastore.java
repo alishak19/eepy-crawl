@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 public class InMemoryDatastore implements Datastore {
     public static final Logger LOGGER = Logger.getLogger(InMemoryDatastore.class);
 
-    private final ConcurrentMap<String, ConcurrentMap<String, ConcurrentLinkedDeque<Row>>> theMemoryData;
+    private final ConcurrentMap<String, ConcurrentMap<String, Row>> theMemoryData;
 
     public InMemoryDatastore() {
         theMemoryData = new ConcurrentHashMap<>();
@@ -24,8 +24,7 @@ public class InMemoryDatastore implements Datastore {
     @Override
     public int put(String aTable, String aKey, String aColumn, byte[] aValue) {
         theMemoryData.putIfAbsent(aTable, new ConcurrentSkipListMap<>());
-        theMemoryData.get(aTable).putIfAbsent(aKey, new ConcurrentLinkedDeque<>());
-        Row myPreviousRow = theMemoryData.get(aTable).get(aKey).peekLast();
+        Row myPreviousRow = theMemoryData.get(aTable).get(aKey);
         Row myNewRow;
         if (myPreviousRow == null) {
             myNewRow = new Row(aKey);
@@ -34,16 +33,15 @@ public class InMemoryDatastore implements Datastore {
             myNewRow = myPreviousRow.clone();
             myNewRow.put(aColumn, aValue);
         }
-        theMemoryData.get(aTable).get(aKey).add(myNewRow);
-        return theMemoryData.get(aTable).get(myNewRow.key()).size();
+        theMemoryData.get(aTable).get(aKey);
+        return 0;
     }
 
     @Override
     public int putRow(String aTable, String aKey, Row aRow) {
         theMemoryData.putIfAbsent(aTable, new ConcurrentSkipListMap<>());
-        theMemoryData.get(aTable).putIfAbsent(aKey, new ConcurrentLinkedDeque<>());
-        theMemoryData.get(aTable).get(aKey).add(aRow);
-        return theMemoryData.get(aTable).get(aKey).size();
+        theMemoryData.get(aTable).get(aKey);
+        return 0;
     }
 
     @Override
@@ -57,22 +55,12 @@ public class InMemoryDatastore implements Datastore {
         if (!theMemoryData.containsKey(aTable) || !theMemoryData.get(aTable).containsKey(aKey)) {
             return null;
         }
-        if (aVersion == -1) {
-            return theMemoryData.get(aTable).get(aKey).peekLast();
-        }
-        int myI = 1;
-        for (Row myRow : theMemoryData.get(aTable).get(aKey)) {
-            if (myI == aVersion) {
-                return myRow;
-            }
-            myI++;
-        }
-        return null;
+        return theMemoryData.get(aTable).get(aKey);
     }
 
     @Override
     public int getVersion(String aTable, String aKey) {
-        return theMemoryData.get(aTable).get(aKey).size();
+        return 0;
     }
 
     @Override
@@ -96,7 +84,7 @@ public class InMemoryDatastore implements Datastore {
                 .collect(
                         ConcurrentSkipListMap::new,
                         (aMap, aEntry) ->
-                                aMap.put(aEntry.getKey(), aEntry.getValue().peekLast()),
+                                aMap.put(aEntry.getKey(), aEntry.getValue()),
                         ConcurrentSkipListMap::putAll);
     }
 
@@ -115,7 +103,7 @@ public class InMemoryDatastore implements Datastore {
                     }
                     return true;
                 })
-                .map(aEntry -> aEntry.getValue().peekLast());
+                .map(aEntry -> aEntry.getValue());
     }
 
     @Override
@@ -151,23 +139,15 @@ public class InMemoryDatastore implements Datastore {
         if (theMemoryData.containsKey(aTableName)) {
             return OpStatus.TABLE_ALREADY_EXISTS;
         }
-        ConcurrentMap<String, ConcurrentLinkedDeque<Row>> myTable = new ConcurrentSkipListMap<>();
-        aTable.forEach((aKey, aRow) -> {
-            ConcurrentLinkedDeque<Row> myRowDeque = new ConcurrentLinkedDeque<>();
-            myRowDeque.add(aRow);
-            myTable.put(aKey, myRowDeque);
-        });
-        theMemoryData.put(aTableName, myTable);
+        theMemoryData.put(aTableName, aTable);
         return OpStatus.SUCCESS;
     }
 
     @Override
     public ConcurrentMap<String, Row> getMap(String aTableName) {
-        ConcurrentMap<String, Row> myResult = new ConcurrentHashMap<>();
         if (!theMemoryData.containsKey(aTableName)) {
-            return myResult;
+            return new ConcurrentHashMap<>();
         }
-        theMemoryData.get(aTableName).forEach((aKey, aRowDeque) -> myResult.put(aKey, aRowDeque.peekLast()));
-        return myResult;
+        return theMemoryData.get(aTableName);
     }
 }
