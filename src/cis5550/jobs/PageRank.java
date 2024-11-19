@@ -21,6 +21,9 @@ public class PageRank {
 	public static void run(FlameContext context, String[] arr) throws Exception {
         if (arr.length > 0) {
             double threshold = Double.parseDouble(arr[0]);
+        } else {
+            System.out.println("No threshold");
+            return;
         }
         double convergence = -1.0;
 
