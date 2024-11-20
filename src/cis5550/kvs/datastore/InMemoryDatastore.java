@@ -23,7 +23,7 @@ public class InMemoryDatastore implements Datastore {
 
     @Override
     public int put(String aTable, String aKey, String aColumn, byte[] aValue) {
-        theMemoryData.putIfAbsent(aTable, new ConcurrentSkipListMap<>());
+        theMemoryData.putIfAbsent(aTable, new ConcurrentHashMap<>());
         Row myPreviousRow = theMemoryData.get(aTable).get(aKey);
         Row myNewRow;
         if (myPreviousRow == null) {
@@ -33,14 +33,14 @@ public class InMemoryDatastore implements Datastore {
             myNewRow = myPreviousRow.clone();
             myNewRow.put(aColumn, aValue);
         }
-        theMemoryData.get(aTable).get(aKey);
+        theMemoryData.get(aTable).put(aKey, myNewRow);
         return 0;
     }
 
     @Override
     public int putRow(String aTable, String aKey, Row aRow) {
         theMemoryData.putIfAbsent(aTable, new ConcurrentSkipListMap<>());
-        theMemoryData.get(aTable).get(aKey);
+        theMemoryData.get(aTable).put(aKey, aRow);
         return 0;
     }
 
