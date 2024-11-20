@@ -6,6 +6,7 @@ import cis5550.kvs.Row;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.regex.Pattern;
 
 public class Denylist {
@@ -15,6 +16,18 @@ public class Denylist {
 
     private Denylist(List<Pattern> aPatterns) {
         thePatterns = aPatterns;
+    }
+
+    public Denylist() {
+        thePatterns = List.of(
+                Pattern.compile("http.*://.*/cgi-bin/.*", Pattern.CASE_INSENSITIVE), // Dynamic scripts
+                Pattern.compile(".*\\.pdf$", Pattern.CASE_INSENSITIVE),             // PDF files
+                Pattern.compile(".*\\.jpg$", Pattern.CASE_INSENSITIVE),             // Image files
+                Pattern.compile(".*\\.png$", Pattern.CASE_INSENSITIVE),             // Image files
+                Pattern.compile(".*\\.gif$", Pattern.CASE_INSENSITIVE),             // Image files
+                Pattern.compile(".*\\.css$", Pattern.CASE_INSENSITIVE),             // Stylesheets
+                Pattern.compile(".*\\.js$", Pattern.CASE_INSENSITIVE)
+        );
     }
 
     public static Denylist fromKVSTable(KVSClient aKVSClient, String aTableName) {
@@ -46,6 +59,16 @@ public class Denylist {
             }
         }
         return false;
+    }
+
+    public static boolean filterPopularDomains(String aUrl) {
+        Random random = new Random();
+        if (aUrl.contains("wikipedia.org") && !aUrl.contains("en.wikipedia.org")) {
+            return false;
+        } else if (aUrl.contains("en.wikipedia.org/wiki/")) {
+            return !(random.nextDouble() < 0.5);
+        }
+        return true;
     }
 
     public static void main(String[] args) {
