@@ -29,7 +29,7 @@ public class Indexer {
 					} else {
 						client.putRow("pt-alrindexed", r);
 						String page = r.get("page");
-
+						// FlamePair pair = new FlamePair(url, page);
 						return url + "," + page;
 					}
 				} catch (Exception e) {
@@ -49,6 +49,10 @@ public class Indexer {
 			return pair;
 		};
 		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
+		if (mappedStrings.count() > 0) {
+			mappedStrings.destroy();
+			System.out.println("yay");
+		}
 		// mappedStrings.destroy();
 
 		PairToPairIterable lambda3 = (FlamePair f) -> {
@@ -119,7 +123,7 @@ public class Indexer {
 			}
 			
 			for (String w : words) {
-				String positions = wordPositions.get(w);
+				// String positions = wordPositions.get(w);
 //				PorterStemmer p = new PorterStemmer();
 //				for (char c : w.toCharArray()) {
 //					p.add(c);
@@ -143,39 +147,11 @@ public class Indexer {
 					r.put(TableColumns.URL.value(), f._1() + ":" + wordPositions.get(w));
 					client.putRow("pt-index", r);
 				}
-				FlamePair curr = new FlamePair(w, f._1() + ":" + wordPositions.get(w));
-				// wordPairs.add(curr);
+				// FlamePair curr = new FlamePair(w, f._1() + ":" + wordPositions.get(w));
 			}
-			// return wordPairs;
 			return null;
 		};
 		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
-		// pairs.destroy();
-		
-//		TwoStringsToString lambda4 = (String one, String two) -> {
-//			if (one.equals("")) {
-//				return two;
-//			}
-//			return one + "," + two;
-//		};
-//		FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
-
-//		PairToPairIterable lambda5 = (FlamePair f) -> {
-//			List<FlamePair> r = new ArrayList<>();
-//
-//			KVSClient client = context.getKVS();
-//			if (client.existsRow("pt-index", Hasher.hash(f._1()))) {
-//				String curr = new String(client.get("pt-index", Hasher.hash(f._1()), "url"));
-//				curr += "," + f._2();
-//				client.put("pt-index", Hasher.hash(f._1()), "url", curr);
-//			} else {
-//				client.put("pt-index", Hasher.hash(f._1()), "url", f._2());
-//			}
-//			return r;
-//		};
-//		FlamePairRDD f = invertedList.flatMapToPair(lambda5);
-		// inverted.destroy();
-		// invertedList.saveAsTable("pt-index");
 	}
 	
 	public static String removePunctuation(String s) {
