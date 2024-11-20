@@ -24,12 +24,12 @@ public class Indexer {
 				String url = r.get(TableColumns.URL.value());
 				KVSClient client = context.getKVS();
 				try {
+					// using hashed url as key
 					if (client.existsRow("pt-alrindexed", r.key())) {
 						return null;
 					} else {
 						client.putRow("pt-alrindexed", r);
 						String page = r.get("page");
-						// FlamePair pair = new FlamePair(url, page);
 						return url + "," + page;
 					}
 				} catch (Exception e) {
