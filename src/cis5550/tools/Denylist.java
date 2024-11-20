@@ -3,14 +3,14 @@ package cis5550.tools;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class Denylist {
-    public static final String COLUMN_NAME = "pattern";
+    private static final String COLUMN_NAME = "pattern";
+    private static final Map<String, Double> PROBABILISTIC_FILTERING = Map.of(
+            "en.wikipedia.org", 0.5
+    );
 
     private final List<Pattern> thePatterns;
 
@@ -21,12 +21,14 @@ public class Denylist {
     public Denylist() {
         thePatterns = List.of(
                 Pattern.compile("http.*://.*/cgi-bin/.*", Pattern.CASE_INSENSITIVE), // Dynamic scripts
-                Pattern.compile(".*\\.pdf$", Pattern.CASE_INSENSITIVE),             // PDF files
-                Pattern.compile(".*\\.jpg$", Pattern.CASE_INSENSITIVE),             // Image files
-                Pattern.compile(".*\\.png$", Pattern.CASE_INSENSITIVE),             // Image files
-                Pattern.compile(".*\\.gif$", Pattern.CASE_INSENSITIVE),             // Image files
-                Pattern.compile(".*\\.css$", Pattern.CASE_INSENSITIVE),             // Stylesheets
-                Pattern.compile(".*\\.js$", Pattern.CASE_INSENSITIVE)               // JS
+                Pattern.compile(".*\\.pdf$", Pattern.CASE_INSENSITIVE),              // PDF files
+                Pattern.compile(".*\\.jpg$", Pattern.CASE_INSENSITIVE),              // Image files
+                Pattern.compile(".*\\.png$", Pattern.CASE_INSENSITIVE),              // Image files
+                Pattern.compile(".*\\.gif$", Pattern.CASE_INSENSITIVE),              // Image files
+                Pattern.compile(".*\\.css$", Pattern.CASE_INSENSITIVE),              // Stylesheets
+                Pattern.compile(".*\\.js$", Pattern.CASE_INSENSITIVE),               // JS
+                Pattern.compile("https?://((?!en)\\w+)\\.wikipedia\\.org(:\\d+)?/.*",
+                        Pattern.CASE_INSENSITIVE)                                          // Non English Wikipedia
         );
     }
 
@@ -61,27 +63,13 @@ public class Denylist {
         return false;
     }
 
-    public static boolean filterPopularDomains(String aUrl) {
+    public static boolean probabilisticDomainFilter(String aUrl) {
         Random random = new Random();
-        if (aUrl.contains("wikipedia.org") && !aUrl.contains("en.wikipedia.org")) {
-            return false;
-        } else if (aUrl.contains("en.wikipedia.org")) {
-            return !(random.nextDouble() < 0.5);
+        for (String key : PROBABILISTIC_FILTERING.keySet()) {
+            if (aUrl.contains(key) && random.nextDouble() < PROBABILISTIC_FILTERING.get(key)) {
+                return false;
+            }
         }
         return true;
-    }
-
-    public static void main(String[] args) {
-        List<String> patterns = List.of("http*://*/cgi-bin/*", "*.pdf", "http://dangerous.com:80/*");
-
-        Denylist denylist = new Denylist(patterns.stream()
-                .map(x -> x.replace("*", ".*"))
-                .map(Pattern::compile)
-                .toList());
-
-        System.out.println(denylist.isBlocked("http://example.com/cgi-bin/test")); // true
-        System.out.println(denylist.isBlocked("http://safe.com/document.pdf")); // true
-        System.out.println(denylist.isBlocked("http://dangerous.com:80/home")); // true
-        System.out.println(denylist.isBlocked("http://safe.com/page")); // false
     }
 }

@@ -182,7 +182,7 @@ public class NewCrawler {
                             for (String url : myUrls) {
                                 String myNormalizedUrl = normalizeURL(myCleanedUrl, url);
                                 if (myNormalizedUrl != null && !alreadyTraversed(aContext, myNormalizedUrl) &&
-                                        filterPopularDomains(myNormalizedUrl)) {
+                                        probabilisticDomainFilter(myNormalizedUrl)) {
                                     myToTraverseUrls.add(myNormalizedUrl);
                                 }
                             }
