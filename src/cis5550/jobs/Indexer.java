@@ -21,9 +21,20 @@ public class Indexer {
 		RowToString lambda1 = (Row r) -> {
 			if (r.columns().contains("url") && r.columns().contains("page")) {
 				String url = r.get("url");
-				String page = r.get("page");
-				
-				return url + "," + page;
+				KVSClient client = context.getKVS();
+				try {
+					if (client.existsRow("pt-alrindexed", r.key())) {
+						return null;
+					} else {
+						client.putRow("pt-alrindexed", r);
+						String page = r.get("page");
+
+						return url + "," + page;
+					}
+				} catch (Exception e) {
+				}
+				return null;
+
 			} else {
 				return null;
 			}
