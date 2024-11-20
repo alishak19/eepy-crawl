@@ -120,10 +120,10 @@ public class Indexer {
 			
 			for (String w : words) {
 				String positions = wordPositions.get(w);
-				PorterStemmer p = new PorterStemmer();
-				for (char c : w.toCharArray()) {
-					p.add(c);
-				}
+//				PorterStemmer p = new PorterStemmer();
+//				for (char c : w.toCharArray()) {
+//					p.add(c);
+//				}
 //				p.stem();
 //				String stemmed = p.toString();
 //				if (!stemmed.equals(w)) {
@@ -144,7 +144,7 @@ public class Indexer {
 					client.putRow("pt-index", r);
 				}
 				FlamePair curr = new FlamePair(w, f._1() + ":" + wordPositions.get(w));
-				wordPairs.add(curr);
+				// wordPairs.add(curr);
 			}
 			// return wordPairs;
 			return null;
