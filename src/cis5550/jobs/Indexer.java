@@ -14,6 +14,7 @@ import cis5550.flame.FlamePairRDD.PairToPairIterable;
 import cis5550.flame.FlamePairRDD.TwoStringsToString;
 import cis5550.flame.FlameRDD.StringToPair;
 import cis5550.tools.Hasher;
+import cis5550.jobs.datamodels.TableColumns;
 
 public class Indexer {
 	public static void run(FlameContext context, String[] arr) throws Exception {
@@ -123,42 +124,56 @@ public class Indexer {
 				for (char c : w.toCharArray()) {
 					p.add(c);
 				}
-				p.stem();
-				String stemmed = p.toString();
-				if (!stemmed.equals(w)) {
-					FlamePair currS = new FlamePair(stemmed, f._1() + ":" + wordPositions.get(w));
-					wordPairs.add(currS);
+//				p.stem();
+//				String stemmed = p.toString();
+//				if (!stemmed.equals(w)) {
+//					FlamePair currS = new FlamePair(stemmed, f._1() + ":" + wordPositions.get(w));
+//					wordPairs.add(currS);
+//				}
+				KVSClient client = context.getKVS();
+				if (client.existsRow("pt-index", w)) {
+					Row curr = client.getRow("pt-index", w);
+					for (String col : curr.columns()) {
+						String val = curr.get(col);
+						val += "," + f._1() + ":" + wordPositions.get(w);
+						client.put("pt-index", w, col, val);
+					}
+				} else {
+					Row r = new Row(w);
+					r.put(TableColumns.URL.value(), f._1() + ":" + wordPositions.get(w));
+					client.putRow("pt-index", r);
 				}
 				FlamePair curr = new FlamePair(w, f._1() + ":" + wordPositions.get(w));
 				wordPairs.add(curr);
 			}
-			return wordPairs;
+			// return wordPairs;
+			return null;
 		};
 		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
 		// pairs.destroy();
 		
-		TwoStringsToString lambda4 = (String one, String two) -> {
-			if (one.equals("")) {
-				return two;
-			}
-			return one + "," + two;
-		};
-		FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
+//		TwoStringsToString lambda4 = (String one, String two) -> {
+//			if (one.equals("")) {
+//				return two;
+//			}
+//			return one + "," + two;
+//		};
+//		FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
 
-		PairToPairIterable lambda5 = (FlamePair f) -> {
-			List<FlamePair> r = new ArrayList<>();
-
-			KVSClient client = context.getKVS();
-			if (client.existsRow("pt-index", Hasher.hash(f._1()))) {
-				String curr = new String(client.get("pt-index", Hasher.hash(f._1()), "url"));
-				curr += "," + f._2();
-				client.put("pt-index", Hasher.hash(f._1()), "url", curr);
-			} else {
-				client.put("pt-index", Hasher.hash(f._1()), "url", f._2());
-			}
-			return r;
-		};
-		FlamePairRDD f = invertedList.flatMapToPair(lambda5);
+//		PairToPairIterable lambda5 = (FlamePair f) -> {
+//			List<FlamePair> r = new ArrayList<>();
+//
+//			KVSClient client = context.getKVS();
+//			if (client.existsRow("pt-index", Hasher.hash(f._1()))) {
+//				String curr = new String(client.get("pt-index", Hasher.hash(f._1()), "url"));
+//				curr += "," + f._2();
+//				client.put("pt-index", Hasher.hash(f._1()), "url", curr);
+//			} else {
+//				client.put("pt-index", Hasher.hash(f._1()), "url", f._2());
+//			}
+//			return r;
+//		};
+//		FlamePairRDD f = invertedList.flatMapToPair(lambda5);
 		// inverted.destroy();
 		// invertedList.saveAsTable("pt-index");
 	}
