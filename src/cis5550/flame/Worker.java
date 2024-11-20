@@ -69,16 +69,12 @@ class Worker extends cis5550.generic.Worker {
 
             int myI = 0;
             while (myRows.hasNext()) {
-                LOGGER.debug("New Row");
                 Row myRow = myRows.next();
                 String myValue = myRow.get(COLUMN_NAME);
                 Iterable<String> myResults = myLambda.op(myValue);
 
-                LOGGER.debug("Got results");
-
                 if (myResults != null) {
                     for (String myResult : myResults) {
-                        LOGGER.debug("Putting result");
                         myKVS.put(myParams.outputTable(), createUniqueRowKey(myRow.key(), myI), COLUMN_NAME, myResult);
                         myI++;
                     }
