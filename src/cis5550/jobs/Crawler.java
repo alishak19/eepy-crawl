@@ -7,6 +7,7 @@ import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
 import cis5550.tools.Hasher;
 import cis5550.tools.Logger;
+import cis5550.webserver.datamodels.Header;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -32,9 +33,6 @@ public class Crawler {
     private static final int READ_TIMEOUT = 60000;
 
     private static final String RESPONSE_CODE = "responseCode";
-    private static final String CONTENT_TYPE = "contentType";
-    private static final String CONTENT_LENGTH = "contentLength";
-    private static final String LOCATION = "location";
     private static final String CONTENT = "content";
 
     public static void run(FlameContext context, String[] args) throws Exception {
@@ -137,9 +135,9 @@ public class Crawler {
                     headConnection.connect();
 
                     headerAttr.put(RESPONSE_CODE, headConnection.getResponseCode());
-                    headerAttr.put(CONTENT_TYPE, headConnection.getContentType());
-                    headerAttr.put(CONTENT_LENGTH, headConnection.getContentLength());
-                    headerAttr.put(LOCATION, headConnection.getHeaderField("Location"));
+                    headerAttr.put(Header.CONTENT_TYPE.getHeaderString(), headConnection.getContentType());
+                    headerAttr.put(Header.CONTENT_LENGTH.getHeaderString(), headConnection.getContentLength());
+                    headerAttr.put(Header.LOCATION.getHeaderString(), headConnection.getHeaderField(Header.LOCATION.getHeaderString()));
                 } catch (Exception e) {
                     LOGGER.error("HEAD connection failed: " + e.getMessage());
                     return Collections.emptyList();
@@ -153,11 +151,11 @@ public class Crawler {
                     contentRow.put(TableColumns.URL.value(), url);
                     contentRow.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(headerAttr.get(RESPONSE_CODE)));
 
-                    if (headerAttr.get(CONTENT_TYPE) != null) {
-                        contentRow.put(TableColumns.CONTENT_TYPE.value(), (String) headerAttr.get(CONTENT_TYPE));
+                    if (headerAttr.get(Header.CONTENT_TYPE.getHeaderString()) != null) {
+                        contentRow.put(TableColumns.CONTENT_TYPE.value(), (String) headerAttr.get(Header.CONTENT_TYPE.getHeaderString()));
                     }
-                    if ((int) headerAttr.get(CONTENT_LENGTH) != -1) {
-                        contentRow.put(TableColumns.CONTENT_LENGTH.value(), String.valueOf(headerAttr.get(CONTENT_LENGTH)));
+                    if ((int) headerAttr.get(Header.CONTENT_LENGTH.getHeaderString()) != -1) {
+                        contentRow.put(TableColumns.CONTENT_LENGTH.value(), String.valueOf(headerAttr.get(Header.CONTENT_LENGTH.getHeaderString())));
                     }
 
                     client.putRow(CRAWL_TABLE, contentRow);
@@ -168,7 +166,7 @@ public class Crawler {
 
                 // Handle redirects
                 int responseCode = (int) headerAttr.get(RESPONSE_CODE);
-                String location = (String) headerAttr.get(LOCATION);
+                String location = (String) headerAttr.get(Header.LOCATION.getHeaderString());
 
                 if (responseCode == 301 || responseCode == 302 || responseCode == 303 ||
                         responseCode == 307 || responseCode == 308
@@ -184,8 +182,8 @@ public class Crawler {
                     return newUrls;
                 }
 
-                if (responseCode == 200 && headerAttr.get(CONTENT_TYPE) != null &&
-                        ((String) headerAttr.get(CONTENT_TYPE)).startsWith("text/html")) {
+                if (responseCode == 200 && headerAttr.get(Header.CONTENT_TYPE.getHeaderString()) != null &&
+                        ((String) headerAttr.get(Header.CONTENT_TYPE.getHeaderString())).startsWith("text/html")) {
                     LOGGER.debug("GET request");
                     HttpURLConnection getConnection;
                     Map<String, Object> bodyAttr = new HashMap<>();

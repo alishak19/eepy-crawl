@@ -71,9 +71,6 @@ public class FlamePairRDDImpl implements FlamePairRDD {
 
     @Override
     public void destroy() throws Exception {
-        if (!theKVSClient.scan(theTableName).hasNext()) {
-            throw new Exception("Table does not exist");
-        }
         theKVSClient.delete(theTableName);
     }
 

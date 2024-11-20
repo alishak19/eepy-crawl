@@ -7,6 +7,7 @@ import cis5550.tools.Serializer;
 import java.util.*;
 
 import static cis5550.flame.FlameContextImpl.COLUMN_NAME;
+import static cis5550.flame.FlameContextImpl.LOGGER;
 
 public class FlameRDDImpl implements FlameRDD {
     private final KVSClient theKVSClient;
@@ -155,9 +156,6 @@ public class FlameRDDImpl implements FlameRDD {
 
     @Override
     public void destroy() throws Exception {
-        if (!theKVSClient.scan(theTableName).hasNext()) {
-            throw new Exception("No data to destroy");
-        }
         theKVSClient.delete(theTableName);
     }
 
