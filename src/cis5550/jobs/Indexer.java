@@ -21,7 +21,7 @@ public class Indexer {
 		// KVSClient client = context.getKVS();
 		RowToString lambda1 = (Row r) -> {
 			if (r.columns().contains("url") && r.columns().contains("page")) {
-				String url = r.get("url");
+				String url = r.get(TableColumns.URL.value());
 				KVSClient client = context.getKVS();
 				try {
 					if (client.existsRow("pt-alrindexed", r.key())) {

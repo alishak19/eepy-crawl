@@ -19,8 +19,9 @@ import java.util.*;
 
 public class PageRank {
 	public static void run(FlameContext context, String[] arr) throws Exception {
+        double threshold = 1.0;
         if (arr.length > 0) {
-            double threshold = Double.parseDouble(arr[0]);
+            threshold = Double.parseDouble(arr[0]);
         } else {
             System.out.println("No threshold");
             return;
