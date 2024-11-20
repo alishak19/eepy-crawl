@@ -26,7 +26,7 @@ public class Denylist {
                 Pattern.compile(".*\\.png$", Pattern.CASE_INSENSITIVE),             // Image files
                 Pattern.compile(".*\\.gif$", Pattern.CASE_INSENSITIVE),             // Image files
                 Pattern.compile(".*\\.css$", Pattern.CASE_INSENSITIVE),             // Stylesheets
-                Pattern.compile(".*\\.js$", Pattern.CASE_INSENSITIVE)
+                Pattern.compile(".*\\.js$", Pattern.CASE_INSENSITIVE)               // JS
         );
     }
 
@@ -65,7 +65,7 @@ public class Denylist {
         Random random = new Random();
         if (aUrl.contains("wikipedia.org") && !aUrl.contains("en.wikipedia.org")) {
             return false;
-        } else if (aUrl.contains("en.wikipedia.org/wiki/")) {
+        } else if (aUrl.contains("en.wikipedia.org")) {
             return !(random.nextDouble() < 0.5);
         }
         return true;

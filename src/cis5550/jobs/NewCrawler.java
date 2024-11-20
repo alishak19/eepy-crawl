@@ -193,8 +193,12 @@ public class NewCrawler {
                         return Collections.emptyList();
                     }
                 } else {
-                    putPageInTable(
-                            aContext, myCleanedUrl, myHeadResponseCode, myContentType, myContentLength, null);
+                    try {
+                        putPageInTable(
+                                aContext, myCleanedUrl, myHeadResponseCode, myContentType, myContentLength, null);
+                    } catch (Exception e) {
+                        LOGGER.error("Failed while adding page content: " + e.getMessage());
+                    }
                     return Collections.emptyList();
                 }
                 return Collections.emptyList();
