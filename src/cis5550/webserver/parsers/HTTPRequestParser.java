@@ -125,24 +125,15 @@ public class HTTPRequestParser {
             }
         }
 
-        String myContentLength = myHeaders.get(Header.CONTENT_LENGTH.getHeaderString().toLowerCase());
+        String myContentLength =
+                myHeaders.get(Header.CONTENT_LENGTH.getHeaderString().toLowerCase());
         if (Objects.nonNull(myContentLength)) {
             int myContentLengthInt = Integer.parseInt(myContentLength);
             myBody = new byte[myContentLengthInt];
-
-            int totalBytesRead = 0;
-            while (totalBytesRead < myContentLengthInt) {
-                int myBytesRead = myInputStream.read(myBody, totalBytesRead, myContentLengthInt - totalBytesRead);
-                if (myBytesRead == -1) {
-                    LOGGER.error("End of stream reached unexpectedly");
-                    myIsValid = false;
-                    break;
-                }
-                totalBytesRead += myBytesRead;
-            }
-
+            int totalBytesRead = readInputStream(myInputStream, myContentLengthInt, myBody);
             if (totalBytesRead != myContentLengthInt) {
-                LOGGER.error("Failed to read the expected body length");
+                LOGGER.debug("Failed to read body with content length " + myContentLength + " and read length " + totalBytesRead + "." + "Read content is " + new String(myBody));
+                LOGGER.error("Failed to read body");
                 myIsValid = false;
             }
         }
@@ -210,5 +201,23 @@ public class HTTPRequestParser {
                 && aByteList.get(aByteList.size() - 3) == 10
                 && aByteList.get(aByteList.size() - 2) == 13
                 && aByteList.get(aByteList.size() - 1) == 10;
+    }
+
+    private int readInputStream(InputStream aInputStream, int aContentLength, byte[] aDest) throws IOException {
+        byte[] myResBuffer = new byte[1024];
+        int myTotalBytesRead = 0;
+        while (myTotalBytesRead < aContentLength) {
+            int myBytesRead = aInputStream.read(myResBuffer, 0, Math.min(myResBuffer.length, aContentLength - myTotalBytesRead));
+            if (myBytesRead == -1) {
+                throw new IOException("End of stream reached prematurely");
+            }
+            System.arraycopy(myResBuffer, 0, aDest, myTotalBytesRead, myBytesRead);
+            myTotalBytesRead += myBytesRead;
+            if (myBytesRead == 0) {
+                LOGGER.error("Failed to read bytes");
+                return myTotalBytesRead;
+            }
+        }
+        return myTotalBytesRead;
     }
 }

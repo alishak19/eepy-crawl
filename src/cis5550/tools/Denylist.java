@@ -3,18 +3,33 @@ package cis5550.tools;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class Denylist {
-    public static final String COLUMN_NAME = "pattern";
+    private static final String COLUMN_NAME = "pattern";
+    private static final Map<String, Double> PROBABILISTIC_FILTERING = Map.of(
+            "en.wikipedia.org", 0.5
+    );
 
     private final List<Pattern> thePatterns;
 
     private Denylist(List<Pattern> aPatterns) {
         thePatterns = aPatterns;
+    }
+
+    public Denylist() {
+        thePatterns = List.of(
+                Pattern.compile("http.*://.*/cgi-bin/.*", Pattern.CASE_INSENSITIVE), // Dynamic scripts
+                Pattern.compile(".*\\.pdf$", Pattern.CASE_INSENSITIVE),              // PDF files
+                Pattern.compile(".*\\.jpg$", Pattern.CASE_INSENSITIVE),              // Image files
+                Pattern.compile(".*\\.png$", Pattern.CASE_INSENSITIVE),              // Image files
+                Pattern.compile(".*\\.gif$", Pattern.CASE_INSENSITIVE),              // Image files
+                Pattern.compile(".*\\.css$", Pattern.CASE_INSENSITIVE),              // Stylesheets
+                Pattern.compile(".*\\.js$", Pattern.CASE_INSENSITIVE),               // JS
+                Pattern.compile("https?://((?!en)\\w+)\\.wikipedia\\.org(:\\d+)?/.*",
+                        Pattern.CASE_INSENSITIVE)                                          // Non English Wikipedia
+        );
     }
 
     public static Denylist fromKVSTable(KVSClient aKVSClient, String aTableName) {
@@ -48,17 +63,13 @@ public class Denylist {
         return false;
     }
 
-    public static void main(String[] args) {
-        List<String> patterns = List.of("http*://*/cgi-bin/*", "*.pdf", "http://dangerous.com:80/*");
-
-        Denylist denylist = new Denylist(patterns.stream()
-                .map(x -> x.replace("*", ".*"))
-                .map(Pattern::compile)
-                .toList());
-
-        System.out.println(denylist.isBlocked("http://example.com/cgi-bin/test")); // true
-        System.out.println(denylist.isBlocked("http://safe.com/document.pdf")); // true
-        System.out.println(denylist.isBlocked("http://dangerous.com:80/home")); // true
-        System.out.println(denylist.isBlocked("http://safe.com/page")); // false
+    public static boolean probabilisticDomainFilter(String aUrl) {
+        Random random = new Random();
+        for (String key : PROBABILISTIC_FILTERING.keySet()) {
+            if (aUrl.contains(key) && random.nextDouble() < PROBABILISTIC_FILTERING.get(key)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

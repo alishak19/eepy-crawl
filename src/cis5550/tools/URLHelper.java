@@ -9,6 +9,17 @@ public class URLHelper {
 
     private static final Logger LOGGER = Logger.getLogger(URLHelper.class);
 
+    public static String[] cleanupUrl(String aUrl) {
+        String[] myUrlParts = URLParser.parseURL(aUrl);
+        if (myUrlParts[3] != null) {
+            myUrlParts[3] = myUrlParts[3].split("#")[0];
+        }
+        if (myUrlParts[2] == null) {
+            myUrlParts[2] = myUrlParts[0].compareTo("http") == 0 ? "80" : "443";
+        }
+        return myUrlParts;
+    }
+
     public static Map<String, List<String>> extractUrlsAndAnchors(byte[] contentBytes) {
         Map<String, List<String>> urlsAndAnchors = new HashMap<>();
 
