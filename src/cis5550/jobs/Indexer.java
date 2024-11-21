@@ -141,7 +141,7 @@ public class Indexer {
 						client.put(INDEX_TABLE, w, URL_REF, f._1() + ":" + wordPositions.get(w));
 					}
 				} catch (Exception e) {
-					Logger.error("Error: issue with input: " + w);
+					LOGGER.error("Error: issue with input: " + w);
 				}
 
 			}
