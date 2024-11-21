@@ -34,7 +34,11 @@ public class Indexer {
 						return null;
 					} else {
 						client.putRow(ALR_INDEXED, r);
-						return new FlamePair(URLDecoder.decode(r.get(URL_REF)), r.get(PAGE_REF));
+						if (r.get(URL_REF) != null && r.get(PAGE_REF) != null) {
+							return new FlamePair(URLDecoder.decode(r.get(URL_REF)), r.get(PAGE_REF));
+						} else {
+							return null;
+						}
 					}
 				} catch (Exception e) {
 					LOGGER.error("KVS error: putting/accessing alr-indexed table");
@@ -81,17 +85,7 @@ public class Indexer {
 				}
 
 				word = word.toLowerCase();
-				if (word.contains("/")) {
-					List<String> slashSplit = Arrays.asList(word.split("/"));
-					words.addAll(slashSplit);
-					for (String w : slashSplit) {
-						if (wordPositions.containsKey(w)) {
-							wordPositions.put(w, wordPositions.get(w) + " " + index);
-						} else {
-							wordPositions.put(w, index + "");
-						}
-					}
-				} else if (word.contains(" ")) {
+				if (word.contains(" ")) {
 					List<String> spaceSplit = Arrays.asList(word.split(" "));
 					for (String wordX : spaceSplit) {
 						if (!wordX.equals("") && !wordX.equals(" ")) {
@@ -118,7 +112,6 @@ public class Indexer {
 				KVSClient client = context.getKVS();
 				try {
 					String val = f._1() + ":" + wordPositions.get(w);
-					System.out.println(f._1() + " : " + w);
 					client.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 				} catch (Exception e) {
 					LOGGER.error("Error: issue with input: " + w);
@@ -128,7 +121,6 @@ public class Indexer {
 			return null;
 		};
 		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
-		context.output("OK");
 		pairs.destroy();
 	}
 	
