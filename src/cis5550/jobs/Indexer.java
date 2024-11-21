@@ -46,7 +46,8 @@ public class Indexer {
 		};
 		FlameRDD mappedStrings = context.fromTable(CRAWL_TABLE, lambda1);
 		KVSClient c = context.getKVS();
-		c.delete(ALR_INDEXED);
+		context.output("OK");
+		System.out.println("ok");
 		
 		StringToPair lambda2 = (String s) -> {
 			int index = s.indexOf(",");
@@ -55,6 +56,7 @@ public class Indexer {
 			return pair;
 		};
 		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
+		c.delete(ALR_INDEXED);
 		if (mappedStrings.count() > 0) {
 			mappedStrings.destroy();
 			System.out.println("success");
@@ -127,23 +129,26 @@ public class Indexer {
 			
 			for (String w : words) {
 				KVSClient client = context.getKVS();
-				if (client.existsRow(INDEX_TABLE, w)) {
-					Row curr = client.getRow(INDEX_TABLE, w);
-					for (String col : curr.columns()) {
-						String val = curr.get(col);
-						val += "," + f._1() + ":" + wordPositions.get(w);
-						client.put(INDEX_TABLE, w, col, val);
+				try {
+					if (client.existsRow(INDEX_TABLE, w)) {
+						Row curr = client.getRow(INDEX_TABLE, w);
+						for (String col : curr.columns()) {
+							String val = curr.get(col);
+							val += "," + f._1() + ":" + wordPositions.get(w);
+							client.put(INDEX_TABLE, w, col, val);
+						}
+					} else {
+						client.put(INDEX_TABLE, w, URL_REF, f._1() + ":" + wordPositions.get(w));
 					}
-				} else {
-					client.put(INDEX_TABLE, w, URL_REF, f._1() + ":" + wordPositions.get(w));
+				} catch (Exception e) {
+					Logger.error("Error: issue with input: " + w);
 				}
+
 			}
 			return null;
 		};
 		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
-		if (pairs.count() > 0) {
-			pairs.destroy();
-		}
+		pairs.destroy();
 	}
 	
 	private static String removePunctuation(String s) {
