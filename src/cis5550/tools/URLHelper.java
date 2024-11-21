@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 public class URLHelper {
 
     private static final Logger LOGGER = Logger.getLogger(URLHelper.class);
+	private static final HashSet<String> IGNORE_EXTENSIONS = new HashSet<>(Arrays.asList("jpg", "jpeg", "gif", "txt", "png"));
 
     public static String[] cleanupUrl(String aUrl) {
         String[] myUrlParts = URLParser.parseURL(aUrl);
@@ -298,15 +299,8 @@ public class URLHelper {
 			return false;
 		}
 		
-		HashSet<String> extensionsIgnore = new HashSet<>();
-		extensionsIgnore.add("jpg");
-		extensionsIgnore.add("jpeg");
-		extensionsIgnore.add("gif");
-		extensionsIgnore.add("txt");
-		extensionsIgnore.add("png");
-		
 		String[] sepLink = link.split("\\.");
-		if (extensionsIgnore.contains(sepLink[sepLink.length - 1])) {
+		if (IGNORE_EXTENSIONS.contains(sepLink[sepLink.length - 1])) {
 			return false;
 		}
 		
@@ -314,9 +308,9 @@ public class URLHelper {
 	}
 	
 	public static int checkRules(String url, String rule) {
-		int ans = -1;
+		int ans = 0;
 		
-		// ans = 1 = works, ans = -8 = fails
+		// ans = 1 = works, ans = -1 = fails
 		
 		if (rule.contains("Disallow")) {
 			// disallow
@@ -326,7 +320,7 @@ public class URLHelper {
 				if (subUrlParse[3].length() >= rulePattern.length()) {
 					String subUrl = subUrlParse[3].substring(0, rulePattern.length());
 					if (subUrl.equals(rulePattern)) {
-						ans = -8;
+						ans = -1;
 					}
 				}
 			}
@@ -354,12 +348,8 @@ public class URLHelper {
 			for (int i = 0; i < lastIndex; i++) {
 				String rule = rules.get(i);
 				int tCheck = checkRules(url, rule);
-				if (tCheck != -1) {
-					if (tCheck == 1) {
-						return true;
-					} else {
-						return false;
-					}
+				if (tCheck != 0) {
+					return tCheck == 1;
 				}
 			}
 			
@@ -369,12 +359,8 @@ public class URLHelper {
 			for (int i = startIndex; i < rules.size(); i++) {
 				String rule = rules.get(i);
 				int tCheck = checkRules(url, rule);
-				if (tCheck != -1) {
-					if (tCheck == 1) {
-						return true;
-					} else {
-						return false;
-					}
+				if (tCheck != 0) {
+					return tCheck == 1;
 				}
 			}
 		}

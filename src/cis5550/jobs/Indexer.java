@@ -24,18 +24,19 @@ public class Indexer {
 	private static final String ALR_INDEXED = "pt-alrindexed";
 	private static final String URL_REF = TableColumns.URL.value();
 	private static final String PAGE_REF = TableColumns.PAGE.value();
+	private static final String PUNCTUATION = ".,:;!?\'\"()-=/+{}[]_#$&";
 	public static void run(FlameContext context, String[] arr) throws Exception {
-		RowToPair lambda1 = (Row r) -> {
-			if (r.columns().contains(URL_REF) && r.columns().contains(PAGE_REF)) {
-				KVSClient client = context.getKVS();
+		RowToPair lambda1 = (Row myRow) -> {
+			if (myRow.columns().contains(URL_REF) && myRow.columns().contains(PAGE_REF)) {
+				KVSClient kvsClient = context.getKVS();
 				try {
 					// using hashed url as key
-					if (client.existsRow(ALR_INDEXED, r.key())) {
+					if (kvsClient.existsRow(ALR_INDEXED, myRow.key())) {
 						return null;
 					} else {
-						client.putRow(ALR_INDEXED, r);
-						if (r.get(URL_REF) != null && r.get(PAGE_REF) != null) {
-							return new FlamePair(URLDecoder.decode(r.get(URL_REF)), r.get(PAGE_REF));
+						kvsClient.putRow(ALR_INDEXED, myRow);
+						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
+							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF)), myRow.get(PAGE_REF));
 						} else {
 							return null;
 						}
@@ -49,9 +50,9 @@ public class Indexer {
 				return null;
 			}
 		};
-		FlamePairRDD pairs = context.pairFromTable(CRAWL_TABLE, lambda1);
-		KVSClient c = context.getKVS();
-		c.delete(ALR_INDEXED);
+		FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
+		KVSClient tempClient = context.getKVS();
+		tempClient.delete(ALR_INDEXED);
 		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			
@@ -109,10 +110,10 @@ public class Indexer {
 			}
 			
 			for (String w : words) {
-				KVSClient client = context.getKVS();
+				KVSClient kvsClient = context.getKVS();
 				try {
 					String val = f._1() + ":" + wordPositions.get(w);
-					client.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
+					kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 				} catch (Exception e) {
 					LOGGER.error("Error: issue with input: " + w);
 				}
@@ -120,16 +121,15 @@ public class Indexer {
 			}
 			return null;
 		};
-		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
-		pairs.destroy();
+		FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
+		myPairs.destroy();
 	}
 	
 	private static String removePunctuation(String s) {
-		String punctuation = ".,:;!?\'\"()-=/+{}[]_#$&";
 		String ans = "";
 		
 		for (char c : s.toCharArray()) {
-			if (!punctuation.contains(c + "") && c != '\n' && c != '\r' && c != '\t') {
+			if (!PUNCTUATION.contains(c + "") && c != '\n' && c != '\r' && c != '\t') {
 				ans += c + "";
 			} else {
 				ans += " ";
