@@ -2,57 +2,71 @@ package cis5550.jobs;
 import java.io.*;
 
 import cis5550.tools.PorterStemmer;
-// import static cis5550.external.PorterStemmer;
-import cis5550.tools.PorterStemmer.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
 import cis5550.kvs.*;
 import cis5550.flame.*;
 import cis5550.flame.FlameContext.RowToString;
+import cis5550.flame.FlameContext.RowToPair;
 import cis5550.flame.FlamePairRDD.PairToPairIterable;
 import cis5550.flame.FlamePairRDD.TwoStringsToString;
 import cis5550.flame.FlameRDD.StringToPair;
+import cis5550.tools.Hasher;
+import cis5550.jobs.datamodels.TableColumns;
+import cis5550.tools.Logger;
+import java.net.URLDecoder;
 
 public class Indexer {
-	
+	private static final Logger LOGGER = Logger.getLogger(Indexer.class);
+	private static final String CRAWL_TABLE = "pt-crawl";
+	private static final String INDEX_TABLE = "pt-index";
+	private static final String ALR_INDEXED = "pt-alrindexed";
+	private static final String URL_REF = TableColumns.URL.value();
+	private static final String PAGE_REF = TableColumns.PAGE.value();
+	private static final String PUNCTUATION = ".,:;!?\'\"()-=/+{}[]_#$&";
 	public static void run(FlameContext context, String[] arr) throws Exception {
-		KVSClient client = context.getKVS();
-		RowToString lambda1 = (Row r) -> {
-			if (r.columns().contains("url") && r.columns().contains("page")) {
-				String url = r.get("url");
-				String page = r.get("page");
-				
-				return url + "," + page;
+		RowToPair lambda1 = (Row myRow) -> {
+			if (myRow.columns().contains(URL_REF) && myRow.columns().contains(PAGE_REF)) {
+				KVSClient kvsClient = context.getKVS();
+				try {
+					// using hashed url as key
+					if (kvsClient.existsRow(ALR_INDEXED, myRow.key())) {
+						return null;
+					} else {
+						kvsClient.putRow(ALR_INDEXED, myRow);
+						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
+							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF)), myRow.get(PAGE_REF));
+						} else {
+							return null;
+						}
+					}
+				} catch (Exception e) {
+					LOGGER.error("KVS error: putting/accessing alr-indexed table");
+				}
+				return null;
+
 			} else {
 				return null;
 			}
 		};
-		FlameRDD mappedStrings = context.fromTable("pt-crawl", lambda1);
-		
-		StringToPair lambda2 = (String s) -> {
-			int index = s.indexOf(",");
-			FlamePair pair = new FlamePair(s.substring(0, index), s.substring(index + 1));
-			
-			return pair;
-		};
-		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
+		FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
+		KVSClient tempClient = context.getKVS();
+		tempClient.delete(ALR_INDEXED);
 		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
-			List<FlamePair> wordPairs = new ArrayList<>();
-			String page = f._2();
 			
 			String removedTags = "";
 			boolean tag = false;
 			
-			for (int i = 0; i < page.length(); i++) {
-				if (page.charAt(i) == '<') {
+			for (int i = 0; i < f._2().length(); i++) {
+				if (f._2().charAt(i) == '<') {
 					tag = true;
-				} else if (page.charAt(i) == '>') {
+				} else if (f._2().charAt(i) == '>') {
 					tag = false;
 					removedTags += " ";
 				} else if (!tag) {
-					removedTags += page.charAt(i);
+					removedTags += f._2().charAt(i);
 				}
 			}
 			String[] wordsList = removedTags.split(" ");
@@ -62,7 +76,7 @@ public class Indexer {
 			
 			for (String word : wordsList) {
 				index++;
-				if (word.equals("\n")) {
+				if (word == null || word.equals("\n")) {
 					continue;
 				}
 				
@@ -72,26 +86,10 @@ public class Indexer {
 				}
 
 				word = word.toLowerCase();
-				if (word.contains("/")) {
-					List<String> slashSplit = Arrays.asList(word.split("/"));
-					words.addAll(slashSplit);
-					for (String w : slashSplit) {
-						if (wordPositions.containsKey(w)) {
-							wordPositions.put(w, wordPositions.get(w) + " " + index);
-						} else {
-							wordPositions.put(w, index + "");
-						}
-					}
-				} else if (word.contains(" ")) {
+				if (word.contains(" ")) {
 					List<String> spaceSplit = Arrays.asList(word.split(" "));
-//					if (spaceSplit.size() > 1 && !spaceSplit.get(1).equals("")) {
-//						// index--;
-//					}
 					for (String wordX : spaceSplit) {
 						if (!wordX.equals("") && !wordX.equals(" ")) {
-//							if (spaceSplit.size() > 1 && !spaceSplit.get(1).equals("")) {
-//								// index++;
-//							}
 							words.add(wordX);
 							if (wordPositions.containsKey(wordX)) {
 								wordPositions.put(wordX, wordPositions.get(wordX) + " " + index);
@@ -108,46 +106,30 @@ public class Indexer {
 					} else {
 						wordPositions.put(word, index + "");
 					}
-					// to do: word positions
 				}
 			}
 			
 			for (String w : words) {
-				String positions = wordPositions.get(w);
-				PorterStemmer p = new PorterStemmer();
-				for (char c : w.toCharArray()) {
-					p.add(c);
+				KVSClient kvsClient = context.getKVS();
+				try {
+					String val = f._1() + ":" + wordPositions.get(w);
+					kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
+				} catch (Exception e) {
+					LOGGER.error("Error: issue with input: " + w);
 				}
-				p.stem();
-				String stemmed = p.toString();
-				if (!stemmed.equals(w)) {
-					FlamePair currS = new FlamePair(stemmed, f._1() + ":" + wordPositions.get(w));
-					wordPairs.add(currS);
-				}
-				FlamePair curr = new FlamePair(w, f._1() + ":" + wordPositions.get(w));
-				wordPairs.add(curr);
+
 			}
-			return wordPairs;
+			return null;
 		};
-		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
-		
-		TwoStringsToString lambda4 = (String one, String two) -> {
-			if (one.equals("")) {
-				return two;
-			}
-			return one + "," + two;
-		};
-		FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
-		invertedList.saveAsTable("pt-index");
-		
+		FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
+		myPairs.destroy();
 	}
 	
-	public static String removePunctuation(String s) {
-		String punctuation = ".,:;!?\'\"()-";
+	private static String removePunctuation(String s) {
 		String ans = "";
 		
 		for (char c : s.toCharArray()) {
-			if (!punctuation.contains(c + "") && c != '\n' && c != '\r' && c != '\t') {
+			if (!PUNCTUATION.contains(c + "") && c != '\n' && c != '\r' && c != '\t') {
 				ans += c + "";
 			} else {
 				ans += " ";

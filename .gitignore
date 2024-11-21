@@ -2,5 +2,6 @@
 !crawler-script.sh
 worker*
 bin
+script.sh
 *.jar
 out

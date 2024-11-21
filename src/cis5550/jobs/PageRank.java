@@ -12,15 +12,29 @@ import cis5550.flame.FlameRDD.StringToPair;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
 import cis5550.tools.Hasher;
+import cis5550.jobs.datamodels.TableColumns;
 import cis5550.jobs.Crawler;
 import cis5550.tools.URLHelper;
+import cis5550.tools.Logger;
 
 import java.util.*;
 
 public class PageRank {
-
-    public static void run(FlameContext context, String[] arr) throws Exception {
-        double threshold = Double.parseDouble(arr[0]);
+    private static final Logger LOGGER = Logger.getLogger(Indexer.class);
+    private static final String CRAWL_TABLE = "pt-crawl";
+    private static final String RANK_TABLE = "pt-pageranks";
+    private static final String URL_REF = TableColumns.URL.value();
+    private static final String PAGE_REF = TableColumns.PAGE.value();
+    private static final String DEFAULT_VAL = "0.0";
+    private static final String RANK_REF = TableColumns.RANK.value();
+	public static void run(FlameContext context, String[] arr) throws Exception {
+        double threshold = 1.0;
+        if (arr.length > 0) {
+            threshold = Double.parseDouble(arr[0]);
+        } else {
+            LOGGER.error("No threshold");
+            return;
+        }
         double convergence = -1.0;
 
         if (arr.length == 2) {
@@ -28,16 +42,16 @@ public class PageRank {
         }
 
         RowToString lambda1 = (Row r) -> {
-            if (r.columns().contains("url") && r.columns().contains("page")) {
-                String url = r.get("url");
-                String page = r.get("page");
+            if (r.columns().contains(URL_REF) && r.columns().contains(PAGE_REF)) {
+                final String url = r.get(URL_REF);
+                final String page = r.get(PAGE_REF);
 
                 return url + "," + page;
             } else {
                 return null;
             }
         };
-        FlameRDD mappedStrings = context.fromTable("pt-crawl", lambda1);
+        FlameRDD mappedStrings = context.fromTable(CRAWL_TABLE, lambda1);
 
         HashMap<String, String> urlsMappedToHash = new HashMap<>();
         for (String url : mappedStrings.collect()) {
@@ -96,12 +110,12 @@ public class PageRank {
                     String liHash = elems[i];
                     double v = 0.85 * (rC / n);
                     FlamePair p = new FlamePair(liHash, v + "");
-                    FlamePair inDeg0 = new FlamePair(liHash, "0.0");
+                    FlamePair inDeg0 = new FlamePair(liHash, DEFAULT_VAL);
 
                     pairList.add(p);
                     pairList.add(inDeg0);
                 }
-                FlamePair fp = new FlamePair(f._1(), "0.0");
+                FlamePair fp = new FlamePair(f._1(), DEFAULT_VAL);
                 pairList.add(fp);
 
                 return pairList;
@@ -119,8 +133,10 @@ public class PageRank {
                 return vSum + "";
             };
             FlamePairRDD aggregated = transferTable.foldByKey("", lambda4);
+            transferTable.destroy();
 
             FlamePairRDD joined = stateTable.join(aggregated);
+            aggregated.destroy();
 
             PairToPairIterable lambda5 = (FlamePair f) -> {
                 String[] elems = f._2().split(",");
@@ -145,8 +161,10 @@ public class PageRank {
                 return li;
             };
             FlamePairRDD updatedStateTable = joined.flatMapToPair(lambda5);
+            joined.destroy();
 
             stateTable = updatedStateTable;
+            updatedStateTable.destroy();
 
             PairToStringIterable lambda6 = (FlamePair f) -> {
                 List<String> rChange = new ArrayList<>();
@@ -195,6 +213,7 @@ public class PageRank {
                     break;
                 }
             }
+            rankChanges.destroy();
         }
 
         PairToPairIterable lambda8 = (FlamePair f) -> {
@@ -204,11 +223,12 @@ public class PageRank {
 
             double rC = Double.parseDouble(elems[0]);
             Row r = new Row(urlsMappedToHash.get(f._1()));
-            r.put("rank", rC + "");
-            client.putRow("pt-pageranks", r);
+            r.put(RANK_REF, rC + "");
+            client.putRow(RANK_TABLE, r);
 
             return li;
         };
         FlamePairRDD finality = stateTable.flatMapToPair(lambda8);
+        stateTable.destroy();
     }
 }
