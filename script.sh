@@ -11,9 +11,9 @@ rm *.jar
 javac --source-path src -d bin $(find src -name '*.java')
 
 # Compile and create Crawler.jar
-javac -d bin --source-path src src/cis5550/jobs/Crawler.java
+javac -d bin --source-path src src/cis5550/jobs/NewCrawler.java
 sleep 1
-jar cf crawler.jar bin/cis5550/jobs/Crawler.class
+jar cf new-crawler.jar bin/cis5550/jobs/NewCrawler.class
 sleep 1
 
 # Compile and create Indexer.jar
