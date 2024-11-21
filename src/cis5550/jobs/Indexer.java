@@ -36,6 +36,7 @@ public class Indexer {
 					} else {
 						kvsClient.putRow(ALR_INDEXED, myRow);
 						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
+							System.out.println(URLDecoder.decode(myRow.get(URL_REF)));
 							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF)), myRow.get(PAGE_REF));
 						} else {
 							return null;
