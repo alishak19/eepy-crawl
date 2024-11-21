@@ -36,7 +36,6 @@ public class Indexer {
 					} else {
 						kvsClient.putRow(ALR_INDEXED, myRow);
 						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
-							System.out.println(URLDecoder.decode(myRow.get(URL_REF)));
 							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF)), myRow.get(PAGE_REF));
 						} else {
 							return null;
@@ -114,6 +113,7 @@ public class Indexer {
 				KVSClient kvsClient = context.getKVS();
 				try {
 					String val = f._1() + ":" + wordPositions.get(w);
+					System.out.println(f._1());
 					kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 				} catch (Exception e) {
 					LOGGER.error("Error: issue with input: " + w);
