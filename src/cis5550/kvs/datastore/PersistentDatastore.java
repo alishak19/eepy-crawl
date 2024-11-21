@@ -6,7 +6,6 @@ import cis5550.tools.Logger;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
@@ -66,6 +65,35 @@ public class PersistentDatastore implements Datastore {
 
         return writeRowToFile(myFileName, aRow) ? 0 : -1;
 
+    }
+
+    @Override
+    public int append(String aTable, String aKey, String aColumn, byte[] aValue, String aDelimiter) {
+        String myFileName = getRowFileName(aTable, aKey);
+
+        File myFile = new File(myFileName);
+        Row myRow = new Row(aKey);
+        if (!myFile.getParentFile().exists()) {
+            if (!myFile.getParentFile().mkdirs()) {
+                LOGGER.error("Failed to create directory");
+                return -1;
+            }
+        } else if (myFile.exists()) {
+            try {
+                myRow = readRowFromFile(myFileName);
+            } catch (Exception e) {
+                LOGGER.error("Failed to read from file", e);
+                return -1;
+            }
+        }
+
+        if (myRow.get(aColumn) == null) {
+            myRow.put(aColumn, aValue);
+        } else {
+            myRow.put(aColumn, myRow.get(aColumn) + aDelimiter + new String(aValue));
+        }
+
+        return writeRowToFile(myFileName, myRow) ? 0 : -1;
     }
 
     @Override

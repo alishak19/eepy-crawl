@@ -266,6 +266,27 @@ public class KVSClient implements KVS {
             throw new RuntimeException("PUT returned something other than OK: " + result);
     }
 
+    @Override
+    public void appendToRow(String tableName, String row, String column, byte[] value, String delimiter) throws FileNotFoundException, IOException {
+        if (!haveWorkers)
+            downloadWorkers();
+
+        byte[] response = HTTP.doRequest("PUT", "http://" + workers.elementAt(workerIndexForKey(row)).address + "/append/" + tableName + "/" + URLEncoder.encode(row, "UTF-8") + "/" + URLEncoder.encode(column, "UTF-8") + "?delimiter=" + URLEncoder.encode(delimiter, "UTF-8"), value).body();
+        String result = new String(response);
+        if (!result.equals("OK"))
+            throw new RuntimeException("PUT returned something other than OK: " + result);
+    }
+
+    public void appendToRow(String tableName, String row, String column, String value, String delimiter) throws FileNotFoundException, IOException {
+        if (!haveWorkers)
+            downloadWorkers();
+
+        byte[] response = HTTP.doRequest("PUT", "http://" + workers.elementAt(workerIndexForKey(row)).address + "/append/" + tableName + "/" + URLEncoder.encode(row, "UTF-8") + "/" + URLEncoder.encode(column, "UTF-8") + "?delimiter=" + URLEncoder.encode(delimiter, "UTF-8"), value.getBytes()).body();
+        String result = new String(response);
+        if (!result.equals("OK"))
+            throw new RuntimeException("PUT returned something other than OK: " + result);
+    }
+
     public Row getRow(String tableName, String row) throws IOException {
         if (!haveWorkers)
             downloadWorkers();

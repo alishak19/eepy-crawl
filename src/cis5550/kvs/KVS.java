@@ -7,6 +7,11 @@ import java.io.IOException;
 public interface KVS {
   void put(String tableName, String row, String column, byte value[]) throws FileNotFoundException, IOException;
   void putRow(String tableName, Row row) throws FileNotFoundException, IOException;
+
+  /**
+   * If the row does not exist, create it. If the row exists, append the value to the row with delimiter.
+   */
+  void appendToRow(String tableName, String row, String column, byte value[], String delimiter) throws FileNotFoundException, IOException;
   Row getRow(String tableName, String row) throws FileNotFoundException, IOException;
   boolean existsRow(String tableName, String row) throws FileNotFoundException, IOException;
   byte[] get(String tableName, String row, String column) throws FileNotFoundException, IOException;
