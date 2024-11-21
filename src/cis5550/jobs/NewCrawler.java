@@ -54,15 +54,10 @@ public class NewCrawler {
 
                 String[] myUrlParts = cleanupUrl(myURLString);
                 String myCleanedUrl = myUrlParts[0] + "://" + myUrlParts[1] + ":" + myUrlParts[2] + myUrlParts[3];
-
                 try {
-                    if (alreadyTraversed(aContext, myCleanedUrl)) {
-                        return Collections.emptyList();
-                    } else {
-                        addToTraversed(aContext, myCleanedUrl);
-                    }
+                    addToTraversed(aContext, myCleanedUrl);
                 } catch (Exception e) {
-                    LOGGER.error("Checking traversed failed: " + e.getMessage());
+                    LOGGER.error("Adding to traversed failed: " + e.getMessage());
                     return Collections.emptyList();
                 }
 
@@ -138,7 +133,7 @@ public class NewCrawler {
                         String myLocation = myHeadConnection.getHeaderField("Location");
                         if (myLocation != null) {
                             String myNormalizedRedirectUrl = normalizeURL(myLocation, myCleanedUrl);
-                            if (myNormalizedRedirectUrl != null) {
+                            if (myNormalizedRedirectUrl != null && !alreadyTraversed(aContext, myCleanedUrl)) {
                                 return List.of(myNormalizedRedirectUrl);
                             }
                             return Collections.emptyList();
@@ -192,7 +187,7 @@ public class NewCrawler {
                             List<String> myToTraverseUrls = new LinkedList<>();
                             for (String url : myUrls) {
                                 String myNormalizedUrl = normalizeURL(myCleanedUrl, url);
-                                if (myNormalizedUrl != null &&
+                                if (myNormalizedUrl != null && !alreadyTraversed(aContext, myCleanedUrl) &&
                                         probabilisticDomainFilter(myNormalizedUrl) && !myDenylist.isBlocked(myCleanedUrl)) {
                                     myToTraverseUrls.add(myNormalizedUrl);
                                 }
