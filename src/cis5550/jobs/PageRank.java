@@ -12,12 +12,15 @@ import cis5550.flame.FlameRDD.StringToPair;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
 import cis5550.tools.Hasher;
+import cis5550.jobs.datamodels.TableColumns;
 import cis5550.jobs.Crawler;
 import cis5550.tools.URLHelper;
 
 import java.util.*;
 
 public class PageRank {
+    private static final String URL_REF = TableColumns.URL.value();
+    private static final String PAGE_REF = TableColumns.PAGE.value();
 	public static void run(FlameContext context, String[] arr) throws Exception {
         double threshold = 1.0;
         if (arr.length > 0) {
@@ -33,9 +36,9 @@ public class PageRank {
         }
 
         RowToString lambda1 = (Row r) -> {
-            if (r.columns().contains("url") && r.columns().contains("page")) {
-                String url = r.get("url");
-                String page = r.get("page");
+            if (r.columns().contains(URL_REF) && r.columns().contains(PAGE_REF)) {
+                final String url = r.get(URL_REF);
+                final String page = r.get(PAGE_REF);
 
                 return url + "," + page;
             } else {
