@@ -46,7 +46,8 @@ public class Indexer {
 		};
 		FlameRDD mappedStrings = context.fromTable(CRAWL_TABLE, lambda1);
 		KVSClient c = context.getKVS();
-		context.output("OK");
+		// context.output("OK");
+		c.delete(ALR_INDEXED);
 		System.out.println("ok");
 		
 		StringToPair lambda2 = (String s) -> {
@@ -56,7 +57,6 @@ public class Indexer {
 			return pair;
 		};
 		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
-		c.delete(ALR_INDEXED);
 		if (mappedStrings.count() > 0) {
 			mappedStrings.destroy();
 			System.out.println("success");
