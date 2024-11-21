@@ -71,7 +71,7 @@ public class Indexer {
 			
 			for (String word : wordsList) {
 				index++;
-				if (word.equals("\n")) {
+				if (word == null || word.equals("\n")) {
 					continue;
 				}
 				
@@ -118,7 +118,7 @@ public class Indexer {
 				KVSClient client = context.getKVS();
 				try {
 					String val = f._1() + ":" + wordPositions.get(w);
-					System.out.println("yay");
+					System.out.println(f._1() + " : " + w);
 					client.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 				} catch (Exception e) {
 					LOGGER.error("Error: issue with input: " + w);
@@ -133,7 +133,7 @@ public class Indexer {
 	}
 	
 	private static String removePunctuation(String s) {
-		String punctuation = ".,:;!?\'\"()-";
+		String punctuation = ".,:;!?\'\"()-=/+{}[]_";
 		String ans = "";
 		
 		for (char c : s.toCharArray()) {
