@@ -14,6 +14,7 @@ import cis5550.flame.FlameRDD.StringToPair;
 import cis5550.tools.Hasher;
 import cis5550.jobs.datamodels.TableColumns;
 import cis5550.tools.Logger;
+import java.net.URLDecoder;
 
 public class Indexer {
 	private static final Logger LOGGER = Logger.getLogger(Indexer.class);
@@ -32,7 +33,7 @@ public class Indexer {
 						return null;
 					} else {
 						client.putRow(ALR_INDEXED, r);
-						return r.get(URL_REF) + "," + r.get(PAGE_REF);
+						return URLDecoder.decode(r.get(URL_REF)) + "," + r.get(PAGE_REF);
 					}
 				} catch (Exception e) {
 					LOGGER.error("KVS error: putting/accessing alr-indexed table");
@@ -44,6 +45,8 @@ public class Indexer {
 			}
 		};
 		FlameRDD mappedStrings = context.fromTable(CRAWL_TABLE, lambda1);
+		KVSClient c = context.getKVS();
+		c.delete(ALR_INDEXED);
 		
 		StringToPair lambda2 = (String s) -> {
 			int index = s.indexOf(",");
@@ -140,6 +143,9 @@ public class Indexer {
 			return null;
 		};
 		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
+		if (pairs.count() > 0) {
+			pairs.destroy();
+		}
 	}
 	
 	public static String removePunctuation(String s) {
