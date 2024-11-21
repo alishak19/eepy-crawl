@@ -45,6 +45,21 @@ public class InMemoryDatastore implements Datastore {
     }
 
     @Override
+    public int append(String aTable, String aKey, String aColumn, byte[] aValue, String aDelimiter) {
+        theMemoryData.putIfAbsent(aTable, new ConcurrentHashMap<>());
+        Row myPreviousRow = theMemoryData.get(aTable).get(aKey);
+        if (myPreviousRow == null) {
+            myPreviousRow = new Row(aKey);
+        }
+        if (myPreviousRow.get(aColumn) == null) {
+            myPreviousRow.put(aColumn, aValue);
+        } else {
+            myPreviousRow.put(aColumn, myPreviousRow.get(aColumn) + aDelimiter + new String(aValue));
+        }
+        return 0;
+    }
+
+    @Override
     public Row get(String aTable, String aKey) {
         return get(aTable, aKey, -1);
     }
