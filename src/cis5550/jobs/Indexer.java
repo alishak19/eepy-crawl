@@ -133,7 +133,7 @@ public class Indexer {
 	}
 	
 	private static String removePunctuation(String s) {
-		String punctuation = ".,:;!?\'\"()-=/+{}[]_";
+		String punctuation = ".,:;!?\'\"()-=/+{}[]_#$&";
 		String ans = "";
 		
 		for (char c : s.toCharArray()) {
