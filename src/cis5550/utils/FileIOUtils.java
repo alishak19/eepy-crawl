@@ -3,7 +3,9 @@ package cis5550.utils;
 import cis5550.kvs.Row;
 import cis5550.tools.Logger;
 
+import java.io.File;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 
@@ -30,11 +32,25 @@ public class FileIOUtils {
     public static boolean writeRowToFile(String aFilePath, Row aRow) {
         try (RandomAccessFile myFile = new RandomAccessFile(aFilePath, "rw");
              FileChannel myChannel = myFile.getChannel()) {
+            long myLockBefore = System.nanoTime();
             LOGGER.debug("Obtaining lock on file: " + aFilePath);
             FileLock myLock = myChannel.lock(0L, Long.MAX_VALUE, false);
             LOGGER.debug("Exclusive lock obtained on file: " + aFilePath);
+            long myLockAfter = System.nanoTime();
+            LOGGER.info("Time to obtain lock: " + (myLockAfter - myLockBefore) + " ns");
 
-            myFile.write(aRow.toByteArray());
+            long myWriteBefore = System.nanoTime();
+            ByteBuffer myBuffer = ByteBuffer.wrap(aRow.toByteArray());
+            int myBytesWritten = 0;
+            while (myBuffer.hasRemaining()) {
+                myBytesWritten = myChannel.write(myBuffer);
+                if (myBytesWritten == 0) {
+                    LOGGER.error("No bytes written to file: " + aFilePath);
+                    break;
+                }
+            }
+            long myWriteAfter = System.nanoTime();
+            LOGGER.info("Time to write to file: " + (myWriteAfter - myWriteBefore) + " ns");
             myLock.release();
             LOGGER.debug("Lock released on file: " + aFilePath);
             return true;

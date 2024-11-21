@@ -4,27 +4,16 @@ PWD=`pwd`
 kvsWorkers=5 # number of kvs workers to launch
 flameWorkers=5 # number of flame workers to launch
 
+rm -r worker*
 rm *.jar
 
 # Compile all Java files
 javac --source-path src -d bin $(find src -name '*.java')
 
-# Compile and create Crawler.jar
-javac -d bin --source-path src src/cis5550/jobs/Crawler.java
+# Compile and create kvsBenchmark.jar
+javac -d bin --source-path src src/cis5550/test/KvsBenchmark.java
 sleep 1
-jar cf crawler.jar bin/cis5550/jobs/Crawler.class
-sleep 1
-
-# Compile and create Indexer.jar
-javac -d bin --source-path src src/cis5550/jobs/Indexer.java
-sleep 1
-jar cf indexer.jar bin/cis5550/jobs/Indexer.class
-sleep 1
-
-# Compile and create PageRank.jar
-javac -d bin --source-path src src/cis5550/jobs/PageRank.java
-sleep 1
-jar cf pagerank.jar bin/cis5550/jobs/PageRank.class
+jar cf kvsbenchmark.jar bin/cis5550/test/KvsBenchmark.class
 sleep 1
 
 # Launch KVS Coordinator
