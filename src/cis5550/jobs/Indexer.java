@@ -57,10 +57,11 @@ public class Indexer {
 			return pair;
 		};
 		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
-		if (mappedStrings.count() > 0) {
-			mappedStrings.destroy();
-			System.out.println("success");
-		}
+		mappedStrings.destroy();
+		System.out.println("ok");
+//		if (mappedStrings.count() > 0) {
+//			mappedStrings.destroy();
+//		}
 
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			

@@ -15,6 +15,7 @@ import cis5550.tools.Hasher;
 import cis5550.jobs.datamodels.TableColumns;
 import cis5550.jobs.Crawler;
 import cis5550.tools.URLHelper;
+import cis5550.tools.Logger;
 
 import java.util.*;
 
