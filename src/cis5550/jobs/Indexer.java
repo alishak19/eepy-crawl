@@ -135,9 +135,7 @@ public class Indexer {
 						client.put(INDEX_TABLE, w, col, val);
 					}
 				} else {
-					Row r = new Row(w);
-					r.put(URL_REF, f._1() + ":" + wordPositions.get(w));
-					client.putRow(INDEX_TABLE, r);
+					client.put(INDEX_TABLE, w, URL_REF, f._1() + ":" + wordPositions.get(w));
 				}
 			}
 			return null;
