@@ -34,6 +34,7 @@ public class Indexer {
 						return null;
 					} else {
 						client.putRow(ALR_INDEXED, r);
+						// return URLDecoder.decode(r.get(URL_REF)) + "," + r.get(PAGE_REF);
 						return new FlamePair(URLDecoder.decode(r.get(URL_REF)), r.get(PAGE_REF));
 					}
 				} catch (Exception e) {
@@ -60,10 +61,6 @@ public class Indexer {
 //		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
 //		mappedStrings.destroy();
 		System.out.println("ok");
-//		if (mappedStrings.count() > 0) {
-//			mappedStrings.destroy();
-//		}
-
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			
 			String removedTags = "";
