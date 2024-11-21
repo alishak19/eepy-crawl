@@ -13,13 +13,13 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 
 public class HTTPRequestParser {
     private static final Logger LOGGER = Logger.getLogger(HTTPRequestParser.class);
     private static final String ENCODING = "UTF-8";
+    private static final byte[] END_SEQUENCE = new byte[]{13, 10, 13, 10};
 
     private final ServerImpl theServer;
 
@@ -41,22 +41,26 @@ public class HTTPRequestParser {
     }
 
     private byte[] readBytes(InputStream aInputStream) throws IOException {
-        LinkedList<Byte> myByteList = new LinkedList<>();
+        long myStartTime = System.nanoTime();
+        ByteArrayOutputStream myByteArrayOutputStream = new ByteArrayOutputStream();
 
-        while (!hasReachedEnd(myByteList)) {
-            byte myCurrByte = (byte) aInputStream.read();
-            if (myCurrByte == -1) {
-                LOGGER.debug("End of stream");
-                return null;
+        byte myByte;
+        int myEndSequenceCounter = 0;
+
+        while ((myByte = (byte) aInputStream.read()) >= 0) {
+            myByteArrayOutputStream.write(myByte);
+            if (myByte == END_SEQUENCE[myEndSequenceCounter]) {
+                myEndSequenceCounter++;
+                if (myEndSequenceCounter == END_SEQUENCE.length) {
+                    long myEndTime = System.nanoTime();
+                    LOGGER.info("Time taken to read bytes: " + (myEndTime - myStartTime) + "ns");
+                    return myByteArrayOutputStream.toByteArray();
+                }
+            } else {
+                myEndSequenceCounter = (myByte == END_SEQUENCE[0]) ? 1 : 0;
             }
-            myByteList.add(myCurrByte);
         }
-
-        byte[] myRequestBytes = new byte[myByteList.size()];
-        for (int i = 0; i < myByteList.size(); i++) {
-            myRequestBytes[i] = myByteList.get(i);
-        }
-        return myRequestBytes;
+        return null;
     }
 
     private RequestImpl buildRequestObject(
@@ -191,16 +195,6 @@ public class HTTPRequestParser {
             }
         }
         return true;
-    }
-
-    private boolean hasReachedEnd(LinkedList<Byte> aByteList) {
-        if (aByteList.size() < 4) {
-            return false;
-        }
-        return aByteList.get(aByteList.size() - 4) == 13
-                && aByteList.get(aByteList.size() - 3) == 10
-                && aByteList.get(aByteList.size() - 2) == 13
-                && aByteList.get(aByteList.size() - 1) == 10;
     }
 
     private int readInputStream(InputStream aInputStream, int aContentLength, byte[] aDest) throws IOException {
