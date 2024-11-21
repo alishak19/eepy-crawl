@@ -146,7 +146,7 @@ public class Indexer {
 		}
 	}
 	
-	public static String removePunctuation(String s) {
+	private static String removePunctuation(String s) {
 		String punctuation = ".,:;!?\'\"()-";
 		String ans = "";
 		
