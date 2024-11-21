@@ -34,7 +34,6 @@ public class Indexer {
 						return null;
 					} else {
 						client.putRow(ALR_INDEXED, r);
-						// return URLDecoder.decode(r.get(URL_REF)) + "," + r.get(PAGE_REF);
 						return new FlamePair(URLDecoder.decode(r.get(URL_REF)), r.get(PAGE_REF));
 					}
 				} catch (Exception e) {
@@ -47,20 +46,9 @@ public class Indexer {
 			}
 		};
 		FlamePairRDD pairs = context.pairFromTable(CRAWL_TABLE, lambda1);
-//		KVSClient c = context.getKVS();
-//		// context.output("OK");
-//		c.delete(ALR_INDEXED);
-//		System.out.println("ok");
-//
-//		StringToPair lambda2 = (String s) -> {
-//			int index = s.indexOf(",");
-//			FlamePair pair = new FlamePair(s.substring(0, index), s.substring(index + 1));
-//
-//			return pair;
-//		};
-//		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
-//		mappedStrings.destroy();
-		System.out.println("ok");
+		KVSClient c = context.getKVS();
+		c.delete(ALR_INDEXED);
+		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			
 			String removedTags = "";
@@ -130,17 +118,8 @@ public class Indexer {
 				KVSClient client = context.getKVS();
 				try {
 					String val = f._1() + ":" + wordPositions.get(w);
+					System.out.println("yay");
 					client.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
-//					if (client.existsRow(INDEX_TABLE, w)) {
-//						Row curr = client.getRow(INDEX_TABLE, w);
-//						for (String col : curr.columns()) {
-//							String val = curr.get(col);
-//							val += "," + f._1() + ":" + wordPositions.get(w);
-//							client.put(INDEX_TABLE, w, col, val);
-//						}
-//					} else {
-//						client.put(INDEX_TABLE, w, URL_REF, f._1() + ":" + wordPositions.get(w));
-//					}
 				} catch (Exception e) {
 					LOGGER.error("Error: issue with input: " + w);
 				}
@@ -149,6 +128,7 @@ public class Indexer {
 			return null;
 		};
 		FlamePairRDD inverted = pairs.flatMapToPair(lambda3);
+		context.output("OK");
 		pairs.destroy();
 	}
 	
