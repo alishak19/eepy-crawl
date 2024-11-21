@@ -8,6 +8,7 @@ import java.util.*;
 import cis5550.kvs.*;
 import cis5550.flame.*;
 import cis5550.flame.FlameContext.RowToString;
+import cis5550.flame.FlameContext.RowToPair;
 import cis5550.flame.FlamePairRDD.PairToPairIterable;
 import cis5550.flame.FlamePairRDD.TwoStringsToString;
 import cis5550.flame.FlameRDD.StringToPair;
@@ -24,7 +25,7 @@ public class Indexer {
 	private static final String URL_REF = TableColumns.URL.value();
 	private static final String PAGE_REF = TableColumns.PAGE.value();
 	public static void run(FlameContext context, String[] arr) throws Exception {
-		RowToString lambda1 = (Row r) -> {
+		RowToPair lambda1 = (Row r) -> {
 			if (r.columns().contains(URL_REF) && r.columns().contains(PAGE_REF)) {
 				KVSClient client = context.getKVS();
 				try {
@@ -33,7 +34,7 @@ public class Indexer {
 						return null;
 					} else {
 						client.putRow(ALR_INDEXED, r);
-						return URLDecoder.decode(r.get(URL_REF)) + "," + r.get(PAGE_REF);
+						return new FlamePair(URLDecoder.decode(r.get(URL_REF)), r.get(PAGE_REF));
 					}
 				} catch (Exception e) {
 					LOGGER.error("KVS error: putting/accessing alr-indexed table");
@@ -44,20 +45,20 @@ public class Indexer {
 				return null;
 			}
 		};
-		FlameRDD mappedStrings = context.fromTable(CRAWL_TABLE, lambda1);
-		KVSClient c = context.getKVS();
-		// context.output("OK");
-		c.delete(ALR_INDEXED);
-		System.out.println("ok");
-		
-		StringToPair lambda2 = (String s) -> {
-			int index = s.indexOf(",");
-			FlamePair pair = new FlamePair(s.substring(0, index), s.substring(index + 1));
-			
-			return pair;
-		};
-		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
-		mappedStrings.destroy();
+		FlamePairRDD pairs = context.pairFromTable(CRAWL_TABLE, lambda1);
+//		KVSClient c = context.getKVS();
+//		// context.output("OK");
+//		c.delete(ALR_INDEXED);
+//		System.out.println("ok");
+//
+//		StringToPair lambda2 = (String s) -> {
+//			int index = s.indexOf(",");
+//			FlamePair pair = new FlamePair(s.substring(0, index), s.substring(index + 1));
+//
+//			return pair;
+//		};
+//		FlamePairRDD pairs = mappedStrings.mapToPair(lambda2);
+//		mappedStrings.destroy();
 		System.out.println("ok");
 //		if (mappedStrings.count() > 0) {
 //			mappedStrings.destroy();

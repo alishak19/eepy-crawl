@@ -62,6 +62,15 @@ public class FlameContextImpl implements FlameContext, Serializable {
         return new FlameRDDImpl(myOutputTable, getKVS(), this);
     }
 
+    public FlamePairRDD pairFromTable(String tableName, RowToPair lambda) throws Exception {
+        String myOutputTable =
+                invokeOperation(tableName, FlameOperation.PAIR_FROM_TABLE, Serializer.objectToByteArray(lambda));
+        if (myOutputTable == null) {
+            throw new Exception("Failed to invoke fromTable operation");
+        }
+        return new FlamePairRDDImpl(myOutputTable, getKVS(), this);
+    }
+
     public String getOutput() {
         if (theOutputStringBuilder.isEmpty()) {
             return "No output";
