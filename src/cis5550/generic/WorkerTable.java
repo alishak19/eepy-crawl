@@ -8,7 +8,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class WorkerTable<K extends Comparable<K>> {
-    private static final long MAX_DURATION_MILLIS = 300000;
+    private static final long MAX_DURATION_MILLIS = 15000;
     private final ConcurrentSkipListMap<K, IPPort> theWorkerMap;
     private final ConcurrentSkipListMap<K, Long> theLastPing;
 
@@ -24,7 +24,7 @@ public class WorkerTable<K extends Comparable<K>> {
 
     public String getWorkers() {
         StringBuilder myStringBuilder = new StringBuilder();
-        removeExpired();
+//        removeExpired();
         myStringBuilder.append(theWorkerMap.size()).append("\n");
         for (K myId : theWorkerMap.keySet()) {
             IPPort myIPPort = theWorkerMap.get(myId);
@@ -41,7 +41,7 @@ public class WorkerTable<K extends Comparable<K>> {
 
     public Vector<String> getWorkersList() {
         Vector<String> myVector = new Vector<>();
-        removeExpired();
+//        removeExpired();
         for (K myId : theWorkerMap.keySet()) {
             IPPort myIPPort = theWorkerMap.get(myId);
             myVector.add(myIPPort.ip() + ":" + myIPPort.port());
@@ -51,7 +51,7 @@ public class WorkerTable<K extends Comparable<K>> {
 
     public String buildWorkerTable() {
         StringBuilder myStringBuilder = new StringBuilder();
-        removeExpired();
+//        removeExpired();
 
         myStringBuilder.append("""
         <style>
