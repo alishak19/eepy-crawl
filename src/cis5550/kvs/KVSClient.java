@@ -229,7 +229,7 @@ public class KVSClient implements KVS {
 
     public void delete(String oldTableName) throws IOException {
         if (!haveWorkers)
-            downloadWorkersWithRetry();
+            downloadWorkers();
 
         for (WorkerEntry w : workers) {
             try {
