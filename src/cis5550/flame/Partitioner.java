@@ -6,8 +6,6 @@ import java.util.*;
 
 public class Partitioner {
 
-    public static final Logger LOGGER = Logger.getLogger(Partitioner.class);
-
     public class Partition {
         public String kvsWorker;
         public String fromKey;
@@ -65,13 +63,8 @@ public class Partitioner {
     }
 
     public Vector<Partition> assignPartitions() {
-        LOGGER.debug(String.valueOf(alreadyAssigned));
-        LOGGER.debug(String.valueOf(flameWorkers.size()));
-        LOGGER.debug(String.valueOf(partitions.size()));
         if (alreadyAssigned || flameWorkers.size() < 1 || partitions.size() < 1)
             return null;
-
-        LOGGER.debug("HERE");
 
         Random rand = new Random();
 

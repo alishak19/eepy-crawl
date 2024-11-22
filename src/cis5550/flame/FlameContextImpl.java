@@ -221,7 +221,6 @@ public class FlameContextImpl implements FlameContext, Serializable {
 
         try {
             int myNumKVSWorkers = getKVS().numWorkers();
-            LOGGER.debug(String.valueOf(myNumKVSWorkers));
             for (int i = 0; i < myNumKVSWorkers; i++) {
                 myKVSWorkerIDs.add(getKVS().getWorkerID(i));
                 myKVSWorkerAddresses.add(getKVS().getWorkerAddress(i));
@@ -239,14 +238,11 @@ public class FlameContextImpl implements FlameContext, Serializable {
             if (i == myKVSWorkerIDs.size() - 1) {
                 myPartitioner.addKVSWorker(myKVSWorkerAddresses.get(i), null, myKVSWorkerIDs.get(0));
             }
-
-            LOGGER.debug("HERE");
         }
 
         Vector<String> myFlameWorkers = getFlameWorkers();
         myFlameWorkers.forEach(myPartitioner::addFlameWorker);
 
-        LOGGER.debug("HERE 2");
         return myPartitioner.assignPartitions();
     }
 
