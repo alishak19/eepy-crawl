@@ -16,6 +16,7 @@ import cis5550.tools.Hasher;
 import cis5550.jobs.datamodels.TableColumns;
 import cis5550.tools.Logger;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 public class Indexer {
 	private static final Logger LOGGER = Logger.getLogger(Indexer.class);
@@ -36,7 +37,7 @@ public class Indexer {
 					} else {
 						kvsClient.putRow(ALR_INDEXED, myRow);
 						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
-							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF)), myRow.get(PAGE_REF));
+							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
 						} else {
 							return null;
 						}
@@ -112,7 +113,7 @@ public class Indexer {
 			for (String w : words) {
 				KVSClient kvsClient = context.getKVS();
 				try {
-					String val = f._1() + ":" + wordPositions.get(w);
+					String val = URLDecoder.decode(f._1(), StandardCharsets.UTF_8) + ":" + wordPositions.get(w);
 					System.out.println(f._1());
 					kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 				} catch (Exception e) {
