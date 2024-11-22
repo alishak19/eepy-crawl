@@ -60,7 +60,7 @@ sleep 2
 # Launch Flame Workers
 for i in `seq 1 $flameWorkers`
 do
-    echo "cd '$(pwd)'; java --XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -XX:MaxGCMinorPauseMillis=200 -cp bin cis5550.flame.Worker $((9000+$i)) localhost:9000" > flameworker$i.sh
+    echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -XX:MaxGCMinorPauseMillis=200 -cp bin cis5550.flame.Worker $((9000+$i)) localhost:9000" > flameworker$i.sh
     chmod +x flameworker$i.sh
     # Run each Flame worker in the background and log output/errors to specific file
     nohup ./flameworker$i.sh > flameworker$i.log 2>&1 &

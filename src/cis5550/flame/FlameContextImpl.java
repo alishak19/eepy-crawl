@@ -221,6 +221,7 @@ public class FlameContextImpl implements FlameContext, Serializable {
 
         try {
             int myNumKVSWorkers = getKVS().numWorkers();
+            LOGGER.debug(String.valueOf(myNumKVSWorkers));
             for (int i = 0; i < myNumKVSWorkers; i++) {
                 myKVSWorkerIDs.add(getKVS().getWorkerID(i));
                 myKVSWorkerAddresses.add(getKVS().getWorkerAddress(i));
