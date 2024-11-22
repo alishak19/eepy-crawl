@@ -10,6 +10,8 @@ import cis5550.tools.Logger;
 public class KVSClient implements KVS {
 
     private static final Logger LOGGER = Logger.getLogger(KVSClient.class);
+    private static final int RETRIES = 3;
+
     String coordinator;
 
     static class WorkerEntry implements Comparable<WorkerEntry> {
@@ -45,7 +47,7 @@ public class KVSClient implements KVS {
 
     public String getWorkerAddress(int idx) throws IOException {
         if (!haveWorkers)
-            downloadWorkersWithRetry();
+            downloadWorkers();
         return workers.elementAt(idx).address;
     }
 
@@ -172,24 +174,6 @@ public class KVSClient implements KVS {
         }
     }
 
-    synchronized void downloadWorkersWithRetry() {
-        int retries = 5;
-        for (int i = 0; i < retries; i++) {
-            try {
-                LOGGER.debug("Trying to download workers");
-                downloadWorkers();
-                break;
-            } catch (IOException e) {
-                LOGGER.error("Failed to download workers, retrying...", e);
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
-    }
-
     synchronized void downloadWorkers() throws IOException {
         String result = new String(HTTP.doRequest("GET", "http://" + coordinator + "/workers", null).body());
         String[] pieces = result.split("\n");
@@ -245,7 +229,7 @@ public class KVSClient implements KVS {
 
     public void delete(String oldTableName) throws IOException {
         if (!haveWorkers)
-            downloadWorkers();
+            downloadWorkersWithRetry();
 
         for (WorkerEntry w : workers) {
             try {

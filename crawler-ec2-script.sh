@@ -28,7 +28,7 @@ jar cf pagerank.jar bin/cis5550/jobs/PageRank.class
 sleep 1
 
 # Launch KVS Coordinator
-echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -XX:MaxGCMinorPauseMillis=200 -cp bin cis5550.kvs.Coordinator 8000" > kvscoordinator.sh
+echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -cp bin cis5550.kvs.Coordinator 8000" > kvscoordinator.sh
 chmod +x kvscoordinator.sh
 # Run KVS coordinator in the background, log output and errors to specific file
 nohup ./kvscoordinator.sh > kvscoordinator.log 2>&1 &
@@ -43,14 +43,14 @@ do
     then
         mkdir $dir
     fi
-    echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -XX:MaxGCMinorPauseMillis=200 -cp bin cis5550.kvs.Worker $((8000+$i)) $dir localhost:8000" > kvsworker$i.sh
+    echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -cp bin cis5550.kvs.Worker $((8000+$i)) $dir localhost:8000" > kvsworker$i.sh
     chmod +x kvsworker$i.sh
     # Run each KVS worker in the background and log output/errors to specific file
     nohup ./kvsworker$i.sh > kvsworker$i.log 2>&1 &
 done
 
 # Launch Flame Coordinator
-echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -XX:MaxGCMinorPauseMillis=200 -cp bin cis5550.flame.Coordinator 9000 localhost:8000" > flamecoordinator.sh
+echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -cp bin cis5550.flame.Coordinator 9000 localhost:8000" > flamecoordinator.sh
 chmod +x flamecoordinator.sh
 # Run Flame coordinator in the background, log output and errors to specific file
 nohup ./flamecoordinator.sh > flamecoordinator.log 2>&1 &
@@ -60,7 +60,7 @@ sleep 2
 # Launch Flame Workers
 for i in `seq 1 $flameWorkers`
 do
-    echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -XX:MaxGCMinorPauseMillis=200 -cp bin cis5550.flame.Worker $((9000+$i)) localhost:9000" > flameworker$i.sh
+    echo "cd '$(pwd)'; java -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:ConcGCThreads=4 -cp bin cis5550.flame.Worker $((9000+$i)) localhost:9000" > flameworker$i.sh
     chmod +x flameworker$i.sh
     # Run each Flame worker in the background and log output/errors to specific file
     nohup ./flameworker$i.sh > flameworker$i.log 2>&1 &
