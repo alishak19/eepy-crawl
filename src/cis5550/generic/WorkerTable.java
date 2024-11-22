@@ -8,7 +8,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class WorkerTable<K extends Comparable<K>> {
-    private static final long MAX_DURATION_MILLIS = 15000;
+    private static final long MAX_DURATION_MILLIS = 150000;
     private final ConcurrentSkipListMap<K, IPPort> theWorkerMap;
     private final ConcurrentSkipListMap<K, Long> theLastPing;
 
