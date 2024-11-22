@@ -11,7 +11,6 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-import java.security.spec.ECField;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -143,6 +142,7 @@ public class NewCrawler {
                         return Collections.emptyList();
                     }
                 } else if (myHeadResponseCode == 200) {
+                    LOGGER.debug("HTTP GET request");
                     HttpURLConnection myConnection = (HttpURLConnection) myUrl.openConnection();
                     myConnection.setRequestMethod("GET");
                     myConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
@@ -152,6 +152,7 @@ public class NewCrawler {
 
                     int myResponseCode;
                     try {
+                        LOGGER.debug("Getting response");
                         myResponseCode = myConnection.getResponseCode();
                         if (myResponseCode != 200) {
                             return Collections.emptyList();
@@ -163,6 +164,7 @@ public class NewCrawler {
 
                     byte[] myContent = null;
                     try {
+                        LOGGER.debug("getting content");
                         if (myContentType != null && myContentType.contains("text/html")) {
                             InputStream is = myConnection.getInputStream();
                             ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
@@ -184,10 +186,11 @@ public class NewCrawler {
                                 aContext, myCleanedUrl, myResponseCode, myContentType, myContentLength, myContent);
                         if (myContent != null) {
                             List<String> myUrls = extractUrls(new String(myContent));
+                            LOGGER.debug("Extracted urls");
                             List<String> myToTraverseUrls = new LinkedList<>();
                             for (String url : myUrls) {
                                 String myNormalizedUrl = normalizeURL(myCleanedUrl, url);
-                                if (myNormalizedUrl != null && !alreadyTraversed(aContext, myCleanedUrl) &&
+                                if (myNormalizedUrl != null && !alreadyTraversed(aContext, myNormalizedUrl) &&
                                         probabilisticDomainFilter(myNormalizedUrl) && !myDenylist.isBlocked(myCleanedUrl)) {
                                     myToTraverseUrls.add(myNormalizedUrl);
                                 }
@@ -237,6 +240,7 @@ public class NewCrawler {
     }
 
     private static boolean alreadyTraversed(FlameContext aContext, String aUrl) throws Exception {
+        LOGGER.debug("Checking traversed");
         return aContext.getKVS().get(ALL_CRAWLED, Hasher.hash(aUrl), TableColumns.URL.value()) != null;
     }
 
@@ -252,6 +256,7 @@ public class NewCrawler {
             int aContentLength,
             byte[] aBody)
             throws Exception {
+        LOGGER.debug("PUT request");
         String myHashedUrl = Hasher.hash(aUrl);
         Row row = new Row(myHashedUrl);
         row.put(TableColumns.URL.value(), aUrl);
