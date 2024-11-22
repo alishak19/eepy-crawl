@@ -97,8 +97,13 @@ public class Indexer {
 				KVSClient kvsClient = context.getKVS();
 				try {
 					String val = URLDecoder.decode(f._1(), StandardCharsets.UTF_8) + ":" + wordPositions.get(w);
-					if (!w.equals("") && !w.equals(" ") && !val.equals("")) {
-						kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
+					if (w != null && !w.equals("") && !w.equals(" ") && !val.equals("")) {
+						if (w.charAt(w.length() - 1) == ' ') {
+							w = w.substring(0, w.length() - 1);
+						}
+						if (w.length() <= 25) {
+							kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
+						}
 					}
 				} catch (Exception e) {
 					LOGGER.error("Error: issue: " + w);
