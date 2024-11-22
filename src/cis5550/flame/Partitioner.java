@@ -65,7 +65,12 @@ public class Partitioner {
     }
 
     public Vector<Partition> assignPartitions() {
-        if (alreadyAssigned || (flameWorkers.size() < 1) || partitions.size() < 1)
+        if (alreadyAssigned) {
+            LOGGER.debug("hello hello");
+            return partitions;
+        }
+
+        if (flameWorkers.size() < 1 || partitions.size() < 1)
             return null;
 
         LOGGER.debug("HERE");
