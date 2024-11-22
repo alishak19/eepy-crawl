@@ -24,22 +24,19 @@ public class InMemoryDatastore implements Datastore {
     @Override
     public int put(String aTable, String aKey, String aColumn, byte[] aValue) {
         theMemoryData.putIfAbsent(aTable, new ConcurrentHashMap<>());
-        Row myPreviousRow = theMemoryData.get(aTable).get(aKey);
-        Row myNewRow;
-        if (myPreviousRow == null) {
-            myNewRow = new Row(aKey);
+        if (!theMemoryData.get(aTable).containsKey(aKey)) {
+            Row myNewRow = new Row(aKey);
             myNewRow.put(aColumn, aValue);
+            theMemoryData.get(aTable).put(aKey, myNewRow);
         } else {
-            myNewRow = myPreviousRow.clone();
-            myNewRow.put(aColumn, aValue);
+            theMemoryData.get(aTable).get(aKey).put(aColumn, aValue);
         }
-        theMemoryData.get(aTable).put(aKey, myNewRow);
         return 0;
     }
 
     @Override
     public int putRow(String aTable, String aKey, Row aRow) {
-        theMemoryData.putIfAbsent(aTable, new ConcurrentSkipListMap<>());
+        theMemoryData.putIfAbsent(aTable, new ConcurrentHashMap<>());
         theMemoryData.get(aTable).put(aKey, aRow);
         return 0;
     }
