@@ -239,11 +239,14 @@ public class FlameContextImpl implements FlameContext, Serializable {
             if (i == myKVSWorkerIDs.size() - 1) {
                 myPartitioner.addKVSWorker(myKVSWorkerAddresses.get(i), null, myKVSWorkerIDs.get(0));
             }
+
+            LOGGER.debug("HERE");
         }
 
         Vector<String> myFlameWorkers = getFlameWorkers();
         myFlameWorkers.forEach(myPartitioner::addFlameWorker);
 
+        LOGGER.debug("HERE 2");
         return myPartitioner.assignPartitions();
     }
 

@@ -1,8 +1,12 @@
 package cis5550.flame;
 
+import cis5550.tools.Logger;
+
 import java.util.*;
 
 public class Partitioner {
+
+    public static final Logger LOGGER = Logger.getLogger(Partitioner.class);
 
     public class Partition {
         public String kvsWorker;
@@ -63,6 +67,8 @@ public class Partitioner {
     public Vector<Partition> assignPartitions() {
         if (alreadyAssigned || (flameWorkers.size() < 1) || partitions.size() < 1)
             return null;
+
+        LOGGER.debug("HERE");
 
         Random rand = new Random();
 
