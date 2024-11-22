@@ -185,9 +185,9 @@ public class NewCrawler {
                         putPageInTable(
                                 aContext, myCleanedUrl, myResponseCode, myContentType, myContentLength, myContent);
                         if (myContent != null) {
-                            List<String> myUrls = extractUrls(new String(myContent));
+                            Set<String> myUrls = extractUrls(new String(myContent));
                             LOGGER.debug("Extracted urls");
-                            List<String> myToTraverseUrls = new LinkedList<>();
+                            Set<String> myToTraverseUrls = new HashSet<>();
                             for (String url : myUrls) {
                                 String myNormalizedUrl = normalizeURL(myCleanedUrl, url);
                                 if (myNormalizedUrl != null && !alreadyTraversed(aContext, myNormalizedUrl) &&
@@ -216,8 +216,8 @@ public class NewCrawler {
         }
     }
 
-    private static List<String> extractUrls(String aContent) {
-        List<String> myUrls = new LinkedList<>();
+    private static Set<String> extractUrls(String aContent) {
+        Set<String> myUrls = new HashSet<>();
 
         Pattern myTagPattern = Pattern.compile("<\\s*a\\b[^>]*>", Pattern.CASE_INSENSITIVE);
         Pattern myHrefPattern = Pattern.compile("href\\s*=\\s*\"([^\"]*)\"", Pattern.CASE_INSENSITIVE);
@@ -240,7 +240,6 @@ public class NewCrawler {
     }
 
     private static boolean alreadyTraversed(FlameContext aContext, String aUrl) throws Exception {
-        LOGGER.debug("Checking traversed");
         return aContext.getKVS().get(ALL_CRAWLED, Hasher.hash(aUrl), TableColumns.URL.value()) != null;
     }
 
