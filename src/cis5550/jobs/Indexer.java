@@ -81,11 +81,10 @@ public class Indexer {
 			int index = 0;
 			
 			for (String word : wordsList) {
-				index++;
 				if (word == null || word.equals(SPACE) || word.equals("")) {
 					continue;
 				}
-
+				index++;
 				words.add(word);
 				if (wordPositions.containsKey(word)) {
 					wordPositions.put(word, wordPositions.get(word) + SPACE + index);
