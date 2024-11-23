@@ -192,9 +192,11 @@ public class NewCrawler {
                                 aContext, myCleanedUrl, myResponseCode, myContentType, myContentLength, myContent);
                         if (myContent != null) {
                             Set<String> myUrls = extractUrls(new String(myContent));
-                            List<String> myNormalizedUrls = myUrls.stream().map(url -> normalizeURL(myCleanedUrl, url)).toList();
+                            List<String> myNormalizedUrls = myUrls.stream()
+                                    .map(url -> normalizeURL(myCleanedUrl, url))
+                                    .filter(Objects::nonNull)
+                                    .toList();
                             List<Boolean> getTraversedBool = batchAlreadyTraversed(aContext, myNormalizedUrls);
-                            LOGGER.debug("TRAVERSED: " + getTraversedBool);
                             Set<String> myToTraverseUrls = new HashSet<>();
                             for (int i = 0; i < myNormalizedUrls.size(); i++) {
                                 String myNormalizedUrl = myNormalizedUrls.get(i);
@@ -203,7 +205,6 @@ public class NewCrawler {
                                     myToTraverseUrls.add(myNormalizedUrl);
                                 }
                             }
-
                             LOGGER.debug("PUT finished");
                             return myToTraverseUrls;
                         }
@@ -257,7 +258,9 @@ public class NewCrawler {
                 .map(Hasher::hash)
                 .toList();
         List<String> traversed = aContext.getKVS().batchGet(ALL_CRAWLED, TableColumns.URL.value(), hashedUrls);
-        return traversed.stream().map(res -> !res.equals(NULL_RETURN)).toList();
+        return traversed.stream()
+                .map(res -> !res.equals(NULL_RETURN))
+                .toList();
     }
 
     private static void addToTraversed(FlameContext aContext, String aUrl) throws Exception {
@@ -275,8 +278,12 @@ public class NewCrawler {
         LOGGER.debug("PUT request");
         String myHashedUrl = Hasher.hash(aUrl);
         Row row = new Row(myHashedUrl);
-        row.put(TableColumns.URL.value(), aUrl);
-        row.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(aResponseCode));
+        if (aUrl != null) {
+            row.put(TableColumns.URL.value(), aUrl);
+        }
+        if (aResponseCode >= 0) {
+            row.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(aResponseCode));
+        }
         if (aContentType != null) {
             row.put(TableColumns.CONTENT_TYPE.value(), aContentType);
         }

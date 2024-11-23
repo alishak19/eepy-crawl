@@ -8,6 +8,7 @@ import java.io.*;
 import cis5550.tools.HTTP;
 
 import static cis5550.kvs.Worker.BATCH_UNIQUE_SEPARATOR;
+import static cis5550.kvs.Worker.NULL_RETURN;
 
 public class KVSClient implements KVS {
 
@@ -303,7 +304,7 @@ public class KVSClient implements KVS {
             workerToRowsMap.computeIfAbsent(workerAddress, k -> new ArrayList<>()).add(row);
         }
 
-        List<String> responseList = new ArrayList<>(Collections.nCopies(rows.size(), null));
+        List<String> responseList = new ArrayList<>(Collections.nCopies(rows.size(), NULL_RETURN));
 
         for (Map.Entry<String, List<String>> entry : workerToRowsMap.entrySet()) {
             String workerAddress = entry.getKey();
@@ -330,7 +331,7 @@ public class KVSClient implements KVS {
                 for (String row : rowsForWorker) {
                     int rowIndex = rows.indexOf(row);
                     if (rowIndex != -1) {
-                        responseList.set(rowIndex, null);
+                        responseList.set(rowIndex, NULL_RETURN);
                     }
                 }
             }

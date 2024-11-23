@@ -8,24 +8,36 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class FileIOUtils {
     public static final Logger LOGGER = Logger.getLogger(FileIOUtils.class);
 
+    private static final Map<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
+
     public static Row readRowFromFile(String aFilePath) {
+        ReentrantLock lock = lockMap.computeIfAbsent(aFilePath, k -> new ReentrantLock());
+
+        lock.lock();
         try (RandomAccessFile myFile = new RandomAccessFile(aFilePath, "r");
              FileChannel myChannel = myFile.getChannel()) {
             LOGGER.debug("Obtaining lock on file: " + aFilePath);
+
             FileLock myLock = myChannel.lock(0L, Long.MAX_VALUE, true);
             LOGGER.debug("Shared lock obtained on file: " + aFilePath);
 
             Row myRow = Row.readFrom(myFile);
             myLock.release();
             LOGGER.debug("Lock released on file: " + aFilePath);
+
             return myRow;
         } catch (Exception e) {
             LOGGER.error("Error reading row from file: " + aFilePath, e);
             return null;
+        } finally {
+            lock.unlock();
         }
     }
 
