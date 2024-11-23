@@ -101,12 +101,16 @@ public class Indexer {
 						if (w.charAt(w.length() - 1) == ' ') {
 							w = w.substring(0, w.length() - 1);
 						}
+						if (w.charAt(0) == ' ') {
+							w = w.substring(1);
+						}
 						if (w.length() <= 25) {
 							kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 						}
 					}
 				} catch (Exception e) {
-					LOGGER.error("Error: issue: " + w);
+					e.printStackTrace();
+					LOGGER.error("Error:" + w);
 				}
 
 			}
