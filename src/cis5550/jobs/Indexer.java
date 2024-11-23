@@ -25,6 +25,7 @@ public class Indexer {
 	private static final String ALR_INDEXED = "pt-alrindexed";
 	private static final String URL_REF = TableColumns.URL.value();
 	private static final String PAGE_REF = TableColumns.PAGE.value();
+	private static final String INDEXED_TABLE = "pt-indexed";
 	private static final String SPACE = " ";
 	public static void run(FlameContext context, String[] arr) throws Exception {
 		RowToPair lambda1 = (Row myRow) -> {
@@ -56,6 +57,12 @@ public class Indexer {
 		tempClient.delete(ALR_INDEXED);
 		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
+			if (alreadyTraversed(context, URLDecoder.decode(f._1(), StandardCharsets.UTF_8))) {
+				System.out.println("alr done: " + f._1());
+				return null;
+			}
+			KVSClient kvsClient = context.getKVS();
+
 			String removedTags = "";
 			// System.out.println("checkpt 1");
 
@@ -83,7 +90,6 @@ public class Indexer {
 			}
 			// System.out.println("checkpt 3");
 
-			KVSClient kvsClient = context.getKVS();
 			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
 			System.out.println(f._1());
 			for (String w : words) {
@@ -104,11 +110,17 @@ public class Indexer {
 					e.printStackTrace();
 					LOGGER.error("Error:" + w);
 				}
-
 			}
+			Row urlIndexed = new Row(Hasher.hash(url));
+			urlIndexed.put("url", url);
+			kvsClient.putRow(INDEXED_TABLE, urlIndexed);
 			return null;
 		};
 		FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
 		myPairs.destroy();
+	}
+
+	private static boolean alreadyTraversed(FlameContext aContext, String aUrl) throws Exception {
+		return aContext.getKVS().get(INDEXED_TABLE, Hasher.hash(aUrl), URL_REF) != null;
 	}
 }
