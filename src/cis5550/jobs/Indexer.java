@@ -58,13 +58,12 @@ public class Indexer {
 		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			if (alreadyTraversed(context, URLDecoder.decode(f._1(), StandardCharsets.UTF_8))) {
-				System.out.println("alr done: " + f._1());
+				// System.out.println("alr done: " + f._1());
 				return null;
 			}
 			KVSClient kvsClient = context.getKVS();
 
 			String removedTags = "";
-			// System.out.println("checkpt 1");
 
 			removedTags = f._2().replaceAll("<[^>]*>", " ");
 			removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
@@ -74,7 +73,6 @@ public class Indexer {
 			HashSet<String> words = new HashSet<>();
 			HashMap<String, String> wordPositions = new HashMap<>();
 			int index = 0;
-			// System.out.println("checkpt 2");
 			
 			for (String word : wordsList) {
 				if (word == null || word.equals(SPACE) || word.equals("")) {
@@ -88,10 +86,9 @@ public class Indexer {
 					wordPositions.put(word, index + "");
 				}
 			}
-			// System.out.println("checkpt 3");
 
 			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
-			System.out.println(f._1());
+			// System.out.println(f._1());
 			for (String w : words) {
 				try {
 					String val = url + ":" + wordPositions.get(w);
