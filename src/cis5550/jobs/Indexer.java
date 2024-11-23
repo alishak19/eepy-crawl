@@ -60,18 +60,20 @@ public class Indexer {
 			String removedTags = "";
 			boolean tag = false;
 			System.out.println("bottleneck check 1");
-			for (int i = 0; i < f._2().length(); i++) {
-				if (f._2().charAt(i) == '<') {
-					tag = true;
-				} else if (f._2().charAt(i) == '>') {
-					tag = false;
-					removedTags += SPACE;
-				} else if (!tag && !PUNCTUATION.contains(f._2().charAt(i) + "") && f._2().charAt(i) != '\n' && f._2().charAt(i) != '\r' && f._2().charAt(i) != '\t') {
-					removedTags += f._2().charAt(i);
-				} else if (!tag) {
-					removedTags += SPACE;
-				}
-			}
+//			for (int i = 0; i < f._2().length(); i++) {
+//				if (f._2().charAt(i) == '<') {
+//					tag = true;
+//				} else if (f._2().charAt(i) == '>') {
+//					tag = false;
+//					removedTags += SPACE;
+//				} else if (!tag && !PUNCTUATION.contains(f._2().charAt(i) + "") && f._2().charAt(i) != '\n' && f._2().charAt(i) != '\r' && f._2().charAt(i) != '\t') {
+//					removedTags += f._2().charAt(i);
+//				} else if (!tag) {
+//					removedTags += SPACE;
+//				}
+//			}
+			removedTags = f._2.replaceAll("<[^>]*>", " ");
+			removedTags = removedTags.replaceAll("[^a-z0-9\\s]", " ");
 			System.out.println("bottleneck check 2");
 			removedTags = removedTags.toLowerCase();
 			String[] wordsList = removedTags.split(SPACE);
