@@ -95,10 +95,9 @@ public class Indexer {
 				}
 			}
 			System.out.println("bottleneck check 4");
-
+			KVSClient kvsClient = context.getKVS();
 			System.out.println(f._1());
 			for (String w : words) {
-				KVSClient kvsClient = context.getKVS();
 				try {
 					String val = URLDecoder.decode(f._1(), StandardCharsets.UTF_8) + ":" + wordPositions.get(w);
 					if (w != null && !w.equals("") && !w.equals(" ") && !val.equals("")) {
