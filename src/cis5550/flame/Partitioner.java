@@ -1,7 +1,5 @@
 package cis5550.flame;
 
-import cis5550.tools.Logger;
-
 import java.util.*;
 
 public class Partitioner {
@@ -63,7 +61,7 @@ public class Partitioner {
     }
 
     public Vector<Partition> assignPartitions() {
-        if (alreadyAssigned || flameWorkers.size() < 1 || partitions.size() < 1)
+        if (alreadyAssigned || (flameWorkers.size() < 1) || partitions.size() < 1)
             return null;
 
         Random rand = new Random();

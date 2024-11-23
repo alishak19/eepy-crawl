@@ -1,18 +1,19 @@
 #!/bin/bash
 
 PWD=`pwd`
-kvsWorkers=5 # number of kvs workers to launch
-flameWorkers=5 # number of flame workers to launch
+kvsWorkers=10 # number of kvs workers to launch
+flameWorkers=10 # number of flame workers to launch
 
+rm -r worker*
 rm *.jar
 
 # Compile all Java files
 javac --source-path src -d bin $(find src -name '*.java')
 
 # Compile and create Crawler.jar
-javac -d bin --source-path src src/cis5550/jobs/NewCrawler.java
+javac -d bin --source-path src src/cis5550/jobs/Crawler.java
 sleep 1
-jar cf new-crawler.jar bin/cis5550/jobs/NewCrawler.class
+jar cf crawler.jar bin/cis5550/jobs/Crawler.class
 sleep 1
 
 # Compile and create Indexer.jar
