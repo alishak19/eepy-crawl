@@ -59,7 +59,7 @@ public class Indexer {
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			String removedTags = "";
 			boolean tag = false;
-			
+			System.out.println("bottleneck check 1");
 			for (int i = 0; i < f._2().length(); i++) {
 				if (f._2().charAt(i) == '<') {
 					tag = true;
@@ -72,8 +72,10 @@ public class Indexer {
 					removedTags += SPACE;
 				}
 			}
+			System.out.println("bottleneck check 2");
 			removedTags = removedTags.toLowerCase();
 			String[] wordsList = removedTags.split(SPACE);
+			System.out.println("bottleneck check 3");
 			HashSet<String> words = new HashSet<>();
 			HashMap<String, String> wordPositions = new HashMap<>();
 			int index = 0;
@@ -91,6 +93,7 @@ public class Indexer {
 					wordPositions.put(word, index + "");
 				}
 			}
+			System.out.println("bottleneck check 4");
 
 			System.out.println(f._1());
 			for (String w : words) {
