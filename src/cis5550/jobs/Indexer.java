@@ -72,7 +72,7 @@ public class Indexer {
 //					removedTags += SPACE;
 //				}
 //			}
-			removedTags = f._2.replaceAll("<[^>]*>", " ");
+			removedTags = f._2().replaceAll("<[^>]*>", " ");
 			removedTags = removedTags.replaceAll("[^a-z0-9\\s]", " ");
 			System.out.println("bottleneck check 2");
 			removedTags = removedTags.toLowerCase();
