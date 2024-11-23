@@ -58,7 +58,6 @@ public class Indexer {
 		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			String removedTags = "";
-			boolean tag = false;
 
 			removedTags = f._2().replaceAll("<[^>]*>", " ");
 			removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
