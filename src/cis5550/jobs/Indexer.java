@@ -25,7 +25,6 @@ public class Indexer {
 	private static final String ALR_INDEXED = "pt-alrindexed";
 	private static final String URL_REF = TableColumns.URL.value();
 	private static final String PAGE_REF = TableColumns.PAGE.value();
-	private static final String PUNCTUATION = ".,:;!?\'\"()-=/+{}[]_#$&\\";
 	private static final String SPACE = " ";
 	public static void run(FlameContext context, String[] arr) throws Exception {
 		RowToPair lambda1 = (Row myRow) -> {
@@ -58,6 +57,7 @@ public class Indexer {
 		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			String removedTags = "";
+			// System.out.println("checkpt 1");
 
 			removedTags = f._2().replaceAll("<[^>]*>", " ");
 			removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
@@ -67,6 +67,7 @@ public class Indexer {
 			HashSet<String> words = new HashSet<>();
 			HashMap<String, String> wordPositions = new HashMap<>();
 			int index = 0;
+			// System.out.println("checkpt 2");
 			
 			for (String word : wordsList) {
 				if (word == null || word.equals(SPACE) || word.equals("")) {
@@ -80,6 +81,7 @@ public class Indexer {
 					wordPositions.put(word, index + "");
 				}
 			}
+			// System.out.println("checkpt 3");
 
 			KVSClient kvsClient = context.getKVS();
 			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
