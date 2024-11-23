@@ -73,11 +73,10 @@ public class Indexer {
 //				}
 //			}
 			removedTags = f._2().replaceAll("<[^>]*>", " ");
-			removedTags = removedTags.replaceAll("[^a-z0-9\\s]", " ");
-			System.out.println("bottleneck check 2");
-			removedTags = removedTags.toLowerCase();
+			removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
+			// removedTags = removedTags.toLowerCase();
 			String[] wordsList = removedTags.split(SPACE);
-			System.out.println("bottleneck check 3");
+			System.out.println("bottleneck check 2");
 			HashSet<String> words = new HashSet<>();
 			HashMap<String, String> wordPositions = new HashMap<>();
 			int index = 0;
@@ -94,12 +93,13 @@ public class Indexer {
 					wordPositions.put(word, index + "");
 				}
 			}
-			System.out.println("bottleneck check 4");
+			System.out.println("bottleneck check 3");
 			KVSClient kvsClient = context.getKVS();
+			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
 			System.out.println(f._1());
 			for (String w : words) {
 				try {
-					String val = URLDecoder.decode(f._1(), StandardCharsets.UTF_8) + ":" + wordPositions.get(w);
+					String val = url + ":" + wordPositions.get(w);
 					if (w != null && !w.equals("") && !w.equals(" ") && !val.equals("")) {
 						if (w.charAt(w.length() - 1) == ' ') {
 							w = w.substring(0, w.length() - 1);
