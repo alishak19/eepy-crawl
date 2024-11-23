@@ -6,6 +6,8 @@ import cis5550.webserver.Request;
 import cis5550.webserver.Route;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.SortedMap;
 import java.util.stream.Stream;
 
@@ -20,6 +22,8 @@ public class Worker extends cis5550.generic.Worker {
     public static final Logger LOGGER = Logger.getLogger(Worker.class);
 
     public static final String ID_FILE = "id";
+    public static final String BATCH_UNIQUE_SEPARATOR = "&#!#&";
+    public static final String NULL_RETURN = "NULL";
     public static final int ID_LENGTH = 5;
     public static final int PAGE_SIZE = 10;
 
@@ -98,6 +102,7 @@ public class Worker extends cis5550.generic.Worker {
         put("/delete/:table", deleteTable());
         put("/rename/:table", renameTable());
         get("/count/:table", rowCount());
+        get("/batch/data/:table/:column", batchGetCell());
         after((req, res) -> {
             LOGGER.debug("Completed request " + req.requestMethod() + " " + req.url());
         });
@@ -208,6 +213,48 @@ public class Worker extends cis5550.generic.Worker {
             setResponseStatus(res, OK);
             res.bodyAsBytes(myRowObject.getBytes(myColumn));
             res.header("Version", String.valueOf(myVersion));
+            return null;
+        };
+    }
+
+    private static Route batchGetCell() {
+        return (req, res) -> {
+            String myTable = req.params("table");
+            if (myTable == null) {
+                setResponseStatus(res, BAD_REQUEST);
+                return "Bad Request";
+            }
+
+            String myRows = req.queryParams("rows");
+            if (myRows == null || myRows.isEmpty()) {
+                setResponseStatus(res, BAD_REQUEST);
+                return "Bad Request";
+            }
+            String[] myRowsList = myRows.split(BATCH_UNIQUE_SEPARATOR);
+            String myColumn = req.params("column");
+            if (myColumn == null) {
+                setResponseStatus(res, BAD_REQUEST);
+                return "Bad Request";
+            }
+
+            StringBuilder responseBuilder = new StringBuilder();
+            for (String myRow : myRowsList) {
+                Row myRowObject = theData.get(myTable, myRow);
+                if (myRowObject != null) {
+                    responseBuilder.append(myRowObject.get(myColumn));
+                } else {
+                    responseBuilder.append(NULL_RETURN);
+                }
+                responseBuilder.append(BATCH_UNIQUE_SEPARATOR);
+            }
+
+            if (!responseBuilder.isEmpty()) {
+                responseBuilder.setLength(responseBuilder.length() - BATCH_UNIQUE_SEPARATOR.length());
+            }
+
+            byte[] responseBytes = responseBuilder.toString().getBytes(StandardCharsets.UTF_8);
+            setResponseStatus(res, OK);
+            res.bodyAsBytes(responseBytes);
             return null;
         };
     }

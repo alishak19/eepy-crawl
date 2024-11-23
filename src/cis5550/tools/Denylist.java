@@ -27,7 +27,7 @@ public class Denylist {
                 Pattern.compile(".*\\.gif$", Pattern.CASE_INSENSITIVE),              // Image files
                 Pattern.compile(".*\\.css$", Pattern.CASE_INSENSITIVE),              // Stylesheets
                 Pattern.compile(".*\\.js$", Pattern.CASE_INSENSITIVE),               // JS
-                Pattern.compile("https?://((?!en)\\w+)\\.wikipedia\\.org(:\\d+)?/.*",
+                Pattern.compile("https?://(?!en\\.)[a-z0-9-]+\\.wikipedia\\.org(:\\d+)?/.*",
                         Pattern.CASE_INSENSITIVE)                                          // Non English Wikipedia
         );
     }

@@ -3,6 +3,7 @@ package cis5550.jobs;
 import cis5550.flame.FlameContext;
 import cis5550.flame.FlameRDD;
 import cis5550.jobs.datamodels.TableColumns;
+import cis5550.kvs.Row;
 import cis5550.tools.*;
 
 import java.io.ByteArrayOutputStream;
@@ -14,15 +15,18 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static cis5550.kvs.Worker.NULL_RETURN;
 import static cis5550.tools.RobotsHelper.*;
 import static cis5550.tools.URLHelper.*;
 import static cis5550.tools.Denylist.*;
 
 public class NewCrawler {
     private static final String CRAWLER_NAME = "cis5550-crawler";
-    private static final String CRAWL_TABLE = "pt-crawl";
     private static final String HOSTS_TABLE = "hosts";
-    private static final String URL_QUEUE_TABLE = "pt-cached-urls";
+
+    private static final String CRAWL_TABLE = "pt-crawl";
+    private static final String NEXT_FRONTER = "pt-to-crawl";
+    private static final String ALL_CRAWLED = "pt-crawled";
 
     private static final int THREAD_SLEEP = 10;
     private static final int DEFAULT_CRAWL_DELAY = 1000;
@@ -30,6 +34,7 @@ public class NewCrawler {
     private static final int READ_TIMEOUT = 4000;
 
     private static final Logger LOGGER = Logger.getLogger(Crawler.class);
+    private static final Denylist myDenylist = new Denylist();
 
     public static void run(FlameContext aContext, String[] aArgs) throws Exception {
         aContext.output("OK");
@@ -37,20 +42,29 @@ public class NewCrawler {
         if (aArgs.length > 0) {
             myUrlQueue = aContext.parallelize(List.of(aArgs[0]));
         } else {
-            myUrlQueue = aContext.fromTable(URL_QUEUE_TABLE, row -> row.get("value"));
+            myUrlQueue = aContext.fromTable(NEXT_FRONTER, row -> row.get(TableColumns.VALUE.value()));
         }
 
         while (myUrlQueue != null && myUrlQueue.count() != 0) {
             Thread.sleep(THREAD_SLEEP);
-
-            aContext.getKVS().delete(URL_QUEUE_TABLE);
-            myUrlQueue.saveAsTable(URL_QUEUE_TABLE);
-
+            aContext.getKVS().delete(NEXT_FRONTER);
+            myUrlQueue.saveAsTable(NEXT_FRONTER);
             myUrlQueue = myUrlQueue.flatMap(myURLString -> {
                 LOGGER.debug("Crawling: " + myURLString);
 
                 String[] myUrlParts = cleanupUrl(myURLString);
                 String myCleanedUrl = myUrlParts[0] + "://" + myUrlParts[1] + ":" + myUrlParts[2] + myUrlParts[3];
+
+                if (!alreadyTraversed(aContext, myCleanedUrl)) {
+                    try {
+                        addToTraversed(aContext, myCleanedUrl);
+                    } catch (Exception e) {
+                        LOGGER.error("Adding to traversed failed: " + e.getMessage());
+                        return Collections.emptyList();
+                    }
+                } else {
+                    return Collections.emptyList();
+                }
 
                 URI myUri;
                 String myHost;
@@ -65,22 +79,21 @@ public class NewCrawler {
                 String robotsTxt = getRobotsTxt(aContext.getKVS(), myHost);
                 long crawlDelay = DEFAULT_CRAWL_DELAY;
 
-                if (robotsTxt == null) {
-                    LOGGER.debug("Unexpected response code from: " + myCleanedUrl);
-                    return Collections.emptyList();
-                } else if (!isUrlAllowed(robotsTxt, myCleanedUrl)) {
-                    LOGGER.debug("URL is not allowed by robots.txt: " + myCleanedUrl);
-                    return Collections.emptyList();
-                } else {
-                    Double robotsDelay = getCrawlDelay(robotsTxt);
-                    if (robotsDelay != null) {
-                        crawlDelay = (long) (DEFAULT_CRAWL_DELAY * robotsDelay);
+                try {
+                    if (robotsTxt == null) {
+                        LOGGER.debug("Unexpected response code from: " + myCleanedUrl);
+                        return Collections.emptyList();
+                    } else if (!isUrlAllowed(robotsTxt, myCleanedUrl)) {
+                        LOGGER.debug("URL is not allowed by robots.txt: " + myCleanedUrl);
+                        return Collections.emptyList();
+                    } else {
+                        Double robotsDelay = getCrawlDelay(robotsTxt);
+                        if (robotsDelay != null) {
+                            crawlDelay = (long) (DEFAULT_CRAWL_DELAY * robotsDelay);
+                        }
                     }
-                }
-
-                Denylist myDenylist = new Denylist();
-                if (myDenylist.isBlocked(myCleanedUrl)) {
-                    LOGGER.debug("Url blocked");
+                } catch (Exception e) {
+                    LOGGER.error("Robots exception: " + e.getMessage());
                     return Collections.emptyList();
                 }
 
@@ -125,7 +138,7 @@ public class NewCrawler {
                         String myLocation = myHeadConnection.getHeaderField("Location");
                         if (myLocation != null) {
                             String myNormalizedRedirectUrl = normalizeURL(myLocation, myCleanedUrl);
-                            if (myNormalizedRedirectUrl != null && !alreadyTraversed(aContext, myNormalizedRedirectUrl)) {
+                            if (myNormalizedRedirectUrl != null && !alreadyTraversed(aContext, myCleanedUrl)) {
                                 return List.of(myNormalizedRedirectUrl);
                             }
                             return Collections.emptyList();
@@ -135,8 +148,7 @@ public class NewCrawler {
                         return Collections.emptyList();
                     }
                 } else if (myHeadResponseCode == 200) {
-                    LOGGER.debug("BODY: " + myURLString);
-
+                    LOGGER.debug("HTTP GET request");
                     HttpURLConnection myConnection = (HttpURLConnection) myUrl.openConnection();
                     myConnection.setRequestMethod("GET");
                     myConnection.setRequestProperty("User-Agent", CRAWLER_NAME);
@@ -146,6 +158,7 @@ public class NewCrawler {
 
                     int myResponseCode;
                     try {
+                        LOGGER.debug("Getting response");
                         myResponseCode = myConnection.getResponseCode();
                         if (myResponseCode != 200) {
                             return Collections.emptyList();
@@ -157,6 +170,7 @@ public class NewCrawler {
 
                     byte[] myContent = null;
                     try {
+                        LOGGER.debug("Getting content");
                         if (myContentType != null && myContentType.contains("text/html")) {
                             InputStream is = myConnection.getInputStream();
                             ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
@@ -177,15 +191,21 @@ public class NewCrawler {
                         putPageInTable(
                                 aContext, myCleanedUrl, myResponseCode, myContentType, myContentLength, myContent);
                         if (myContent != null) {
-                            List<String> myUrls = extractUrls(new String(myContent));
-                            List<String> myToTraverseUrls = new LinkedList<>();
-                            for (String url : myUrls) {
-                                String myNormalizedUrl = normalizeURL(myCleanedUrl, url);
-                                if (myNormalizedUrl != null && !alreadyTraversed(aContext, myNormalizedUrl) &&
-                                        probabilisticDomainFilter(myNormalizedUrl)) {
+                            Set<String> myUrls = extractUrls(new String(myContent));
+                            List<String> myNormalizedUrls = myUrls.stream()
+                                    .map(url -> normalizeURL(myCleanedUrl, url))
+                                    .filter(Objects::nonNull)
+                                    .toList();
+                            List<Boolean> getTraversedBool = batchAlreadyTraversed(aContext, myNormalizedUrls);
+                            Set<String> myToTraverseUrls = new HashSet<>();
+                            for (int i = 0; i < myNormalizedUrls.size(); i++) {
+                                String myNormalizedUrl = myNormalizedUrls.get(i);
+                                if (myNormalizedUrl != null && probabilisticDomainFilter(myNormalizedUrl)
+                                        && !myDenylist.isBlocked(myCleanedUrl) && !getTraversedBool.get(i)) {
                                     myToTraverseUrls.add(myNormalizedUrl);
                                 }
                             }
+                            LOGGER.debug("PUT finished");
                             return myToTraverseUrls;
                         }
                     } catch (Exception e) {
@@ -206,8 +226,8 @@ public class NewCrawler {
         }
     }
 
-    private static List<String> extractUrls(String aContent) {
-        List<String> myUrls = new LinkedList<>();
+    private static Set<String> extractUrls(String aContent) {
+        Set<String> myUrls = new HashSet<>();
 
         Pattern myTagPattern = Pattern.compile("<\\s*a\\b[^>]*>", Pattern.CASE_INSENSITIVE);
         Pattern myHrefPattern = Pattern.compile("href\\s*=\\s*\"([^\"]*)\"", Pattern.CASE_INSENSITIVE);
@@ -233,6 +253,20 @@ public class NewCrawler {
         return aContext.getKVS().get(CRAWL_TABLE, Hasher.hash(aUrl), TableColumns.RESPONSE_CODE.value()) != null;
     }
 
+    private static List<Boolean> batchAlreadyTraversed(FlameContext aContext, List<String> urls) throws Exception {
+        List<String> hashedUrls = urls.stream()
+                .map(Hasher::hash)
+                .toList();
+        List<String> traversed = aContext.getKVS().batchGet(ALL_CRAWLED, TableColumns.URL.value(), hashedUrls);
+        return traversed.stream()
+                .map(res -> !res.equals(NULL_RETURN))
+                .toList();
+    }
+
+    private static void addToTraversed(FlameContext aContext, String aUrl) throws Exception {
+        aContext.getKVS().put(ALL_CRAWLED, Hasher.hash(aUrl), TableColumns.URL.value(), aUrl);
+    }
+
     private static void putPageInTable(
             FlameContext aContext,
             String aUrl,
@@ -241,20 +275,25 @@ public class NewCrawler {
             int aContentLength,
             byte[] aBody)
             throws Exception {
+        LOGGER.debug("PUT request");
         String myHashedUrl = Hasher.hash(aUrl);
-        aContext.getKVS().put(CRAWL_TABLE, myHashedUrl, TableColumns.URL.value(), aUrl);
-        aContext.getKVS()
-                .put(CRAWL_TABLE, myHashedUrl, TableColumns.RESPONSE_CODE.value(), String.valueOf(aResponseCode));
+        Row row = new Row(myHashedUrl);
+        if (aUrl != null) {
+            row.put(TableColumns.URL.value(), aUrl);
+        }
+        if (aResponseCode >= 0) {
+            row.put(TableColumns.RESPONSE_CODE.value(), String.valueOf(aResponseCode));
+        }
         if (aContentType != null) {
-            aContext.getKVS().put(CRAWL_TABLE, myHashedUrl, TableColumns.CONTENT_TYPE.value(), aContentType);
+            row.put(TableColumns.CONTENT_TYPE.value(), aContentType);
         }
         if (aContentLength >= 0) {
-            aContext.getKVS()
-                    .put(CRAWL_TABLE, myHashedUrl, TableColumns.CONTENT_LENGTH.value(), String.valueOf(aContentLength));
+            row.put(TableColumns.CONTENT_LENGTH.value(), String.valueOf(aContentLength));
         }
         if (aBody != null) {
-            aContext.getKVS().put(CRAWL_TABLE, myHashedUrl, TableColumns.PAGE.value(), aBody);
+            row.put(TableColumns.PAGE.value(), aBody);
         }
+        aContext.getKVS().putRow(CRAWL_TABLE, row);
     }
 
     private static boolean hasPassedTime(FlameContext aContext, long aDelay, String aHost) throws Exception {

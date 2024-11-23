@@ -13,6 +13,7 @@ public enum TableColumns {
     RANK("rank"),
     PATTERNS("pattern"),
     LAST_ACCESSED("lastAccessed"),
+    VALUE("value"),
     ;
 
     private final String columnName;
