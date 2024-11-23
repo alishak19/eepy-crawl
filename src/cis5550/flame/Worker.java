@@ -318,13 +318,26 @@ class Worker extends cis5550.generic.Worker {
 
             FlameContext.RowToString myLambda = (FlameContext.RowToString) myParams.lambda();
 
+            Map<String, String> myRowValueMap = new HashMap<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
+                String myRowKey = myRow.key();
                 String myValue = myLambda.op(myRow);
                 if (myValue != null) {
-                    myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myValue);
+                    myRowValueMap.put(myRowKey, myValue);
                 }
             }
+
+            myKVS.batchPut(myParams.outputTable(), COLUMN_NAME, myRowValueMap);
+
+            /* Keeping this for if the batches are buggy - delete after more testing ! */
+//            while (myRows.hasNext()) {
+//                Row myRow = myRows.next();
+//                String myValue = myLambda.op(myRow);
+//                if (myValue != null) {
+//                    myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myValue);
+//                }
+//            }
 
             setResponseStatus(response, OK);
             return "OK";
