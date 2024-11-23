@@ -15,6 +15,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static cis5550.kvs.Worker.NULL_RETURN;
 import static cis5550.tools.RobotsHelper.*;
 import static cis5550.tools.URLHelper.*;
 import static cis5550.tools.Denylist.*;
@@ -53,10 +54,15 @@ public class NewCrawler {
 
                 String[] myUrlParts = cleanupUrl(myURLString);
                 String myCleanedUrl = myUrlParts[0] + "://" + myUrlParts[1] + ":" + myUrlParts[2] + myUrlParts[3];
-                try {
-                    addToTraversed(aContext, myCleanedUrl);
-                } catch (Exception e) {
-                    LOGGER.error("Adding to traversed failed: " + e.getMessage());
+
+                if (!alreadyTraversed(aContext, myCleanedUrl)) {
+                    try {
+                        addToTraversed(aContext, myCleanedUrl);
+                    } catch (Exception e) {
+                        LOGGER.error("Adding to traversed failed: " + e.getMessage());
+                        return Collections.emptyList();
+                    }
+                } else {
                     return Collections.emptyList();
                 }
 
@@ -164,7 +170,7 @@ public class NewCrawler {
 
                     byte[] myContent = null;
                     try {
-                        LOGGER.debug("getting content");
+                        LOGGER.debug("Getting content");
                         if (myContentType != null && myContentType.contains("text/html")) {
                             InputStream is = myConnection.getInputStream();
                             ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
@@ -186,15 +192,18 @@ public class NewCrawler {
                                 aContext, myCleanedUrl, myResponseCode, myContentType, myContentLength, myContent);
                         if (myContent != null) {
                             Set<String> myUrls = extractUrls(new String(myContent));
-                            LOGGER.debug("Extracted urls");
+                            List<String> myNormalizedUrls = myUrls.stream().map(url -> normalizeURL(myCleanedUrl, url)).toList();
+                            List<Boolean> getTraversedBool = batchAlreadyTraversed(aContext, myNormalizedUrls);
+                            LOGGER.debug("TRAVERSED: " + getTraversedBool);
                             Set<String> myToTraverseUrls = new HashSet<>();
-                            for (String url : myUrls) {
-                                String myNormalizedUrl = normalizeURL(myCleanedUrl, url);
-                                if (myNormalizedUrl != null && !alreadyTraversed(aContext, myNormalizedUrl) &&
-                                        probabilisticDomainFilter(myNormalizedUrl) && !myDenylist.isBlocked(myCleanedUrl)) {
+                            for (int i = 0; i < myNormalizedUrls.size(); i++) {
+                                String myNormalizedUrl = myNormalizedUrls.get(i);
+                                if (myNormalizedUrl != null && probabilisticDomainFilter(myNormalizedUrl)
+                                        && !myDenylist.isBlocked(myCleanedUrl) && !getTraversedBool.get(i)) {
                                     myToTraverseUrls.add(myNormalizedUrl);
                                 }
                             }
+
                             LOGGER.debug("PUT finished");
                             return myToTraverseUrls;
                         }
@@ -240,7 +249,15 @@ public class NewCrawler {
     }
 
     private static boolean alreadyTraversed(FlameContext aContext, String aUrl) throws Exception {
-        return aContext.getKVS().get(ALL_CRAWLED, Hasher.hash(aUrl), TableColumns.URL.value()) != null;
+        return aContext.getKVS().get(CRAWL_TABLE, Hasher.hash(aUrl), TableColumns.RESPONSE_CODE.value()) != null;
+    }
+
+    private static List<Boolean> batchAlreadyTraversed(FlameContext aContext, List<String> urls) throws Exception {
+        List<String> hashedUrls = urls.stream()
+                .map(Hasher::hash)
+                .toList();
+        List<String> traversed = aContext.getKVS().batchGet(ALL_CRAWLED, TableColumns.URL.value(), hashedUrls);
+        return traversed.stream().map(res -> !res.equals(NULL_RETURN)).toList();
     }
 
     private static void addToTraversed(FlameContext aContext, String aUrl) throws Exception {

@@ -1,16 +1,15 @@
 package cis5550.kvs;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.net.*;
 import java.io.*;
 
 import cis5550.tools.HTTP;
-import cis5550.tools.Logger;
+
+import static cis5550.kvs.Worker.BATCH_UNIQUE_SEPARATOR;
 
 public class KVSClient implements KVS {
-
-    private static final Logger LOGGER = Logger.getLogger(KVSClient.class);
-    private static final int RETRIES = 3;
 
     String coordinator;
 
@@ -291,6 +290,53 @@ public class KVSClient implements KVS {
 
         HTTP.Response res = HTTP.doRequest("GET", "http://" + workers.elementAt(workerIndexForKey(row)).address + "/data/" + tableName + "/" + URLEncoder.encode(row, "UTF-8") + "/" + URLEncoder.encode(column, "UTF-8"), null);
         return ((res != null) && (res.statusCode() == 200)) ? res.body() : null;
+    }
+
+    public List<String> batchGet(String tableName, String column, List<String> rows) throws IOException {
+        if (!haveWorkers) {
+            downloadWorkers();
+        }
+
+        Map<String, List<String>> workerToRowsMap = new HashMap<>();
+        for (String row : rows) {
+            String workerAddress = workers.elementAt(workerIndexForKey(row)).address;
+            workerToRowsMap.computeIfAbsent(workerAddress, k -> new ArrayList<>()).add(row);
+        }
+
+        List<String> responseList = new ArrayList<>(Collections.nCopies(rows.size(), null));
+
+        for (Map.Entry<String, List<String>> entry : workerToRowsMap.entrySet()) {
+            String workerAddress = entry.getKey();
+            List<String> rowsForWorker = entry.getValue();
+
+            String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, rowsForWorker);
+
+            String requestUrl = "http://" + workerAddress + "/batch/data/" + tableName + "/" +
+                    URLEncoder.encode(column, "UTF-8") + "?rows=" + URLEncoder.encode(rowsString, "UTF-8");
+            HTTP.Response res = HTTP.doRequest("GET", requestUrl, null);
+
+            if (res != null && res.statusCode() == 200) {
+                String responseBody = new String(res.body(), StandardCharsets.UTF_8);
+                String[] values = responseBody.split(BATCH_UNIQUE_SEPARATOR);
+
+                for (int i = 0; i < rowsForWorker.size(); i++) {
+                    String row = rowsForWorker.get(i);
+                    int rowIndex = rows.indexOf(row);
+                    if (rowIndex != -1) {
+                        responseList.set(rowIndex, values[i]);
+                    }
+                }
+            } else {
+                for (String row : rowsForWorker) {
+                    int rowIndex = rows.indexOf(row);
+                    if (rowIndex != -1) {
+                        responseList.set(rowIndex, null);
+                    }
+                }
+            }
+        }
+
+        return responseList;
     }
 
     public boolean existsRow(String tableName, String row) throws FileNotFoundException, IOException {
