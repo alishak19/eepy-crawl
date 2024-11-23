@@ -59,24 +59,12 @@ public class Indexer {
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			String removedTags = "";
 			boolean tag = false;
-			System.out.println("bottleneck check 1");
-//			for (int i = 0; i < f._2().length(); i++) {
-//				if (f._2().charAt(i) == '<') {
-//					tag = true;
-//				} else if (f._2().charAt(i) == '>') {
-//					tag = false;
-//					removedTags += SPACE;
-//				} else if (!tag && !PUNCTUATION.contains(f._2().charAt(i) + "") && f._2().charAt(i) != '\n' && f._2().charAt(i) != '\r' && f._2().charAt(i) != '\t') {
-//					removedTags += f._2().charAt(i);
-//				} else if (!tag) {
-//					removedTags += SPACE;
-//				}
-//			}
+
 			removedTags = f._2().replaceAll("<[^>]*>", " ");
 			removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
-			// removedTags = removedTags.toLowerCase();
+
 			String[] wordsList = removedTags.split(SPACE);
-			System.out.println("bottleneck check 2");
+
 			HashSet<String> words = new HashSet<>();
 			HashMap<String, String> wordPositions = new HashMap<>();
 			int index = 0;
@@ -93,7 +81,7 @@ public class Indexer {
 					wordPositions.put(word, index + "");
 				}
 			}
-			System.out.println("bottleneck check 3");
+
 			KVSClient kvsClient = context.getKVS();
 			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
 			System.out.println(f._1());
@@ -120,6 +108,6 @@ public class Indexer {
 			return null;
 		};
 		FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
-		// myPairs.destroy();
+		myPairs.destroy();
 	}
 }
