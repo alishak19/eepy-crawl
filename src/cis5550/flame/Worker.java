@@ -355,7 +355,7 @@ class Worker extends cis5550.generic.Worker {
                 Row myRow = myRows.next();
                 FlamePair myValue = myLambda.op(myRow);
                 if (myValue != null) {
-                    myKVS.put(myParams.outputTable(), myRow.key(), myValue._1(), myValue._2());
+                    myKVS.put(myParams.outputTable(), myValue._1(), myRow.key(), myValue._2());
                 }
             }
 

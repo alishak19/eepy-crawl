@@ -16,7 +16,7 @@ import cis5550.jobs.datamodels.TableColumns;
 import cis5550.jobs.Crawler;
 import cis5550.tools.URLHelper;
 import cis5550.tools.Logger;
-
+import cis5550.flame.FlameContext.RowToPair;
 import java.util.*;
 
 public class PageRank {
@@ -41,59 +41,40 @@ public class PageRank {
             convergence = Double.parseDouble(arr[1]);
         }
 
-        RowToString lambda1 = (Row r) -> {
+        RowToPair lambda1 = (Row r) -> {
             if (r.columns().contains(URL_REF) && r.columns().contains(PAGE_REF)) {
-                final String url = r.get(URL_REF);
-                final String page = r.get(PAGE_REF);
+                String url = r.get(URL_REF);
+                String page = r.get(PAGE_REF);
 
-                return url + "," + page;
+                if (page != null) {
+                    List<String> extractedUrls = URLHelper.extractUrls(page.getBytes());
+                    String L = "";
+                    HashSet<String> noRepeats = new HashSet<>();
+                    for (String extrUrl : extractedUrls) {
+                        String normLink = URLHelper.normalizeURL(url, extrUrl);
+                        noRepeats.add(normLink);
+                    }
+
+                    for (String link : noRepeats) {
+                        if (!L.equals("")) {
+                            L += ",";
+                        }
+
+                        L += Hasher.hash(link);
+                    }
+
+                    if (url != null) {
+                        url = URLHelper.normalizeURL(url, url);
+                        FlamePair pair = new FlamePair(Hasher.hash(url), "1.0,1.0," + L);
+                        return pair;
+                    }
+                }
             } else {
                 return null;
             }
-        };
-        FlameRDD mappedStrings = context.fromTable(CRAWL_TABLE, lambda1);
-
-        HashMap<String, String> urlsMappedToHash = new HashMap<>();
-        for (String url : mappedStrings.collect()) {
-            String u = url.substring(0, url.indexOf(","));
-
-            String uNorm = URLHelper.normalizeURL(u, u);
-            u = Hasher.hash(u);
-            uNorm = Hasher.hash(uNorm);
-
-            urlsMappedToHash.put(uNorm, u);
-        }
-
-        StringToPair lambda2 = (String s) -> {
-            String url = s.substring(0, s.indexOf(","));
-            String page = s.substring(s.indexOf(",") + 1);
-
-            if (page != null) {
-                List<String> extractedUrls = URLHelper.extractUrls(page.getBytes());
-                String L = "";
-                HashSet<String> noRepeats = new HashSet<>();
-                for (String extrUrl : extractedUrls) {
-                    String normLink = URLHelper.normalizeURL(url, extrUrl);
-                    noRepeats.add(normLink);
-                }
-
-                for (String link : noRepeats) {
-                    if (!L.equals("")) {
-                        L += ",";
-                    }
-
-                    L += Hasher.hash(link);
-                }
-
-                if (url != null) {
-                    url = URLHelper.normalizeURL(url, url);
-                    FlamePair pair = new FlamePair(Hasher.hash(url), "1.0,1.0," + L);
-                    return pair;
-                }
-            }
             return null;
         };
-        FlamePairRDD stateTable = mappedStrings.mapToPair(lambda2);
+        FlamePairRDD stateTable = context.pairFromTable(CRAWL_TABLE, lambda1);
 
         // loop
         while (true) {
@@ -222,7 +203,7 @@ public class PageRank {
             String[] elems = f._2().split(",");
 
             double rC = Double.parseDouble(elems[0]);
-            Row r = new Row(urlsMappedToHash.get(f._1()));
+            Row r = new Row(f._1());
             r.put(RANK_REF, rC + "");
             client.putRow(RANK_TABLE, r);
 

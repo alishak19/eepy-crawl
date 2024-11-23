@@ -16,6 +16,7 @@ import cis5550.tools.Hasher;
 import cis5550.jobs.datamodels.TableColumns;
 import cis5550.tools.Logger;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 public class Indexer {
 	private static final Logger LOGGER = Logger.getLogger(Indexer.class);
@@ -24,7 +25,8 @@ public class Indexer {
 	private static final String ALR_INDEXED = "pt-alrindexed";
 	private static final String URL_REF = TableColumns.URL.value();
 	private static final String PAGE_REF = TableColumns.PAGE.value();
-	private static final String PUNCTUATION = ".,:;!?\'\"()-=/+{}[]_#$&";
+	private static final String PUNCTUATION = ".,:;!?\'\"()-=/+{}[]_#$&\\";
+	private static final String SPACE = " ";
 	public static void run(FlameContext context, String[] arr) throws Exception {
 		RowToPair lambda1 = (Row myRow) -> {
 			if (myRow.columns().contains(URL_REF) && myRow.columns().contains(PAGE_REF)) {
@@ -36,7 +38,7 @@ public class Indexer {
 					} else {
 						kvsClient.putRow(ALR_INDEXED, myRow);
 						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
-							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF)), myRow.get(PAGE_REF));
+							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
 						} else {
 							return null;
 						}
@@ -55,7 +57,6 @@ public class Indexer {
 		tempClient.delete(ALR_INDEXED);
 		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
-			
 			String removedTags = "";
 			boolean tag = false;
 			
@@ -64,78 +65,58 @@ public class Indexer {
 					tag = true;
 				} else if (f._2().charAt(i) == '>') {
 					tag = false;
-					removedTags += " ";
-				} else if (!tag) {
+					removedTags += SPACE;
+				} else if (!tag && !PUNCTUATION.contains(f._2().charAt(i) + "") && f._2().charAt(i) != '\n' && f._2().charAt(i) != '\r' && f._2().charAt(i) != '\t') {
 					removedTags += f._2().charAt(i);
+				} else if (!tag) {
+					removedTags += SPACE;
 				}
 			}
-			String[] wordsList = removedTags.split(" ");
+			removedTags = removedTags.toLowerCase();
+			String[] wordsList = removedTags.split(SPACE);
 			HashSet<String> words = new HashSet<>();
 			HashMap<String, String> wordPositions = new HashMap<>();
 			int index = 0;
 			
 			for (String word : wordsList) {
 				index++;
-				if (word == null || word.equals("\n")) {
-					continue;
-				}
-				
-				word = removePunctuation(word);
-				if (word.equals(" ") || word.equals("")) {
+				if (word == null || word.equals(SPACE) || word.equals("")) {
 					continue;
 				}
 
-				word = word.toLowerCase();
-				if (word.contains(" ")) {
-					List<String> spaceSplit = Arrays.asList(word.split(" "));
-					for (String wordX : spaceSplit) {
-						if (!wordX.equals("") && !wordX.equals(" ")) {
-							words.add(wordX);
-							if (wordPositions.containsKey(wordX)) {
-								wordPositions.put(wordX, wordPositions.get(wordX) + " " + index);
-							} else {
-								wordPositions.put(wordX, index + "");
-							}
-						}
-					}
-					
+				words.add(word);
+				if (wordPositions.containsKey(word)) {
+					wordPositions.put(word, wordPositions.get(word) + SPACE + index);
 				} else {
-					words.add(word);
-					if (wordPositions.containsKey(word)) {
-						wordPositions.put(word, wordPositions.get(word) + " " + index);
-					} else {
-						wordPositions.put(word, index + "");
-					}
+					wordPositions.put(word, index + "");
 				}
 			}
-			
+
+			System.out.println(f._1());
 			for (String w : words) {
 				KVSClient kvsClient = context.getKVS();
 				try {
-					String val = f._1() + ":" + wordPositions.get(w);
-					kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
+					String val = URLDecoder.decode(f._1(), StandardCharsets.UTF_8) + ":" + wordPositions.get(w);
+					if (w != null && !w.equals("") && !w.equals(" ") && !val.equals("")) {
+						if (w.charAt(w.length() - 1) == ' ') {
+							w = w.substring(0, w.length() - 1);
+						}
+						if (w.charAt(0) == ' ') {
+							w = w.substring(1);
+						}
+						if (w.length() <= 25) {
+							kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
+						}
+					}
 				} catch (Exception e) {
-					LOGGER.error("Error: issue with input: " + w);
+					e.printStackTrace();
+					LOGGER.error("Error:" + w);
 				}
 
 			}
 			return null;
 		};
 		FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
-		myPairs.destroy();
-	}
-	
-	private static String removePunctuation(String s) {
-		String ans = "";
-		
-		for (char c : s.toCharArray()) {
-			if (!PUNCTUATION.contains(c + "") && c != '\n' && c != '\r' && c != '\t') {
-				ans += c + "";
-			} else {
-				ans += " ";
-			}
-		}
-		
-		return ans;
+		// myPairs.destroy();
 	}
 }
