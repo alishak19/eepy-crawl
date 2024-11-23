@@ -23,6 +23,7 @@ public class Worker extends cis5550.generic.Worker {
 
     public static final String ID_FILE = "id";
     public static final String BATCH_UNIQUE_SEPARATOR = "&#!#&";
+    public static final String BATCH_ROW_VALUE_SEPARATOR = "!&&!##!&&!&&!";
     public static final String NULL_RETURN = "NULL";
     public static final int ID_LENGTH = 5;
     public static final int PAGE_SIZE = 10;
@@ -103,6 +104,7 @@ public class Worker extends cis5550.generic.Worker {
         put("/rename/:table", renameTable());
         get("/count/:table", rowCount());
         get("/batch/data/:table/:column", batchGetCell());
+        put("/batch/data/:table/:column", batchPutCell());
         after((req, res) -> {
             LOGGER.debug("Completed request " + req.requestMethod() + " " + req.url());
         });
@@ -138,6 +140,32 @@ public class Worker extends cis5550.generic.Worker {
             int myVersion = theData.put(myTable, myRow, myColumn, myValue);
 
             res.header("Version", String.valueOf(myVersion));
+            setResponseStatus(res, OK);
+            return "OK";
+        };
+    }
+
+    private static Route batchPutCell() {
+        return (req, res) -> {
+            String myTable = req.params("table");
+            String myColumn = req.params("column");
+            byte[] myRowsAndValuesBytes = req.bodyAsBytes();
+
+            if (myTable == null || myColumn == null || myRowsAndValuesBytes == null) {
+                LOGGER.debug("Bad Request: " + myTable + " " + myColumn + " " + myRowsAndValuesBytes);
+                setResponseStatus(res, BAD_REQUEST);
+                return "Bad Request";
+            }
+
+            String myRowsAndValuesStr = new String(myRowsAndValuesBytes, StandardCharsets.UTF_8);
+            String[] myRowsAndValuesList = myRowsAndValuesStr.split(BATCH_UNIQUE_SEPARATOR);
+
+            for (String myRowAndValue : myRowsAndValuesList) {
+                String myRow = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[0];
+                String myValue = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[1];
+                theData.put(myTable, myRow, myColumn, myValue.getBytes(StandardCharsets.UTF_8));
+            }
+
             setResponseStatus(res, OK);
             return "OK";
         };

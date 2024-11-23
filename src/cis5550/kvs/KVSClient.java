@@ -6,12 +6,13 @@ import java.net.*;
 import java.io.*;
 
 import cis5550.tools.HTTP;
+import cis5550.tools.Logger;
 
-import static cis5550.kvs.Worker.BATCH_UNIQUE_SEPARATOR;
-import static cis5550.kvs.Worker.NULL_RETURN;
+import static cis5550.kvs.Worker.*;
 
 public class KVSClient implements KVS {
 
+    public static Logger LOGGER = Logger.getLogger(KVSClient.class);
     String coordinator;
 
     static class WorkerEntry implements Comparable<WorkerEntry> {
@@ -257,6 +258,36 @@ public class KVSClient implements KVS {
 
     public void put(String tableName, String row, String column, String value) throws IOException {
         put(tableName, row, column, value.getBytes());
+    }
+
+    public void batchPut(String tableName, String column, Map<String, String> rowsAndValues) throws IOException {
+        if (!haveWorkers)
+            downloadWorkers();
+
+        Map<String, List<String>> workerToRowsMap = new HashMap<>();
+        for (String row : rowsAndValues.keySet()) {
+            String workerAddress = workers.elementAt(workerIndexForKey(row)).address;
+            workerToRowsMap.computeIfAbsent(workerAddress, k -> new ArrayList<>()).add(row + BATCH_ROW_VALUE_SEPARATOR + rowsAndValues.get(row));
+        }
+
+        try {
+            for (Map.Entry<String, List<String>> entry : workerToRowsMap.entrySet()) {
+                String workerAddress = entry.getKey();
+                List<String> rowsForWorker = entry.getValue();
+
+                String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, rowsForWorker);
+                byte[] body = rowsString.getBytes(StandardCharsets.UTF_8);
+
+                String target = "http://" + workerAddress + "/batch/data/" + tableName + "/" + URLEncoder.encode(column, "UTF-8");
+
+                byte[] response = HTTP.doRequest("PUT", target, body).body();
+                String result = new String(response);
+                if (!result.equals("OK"))
+                    throw new RuntimeException("PUT returned something other than OK: " + result + "(" + target + ")");
+            }
+        } catch (UnsupportedEncodingException uee) {
+            throw new RuntimeException("UTF-8 encoding not supported?!?");
+        }
     }
 
     public void putRow(String tableName, Row row) throws FileNotFoundException, IOException {
