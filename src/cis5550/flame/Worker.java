@@ -330,6 +330,39 @@ class Worker extends cis5550.generic.Worker {
             return "OK";
         });
 
+        post(FlameOperation.PAIR_FROM_TABLE.getPath(), (request, response) -> {
+            OperationParameters myParams = getAndValidateParams(request, myJAR);
+
+            if (myParams == null) {
+                setResponseStatus(response, BAD_REQUEST);
+                return "Bad request";
+            }
+
+            KVSClient myKVS = new KVSClient(myParams.kvsCoordinator());
+            Iterator<Row> myRows;
+
+            try {
+                myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
+            } catch (IOException e) {
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
+                return "Internal error";
+            }
+
+            FlameContext.RowToPair myLambda = (FlameContext.RowToPair) myParams.lambda();
+
+            while (myRows.hasNext()) {
+                Row myRow = myRows.next();
+                FlamePair myValue = myLambda.op(myRow);
+                if (myValue != null) {
+                    myKVS.put(myParams.outputTable(), myValue._1(), myRow.key(), myValue._2());
+                }
+            }
+
+            setResponseStatus(response, OK);
+            return "OK";
+        });
+
         post(FlameOperation.FLATMAP_TO_PAIR.getPath(), (request, response) -> {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 

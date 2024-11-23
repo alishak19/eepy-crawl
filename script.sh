@@ -4,7 +4,6 @@ PWD=`pwd`
 kvsWorkers=5 # number of kvs workers to launch
 flameWorkers=5 # number of flame workers to launch
 
-rm -r worker*
 rm *.jar
 
 # Compile all Java files

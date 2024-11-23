@@ -4,6 +4,7 @@ import java.util.*;
 import java.io.*;
 import cis5550.kvs.Row;
 import cis5550.kvs.KVSClient;
+import cis5550.flame.FlamePair;
 
 public interface FlameContext {
   public KVSClient getKVS();
@@ -11,6 +12,10 @@ public interface FlameContext {
   public interface RowToString extends Serializable {
     String op(Row r);
   };
+
+  public interface RowToPair extends Serializable {
+    FlamePair op(Row r);
+  }
 
 
   // When a job invokes output(), your solution should store the provided string
@@ -35,4 +40,6 @@ public interface FlameContext {
   // workers, just like the RDD/PairRDD operations.
 
   public FlameRDD fromTable(String tableName, RowToString lambda) throws Exception;
+
+  public FlamePairRDD pairFromTable(String tableName, RowToPair lambda) throws Exception;
 }

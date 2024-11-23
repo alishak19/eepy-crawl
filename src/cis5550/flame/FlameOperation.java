@@ -17,6 +17,7 @@ public enum FlameOperation {
     FILTER("/rdd/filter"),
     MAP_PARTITIONS("/rdd/mapPartitions"),
     COGROUP("/pairRDD/cogroup"),
+    PAIR_FROM_TABLE("/pairRDD/pairFromTable"),
     ;
 
     private String thePath;

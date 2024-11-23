@@ -47,6 +47,11 @@ public class VersioningInMemoryDatastore implements Datastore {
     }
 
     @Override
+    public int append(String aTable, String aKey, String aColumn, byte[] aValue, String aDelimiter) {
+       throw new UnsupportedOperationException("Not supported for versioning datastores");
+    }
+
+    @Override
     public Row get(String aTable, String aKey) {
         return get(aTable, aKey, -1);
     }

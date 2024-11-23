@@ -97,6 +97,7 @@ public class Worker extends cis5550.generic.Worker {
         get("/data/:table", streamRows());
         put("/data/:table", putRow());
         put("/data/:table/:row/:column", putCell());
+        put("/append/:table/:row/:column", appendCell());
         get("/data/:table/:row/:column", getCell());
         put("/delete/:table", deleteTable());
         put("/rename/:table", renameTable());
@@ -306,6 +307,28 @@ public class Worker extends cis5550.generic.Worker {
 
             int myVersion = theData.putRow(myTable, myRow.key(), myRow);
 
+            res.header("Version", String.valueOf(myVersion));
+            setResponseStatus(res, OK);
+            return "OK";
+        };
+    }
+
+    private static Route appendCell() {
+        return (req, res) -> {
+            forwardPutRequest(req);;
+            String myTable = req.params("table");
+            String myRow = req.params("row");
+            String myColumn = req.params("column");
+
+            String myDelimiter = req.queryParams("delimiter");
+            byte[] myValue = req.bodyAsBytes();
+
+            if (myTable == null || myRow == null || myColumn == null || myValue == null) {
+                setResponseStatus(res, BAD_REQUEST);
+                return "Bad Request";
+            }
+
+            int myVersion = theData.append(myTable, myRow, myColumn, myValue, myDelimiter);
             res.header("Version", String.valueOf(myVersion));
             setResponseStatus(res, OK);
             return "OK";
