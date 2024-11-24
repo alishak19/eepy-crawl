@@ -88,18 +88,12 @@ public class Indexer {
 			}
 
 			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
-			System.out.println(f._1());
+			System.out.println(url);
 			HashMap<String, String> myRowValueMap = new HashMap<>();
 			for (String w : words) {
 				try {
 					String val = url + ":" + wordPositions.get(w);
 					if (w != null && !w.equals("") && !w.equals(" ") && !val.equals("")) {
-						if (w.charAt(w.length() - 1) == ' ') {
-							w = w.substring(0, w.length() - 1);
-						}
-						if (w.charAt(0) == ' ') {
-							w = w.substring(1);
-						}
 						w = w.replaceAll("\\s", "");
 						if (w.length() <= 25 && w.length() > 0) {
 							myRowValueMap.put(w, val);
@@ -112,12 +106,12 @@ public class Indexer {
 				}
 			}
 			if (myRowValueMap != null && myRowValueMap.size() > 0) {
-				kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
-//				try {
-//					kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
-//				} catch (Exception e) {
-//					LOGGER.error("time");
-//				}
+				// kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
+				try {
+					kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
+				} catch (Exception e) {
+					LOGGER.error("Error in appending: " + url);
+				}
 			}
 			Row urlIndexed = new Row(Hasher.hash(url));
 			urlIndexed.put(URL_REF, url);
