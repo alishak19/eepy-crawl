@@ -100,6 +100,7 @@ public class Indexer {
 						if (w.charAt(0) == ' ') {
 							w = w.substring(1);
 						}
+						w = w.replaceAll("\\s", "");
 						if (w.length() <= 25 && w.length() > 0) {
 							myRowValueMap.put(w, val);
 							// kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
@@ -112,6 +113,11 @@ public class Indexer {
 			}
 			if (myRowValueMap != null && myRowValueMap.size() > 0) {
 				kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
+//				try {
+//					kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
+//				} catch (Exception e) {
+//					LOGGER.error("time");
+//				}
 			}
 			Row urlIndexed = new Row(Hasher.hash(url));
 			urlIndexed.put(URL_REF, url);
