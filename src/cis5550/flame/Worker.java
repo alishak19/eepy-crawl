@@ -9,6 +9,7 @@ import static cis5550.webserver.Server.*;
 import cis5550.tools.Hasher;
 import cis5550.tools.Logger;
 import cis5550.kvs.*;
+import cis5550.tools.RowColumnValueTuple;
 import cis5550.webserver.Request;
 
 class Worker extends cis5550.generic.Worker {
@@ -68,6 +69,7 @@ class Worker extends cis5550.generic.Worker {
             FlameRDD.StringToIterable myLambda = (FlameRDD.StringToIterable) myParams.lambda();
 
             int myI = 0;
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 String myValue = myRow.get(COLUMN_NAME);
@@ -75,12 +77,15 @@ class Worker extends cis5550.generic.Worker {
 
                 if (myResults != null) {
                     for (String myResult : myResults) {
-                        myKVS.put(myParams.outputTable(), createUniqueRowKey(myRow.key(), myI), COLUMN_NAME, myResult);
+                        String myRowKey = createUniqueRowKey(myRow.key(), myI);
+                        RowColumnValueTuple myTup = new RowColumnValueTuple(myRowKey, COLUMN_NAME, myResult);
+                        myRowColValueList.add(myTup);
                         myI++;
                     }
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -106,16 +111,19 @@ class Worker extends cis5550.generic.Worker {
 
             FlameRDD.StringToPair myLambda = (FlameRDD.StringToPair) myParams.lambda();
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 String myValue = myRow.get(COLUMN_NAME);
                 FlamePair myResult = myLambda.op(myValue);
 
                 if (myResult != null) {
-                    myKVS.put(myParams.outputTable(), myResult._1(), myRow.key(), myResult._2());
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myResult._1(), myRow.key(), myResult._2());
+                    myRowColValueList.add(myTup);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -141,6 +149,7 @@ class Worker extends cis5550.generic.Worker {
 
             FlamePairRDD.TwoStringsToString myLambda = (FlamePairRDD.TwoStringsToString) myParams.lambda();
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 String myAccumulatedValue = myParams.zeroElement();
@@ -151,10 +160,12 @@ class Worker extends cis5550.generic.Worker {
                 }
 
                 if (myAccumulatedValue != null) {
-                    myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myAccumulatedValue);
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myRow.key(), COLUMN_NAME, myAccumulatedValue);
+                    myRowColValueList.add(myTup);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -180,16 +191,19 @@ class Worker extends cis5550.generic.Worker {
 
             FlameRDD.StringToString myLambda = (FlameRDD.StringToString) myParams.lambda();
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 String myValue = myRow.get(COLUMN_NAME);
                 String myKey = myLambda.op(myValue);
 
                 if (myKey != null) {
-                    myKVS.put(myParams.outputTable(), myKey, myRow.key(), myValue);
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myKey, myRow.key(), myValue);
+                    myRowColValueList.add(myTup);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -214,13 +228,16 @@ class Worker extends cis5550.generic.Worker {
                 return "Internal error";
             }
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 if (Math.random() < myF) {
-                    myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myRow.get(COLUMN_NAME));
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myRow.key(), COLUMN_NAME, myRow.get(COLUMN_NAME));
+                    myRowColValueList.add(myTup);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -253,13 +270,16 @@ class Worker extends cis5550.generic.Worker {
                 mySet.add(myRow.get(COLUMN_NAME));
             }
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 if (mySet.contains(myRow.get(COLUMN_NAME))) {
-                    myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myRow.get(COLUMN_NAME));
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myRow.key(), COLUMN_NAME, myRow.get(COLUMN_NAME));
+                    myRowColValueList.add(myTup);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -285,14 +305,17 @@ class Worker extends cis5550.generic.Worker {
 
             Set<String> mySet = new HashSet<>();
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 if (!mySet.contains(myRow.get(COLUMN_NAME))) {
                     mySet.add(myRow.get(COLUMN_NAME));
-                    myKVS.put(myParams.outputTable(), myRow.get(COLUMN_NAME), COLUMN_NAME, myRow.get(COLUMN_NAME));
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myRow.get(COLUMN_NAME), COLUMN_NAME, myRow.get(COLUMN_NAME));
+                    myRowColValueList.add(myTup);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -318,27 +341,18 @@ class Worker extends cis5550.generic.Worker {
 
             FlameContext.RowToString myLambda = (FlameContext.RowToString) myParams.lambda();
 
-            Map<String, String> myRowValueMap = new HashMap<>();
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 String myRowKey = myRow.key();
                 String myValue = myLambda.op(myRow);
                 if (myValue != null) {
-                    myRowValueMap.put(myRowKey, myValue);
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myRowKey, COLUMN_NAME, myValue);
+                    myRowColValueList.add(myTup);
                 }
             }
 
-            myKVS.batchPut(myParams.outputTable(), COLUMN_NAME, myRowValueMap);
-
-            /* Keeping this for if the batches are buggy - delete after more testing ! */
-//            while (myRows.hasNext()) {
-//                Row myRow = myRows.next();
-//                String myValue = myLambda.op(myRow);
-//                if (myValue != null) {
-//                    myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myValue);
-//                }
-//            }
-
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -364,14 +378,17 @@ class Worker extends cis5550.generic.Worker {
 
             FlameContext.RowToPair myLambda = (FlameContext.RowToPair) myParams.lambda();
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 FlamePair myValue = myLambda.op(myRow);
                 if (myValue != null) {
-                    myKVS.put(myParams.outputTable(), myValue._1(), myRow.key(), myValue._2());
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myValue._1(), myRow.key(), myValue._2());
+                    myRowColValueList.add(myTup);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -397,6 +414,7 @@ class Worker extends cis5550.generic.Worker {
 
             FlameRDD.StringToPairIterable myLambda = (FlameRDD.StringToPairIterable) myParams.lambda();
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             int myI = 0;
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
@@ -405,12 +423,14 @@ class Worker extends cis5550.generic.Worker {
 
                 if (myResults != null) {
                     for (FlamePair myResult : myResults) {
-                        myKVS.put(myParams.outputTable(), myResult._1(), createUniqueRowKey(myRow.key(), myI), myResult._2());
+                        RowColumnValueTuple myTup = new RowColumnValueTuple(myResult._1(), createUniqueRowKey(myRow.key(), myI), myResult._2());
+                        myRowColValueList.add(myTup);
                         myI++;
                     }
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -438,6 +458,7 @@ class Worker extends cis5550.generic.Worker {
 
             FlamePairRDD.PairToStringIterable myLambda = (FlamePairRDD.PairToStringIterable) myParams.lambda();
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             int myI = 0;
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
@@ -447,13 +468,15 @@ class Worker extends cis5550.generic.Worker {
 
                     if (myResults != null) {
                         for (String myResult : myResults) {
-                            myKVS.put(myParams.outputTable(), createUniqueRowKey(myRow.key(), myI), COLUMN_NAME, myResult);
+                            RowColumnValueTuple myTup = new RowColumnValueTuple(createUniqueRowKey(myRow.key(), myI), COLUMN_NAME, myResult);
+                            myRowColValueList.add(myTup);
                             myI++;
                         }
                     }
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -479,6 +502,7 @@ class Worker extends cis5550.generic.Worker {
 
             FlamePairRDD.PairToPairIterable myLambda = (FlamePairRDD.PairToPairIterable) myParams.lambda();
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             int myI = 0;
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
@@ -488,17 +512,17 @@ class Worker extends cis5550.generic.Worker {
 
                     if (myResults != null) {
                         for (FlamePair myResult : myResults) {
-                            myKVS.put(
-                                    myParams.outputTable(),
-                                    myResult._1(),
+                            RowColumnValueTuple myTup = new RowColumnValueTuple(myResult._1(),
                                     createUniqueRowKey(myRow.key(), myI),
                                     myResult._2());
+                            myRowColValueList.add(myTup);
                             myI++;
                         }
                     }
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -523,6 +547,7 @@ class Worker extends cis5550.generic.Worker {
                 return "Internal error";
             }
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 Row myOtherRow = myKVS.getRow(myOtherTable, myRow.key());
@@ -530,16 +555,16 @@ class Worker extends cis5550.generic.Worker {
                 if (myOtherRow != null) {
                     for (String myColumn : myRow.columns()) {
                         for (String myOtherColumn : myOtherRow.columns()) {
-                            myKVS.put(
-                                    myParams.outputTable(),
-                                    myRow.key(),
+                            RowColumnValueTuple myTup = new RowColumnValueTuple(myRow.key(),
                                     Hasher.hash(myColumn + "!" + myOtherColumn),
                                     myRow.get(myColumn) + "," + myOtherRow.get(myOtherColumn));
+                            myRowColValueList.add(myTup);
                         }
                     }
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -596,14 +621,17 @@ class Worker extends cis5550.generic.Worker {
                 return "Internal error";
             }
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 String myValue = myRow.get(COLUMN_NAME);
                 if (myLambda.op(myValue)) {
-                    myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myValue);
+                    RowColumnValueTuple myTup = new RowColumnValueTuple(myRow.key(), COLUMN_NAME, myValue);
+                    myRowColValueList.add(myTup);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -636,13 +664,15 @@ class Worker extends cis5550.generic.Worker {
 
             Iterator<String> myResults = myLambda.op(myValues.iterator());
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             int myI = 0;
             while (myResults.hasNext()) {
-                myKVS.put(
-                        myParams.outputTable(), createUniqueRowKey(myParams.fromKey(), myI), COLUMN_NAME, myResults.next());
+                RowColumnValueTuple myTup = new RowColumnValueTuple(createUniqueRowKey(myParams.fromKey(), myI), COLUMN_NAME, myResults.next());
+                myRowColValueList.add(myTup);
                 myI++;
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -668,6 +698,7 @@ class Worker extends cis5550.generic.Worker {
                 return "Internal error";
             }
 
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 Row myOtherRow = myKVS.getRow(myOtherTable, myRow.key());
@@ -684,13 +715,14 @@ class Worker extends cis5550.generic.Worker {
                         myOtherRowValues.add(myOtherRow.get(myColumn));
                     }
                 }
-                myKVS.put(
-                        myParams.outputTable(),
-                        myRow.key(),
+
+                RowColumnValueTuple myTup = new RowColumnValueTuple(myRow.key(),
                         COLUMN_NAME,
                         "[" + String.join(",", myRowValues) + "],[" + String.join(",", myOtherRowValues) + "]");
+                myRowColValueList.add(myTup);
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });

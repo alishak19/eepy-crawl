@@ -257,7 +257,7 @@ public class NewCrawler {
         List<String> hashedUrls = urls.stream()
                 .map(Hasher::hash)
                 .toList();
-        List<String> traversed = aContext.getKVS().batchGet(ALL_CRAWLED, TableColumns.URL.value(), hashedUrls);
+        List<String> traversed = aContext.getKVS().batchGetColValue(ALL_CRAWLED, TableColumns.URL.value(), hashedUrls);
         return traversed.stream()
                 .map(res -> !res.equals(NULL_RETURN))
                 .toList();
