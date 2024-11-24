@@ -100,7 +100,7 @@ public class Indexer {
 						if (w.charAt(0) == ' ') {
 							w = w.substring(1);
 						}
-						if (w.length() <= 25) {
+						if (w.length() <= 25 && w.length() > 0) {
 							myRowValueMap.put(w, val);
 							// kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 						}

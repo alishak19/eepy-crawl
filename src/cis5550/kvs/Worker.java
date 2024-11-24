@@ -366,14 +366,11 @@ public class Worker extends cis5550.generic.Worker {
 
     private static Route batchAppendCell() {
         return (req, res) -> {
-            // forwardPutRequest(req);;
+            forwardPutRequest(req);;
             String myTable = req.params("table");
             String myColumn = req.params("column");
             String myDelimiter = ",";
             byte[] myRowsAndValuesBytes = req.bodyAsBytes();
-            System.out.println("table: " + myTable);
-            System.out.println("col: " + myColumn);
-            System.out.println("map: " + myRowsAndValuesBytes.toString());
 
             if (myTable == null || myColumn == null || myRowsAndValuesBytes == null) {
                 LOGGER.debug("Bad Request: " + myTable + " " + myColumn + " " + myRowsAndValuesBytes);
@@ -382,12 +379,16 @@ public class Worker extends cis5550.generic.Worker {
             }
 
             String myRowsAndValuesStr = new String(myRowsAndValuesBytes, StandardCharsets.UTF_8);
+            // System.out.println("rows/values: " + myRowsAndValuesStr);
             String[] myRowsAndValuesList = myRowsAndValuesStr.split(BATCH_UNIQUE_SEPARATOR);
             int myVersion = 0;
             for (String myRowAndValue : myRowsAndValuesList) {
                 String myRow = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[0];
                 String myValue = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[1];
-                myVersion = theData.append(myTable, myRow, myColumn, myValue.getBytes(StandardCharsets.UTF_8), myDelimiter);
+                if (myRow != null && !myRow.equals("")) {
+                    System.out.println(myRow + "," + myValue);
+                    myVersion = theData.append(myTable, myRow, myColumn, myValue.getBytes(), myDelimiter);
+                }
             }
             res.header("Version", String.valueOf(myVersion));
             setResponseStatus(res, OK);
