@@ -58,7 +58,7 @@ public class Indexer {
 		
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			if (alreadyTraversed(context, URLDecoder.decode(f._1(), StandardCharsets.UTF_8))) {
-				// System.out.println("alr done: " + f._1());
+				System.out.println("alr done: " + f._1());
 				return null;
 			}
 			KVSClient kvsClient = context.getKVS();
@@ -88,8 +88,8 @@ public class Indexer {
 			}
 
 			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
-			// System.out.println(f._1());
-			Map<String, String> myRowValueMap = new HashMap<>();
+			System.out.println(f._1());
+			// Map<String, String> myRowValueMap = new HashMap<>();
 			for (String w : words) {
 				try {
 					String val = url + ":" + wordPositions.get(w);
@@ -101,8 +101,8 @@ public class Indexer {
 							w = w.substring(1);
 						}
 						if (w.length() <= 25) {
-							myRowValueMap.put(w, val);
-							// kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
+							// myRowValueMap.put(w, val);
+							kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 						}
 					}
 				} catch (Exception e) {
@@ -110,9 +110,11 @@ public class Indexer {
 					LOGGER.error("Error:" + w);
 				}
 			}
-			kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap, ",");
+//			if (myRowValueMap != null && myRowValueMap.size() > 0) {
+//				kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
+//			}
 			Row urlIndexed = new Row(Hasher.hash(url));
-			urlIndexed.put("url", url);
+			urlIndexed.put(URL_REF, url);
 			kvsClient.putRow(INDEXED_TABLE, urlIndexed);
 			return null;
 		};

@@ -366,10 +366,10 @@ public class Worker extends cis5550.generic.Worker {
 
     private static Route batchAppendCell() {
         return (req, res) -> {
-            forwardPutRequest(req);;
+            // forwardPutRequest(req);;
             String myTable = req.params("table");
             String myColumn = req.params("column");
-            String myDelimiter = req.queryParams("delimiter");
+            String myDelimiter = ",";
             byte[] myRowsAndValuesBytes = req.bodyAsBytes();
 
             if (myTable == null || myColumn == null || myRowsAndValuesBytes == null) {
@@ -380,13 +380,13 @@ public class Worker extends cis5550.generic.Worker {
 
             String myRowsAndValuesStr = new String(myRowsAndValuesBytes, StandardCharsets.UTF_8);
             String[] myRowsAndValuesList = myRowsAndValuesStr.split(BATCH_UNIQUE_SEPARATOR);
-
+            int myVersion = 0;
             for (String myRowAndValue : myRowsAndValuesList) {
                 String myRow = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[0];
                 String myValue = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[1];
-                int myVersion = theData.append(myTable, myRow, myColumn, myValue.getBytes(StandardCharsets.UTF_8), myDelimiter);
-                res.header("Version", String.valueOf(myVersion));
+                myVersion = theData.append(myTable, myRow, myColumn, myValue.getBytes(StandardCharsets.UTF_8), myDelimiter);
             }
+            res.header("Version", String.valueOf(myVersion));
             setResponseStatus(res, OK);
             return "OK";
         };
