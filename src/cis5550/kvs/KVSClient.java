@@ -329,7 +329,7 @@ public class KVSClient implements KVS {
                 String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, rowsForWorker);
                 byte[] body = rowsString.getBytes(StandardCharsets.UTF_8);
 
-                String target = "http://" + workerAddress + "/batchAppend/data/" + tableName + "/" + URLEncoder.encode(column, StandardCharsets.UTF_8);
+                String target = "http://" + workerAddress + "/batchAppend/data/" + tableName + "/" + URLEncoder.encode(column, "UTF-8");
 
                 byte[] response = HTTP.doRequest("PUT", target, body).body();
                 String result = new String(response);

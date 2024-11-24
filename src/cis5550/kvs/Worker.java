@@ -371,6 +371,9 @@ public class Worker extends cis5550.generic.Worker {
             String myColumn = req.params("column");
             String myDelimiter = ",";
             byte[] myRowsAndValuesBytes = req.bodyAsBytes();
+            System.out.println("table: " + myTable);
+            System.out.println("col: " + myColumn);
+            System.out.println("map: " + myRowsAndValuesBytes.toString());
 
             if (myTable == null || myColumn == null || myRowsAndValuesBytes == null) {
                 LOGGER.debug("Bad Request: " + myTable + " " + myColumn + " " + myRowsAndValuesBytes);
