@@ -79,6 +79,7 @@ public class Indexer {
 					continue;
 				}
 				index++;
+				word = word.replaceAll("\\s", "");
 				words.add(word);
 				if (wordPositions.containsKey(word)) {
 					wordPositions.put(word, wordPositions.get(word) + SPACE + index);
@@ -94,7 +95,6 @@ public class Indexer {
 				try {
 					String val = url + ":" + wordPositions.get(w);
 					if (w != null && !w.equals("") && !w.equals(" ") && !val.equals("")) {
-						w = w.replaceAll("\\s", "");
 						if (w.length() <= 25 && w.length() > 0) {
 							myRowValueMap.put(w, val);
 							// kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
