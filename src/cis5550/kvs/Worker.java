@@ -7,7 +7,6 @@ import cis5550.webserver.Route;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.SortedMap;
 import java.util.stream.Stream;
 
@@ -23,7 +22,7 @@ public class Worker extends cis5550.generic.Worker {
 
     public static final String ID_FILE = "id";
     public static final String BATCH_UNIQUE_SEPARATOR = "&#!#&";
-    public static final String BATCH_ROW_VALUE_SEPARATOR = "!&&!##!&&!&&!";
+    public static final String BATCH_ROW_COL_VALUE_SEPARATOR = "!&&!##!&&!&&!";
     public static final String NULL_RETURN = "NULL";
     public static final int ID_LENGTH = 5;
     public static final int PAGE_SIZE = 10;
@@ -104,8 +103,8 @@ public class Worker extends cis5550.generic.Worker {
         put("/delete/:table", deleteTable());
         put("/rename/:table", renameTable());
         get("/count/:table", rowCount());
-        get("/batch/data/:table/:column", batchGetCell());
-        put("/batch/data/:table/:column", batchPutCell());
+        get("/batch/data/:table/:column", batchGetColValue());
+        put("/batch/data/:table/", batchPutCell());
         after((req, res) -> {
             LOGGER.debug("Completed request " + req.requestMethod() + " " + req.url());
         });
@@ -149,24 +148,31 @@ public class Worker extends cis5550.generic.Worker {
     private static Route batchPutCell() {
         return (req, res) -> {
             String myTable = req.params("table");
-            String myColumn = req.params("column");
-            byte[] myRowsAndValuesBytes = req.bodyAsBytes();
+            byte[] myRowsColsValuesBytes = req.bodyAsBytes();
 
-            if (myTable == null || myColumn == null || myRowsAndValuesBytes == null) {
-                LOGGER.debug("Bad Request: " + myTable + " " + myColumn + " " + myRowsAndValuesBytes);
+            if (myTable == null || myRowsColsValuesBytes == null) {
+                LOGGER.debug("Bad Request: " + myTable + " " + myRowsColsValuesBytes);
                 setResponseStatus(res, BAD_REQUEST);
                 return "Bad Request";
             }
 
-            String myRowsAndValuesStr = new String(myRowsAndValuesBytes, StandardCharsets.UTF_8);
-            String[] myRowsAndValuesList = myRowsAndValuesStr.split(BATCH_UNIQUE_SEPARATOR);
+            String myRowsColsValuesStr = new String(myRowsColsValuesBytes, StandardCharsets.UTF_8);
+            String[] myRowsColsValuesList = myRowsColsValuesStr.split(BATCH_UNIQUE_SEPARATOR);
 
-            for (String myRowAndValue : myRowsAndValuesList) {
-                String myRow = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[0];
-                String myValue = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[1];
-                theData.put(myTable, myRow, myColumn, myValue.getBytes(StandardCharsets.UTF_8));
+            for (String myRowColValue : myRowsColsValuesList) {
+                String[] myValues = myRowColValue.split(BATCH_ROW_COL_VALUE_SEPARATOR);
+                if (myValues.length != 3) {
+                    LOGGER.debug("Bad Request: " + myTable + " " + myRowsColsValuesBytes);
+                    setResponseStatus(res, BAD_REQUEST);
+                    return "Bad Request";
+                } else {
+                    String myRow = myRowColValue.split(BATCH_ROW_COL_VALUE_SEPARATOR)[0];
+                    String myCol = myRowColValue.split(BATCH_ROW_COL_VALUE_SEPARATOR)[1];
+                    String myValue = myRowColValue.split(BATCH_ROW_COL_VALUE_SEPARATOR)[2];
+
+                    theData.put(myTable, myRow, myCol, myValue.getBytes(StandardCharsets.UTF_8));
+                }
             }
-
             setResponseStatus(res, OK);
             return "OK";
         };
@@ -246,7 +252,7 @@ public class Worker extends cis5550.generic.Worker {
         };
     }
 
-    private static Route batchGetCell() {
+    private static Route batchGetColValue() {
         return (req, res) -> {
             String myTable = req.params("table");
             if (myTable == null) {

@@ -7,12 +7,15 @@ import java.io.*;
 
 import cis5550.tools.HTTP;
 import cis5550.tools.Logger;
+import cis5550.tools.RowColumnValueTuple;
 
 import static cis5550.kvs.Worker.*;
 
 public class KVSClient implements KVS {
 
-    public static Logger LOGGER = Logger.getLogger(KVSClient.class);
+    private static Logger LOGGER = Logger.getLogger(KVSClient.class);
+    private static int BATCH_LIMIT = 10;
+
     String coordinator;
 
     static class WorkerEntry implements Comparable<WorkerEntry> {
@@ -260,14 +263,19 @@ public class KVSClient implements KVS {
         put(tableName, row, column, value.getBytes());
     }
 
-    public void batchPut(String tableName, String column, Map<String, String> rowsAndValues) throws IOException {
+    public void batchPut(String tableName, List<RowColumnValueTuple> rowsColsAndValues) throws IOException {
         if (!haveWorkers)
             downloadWorkers();
 
         Map<String, List<String>> workerToRowsMap = new HashMap<>();
-        for (String row : rowsAndValues.keySet()) {
+        for (RowColumnValueTuple tup : rowsColsAndValues) {
+            String row = tup.getRow();
+            String column = tup.getColumn();
+            String value = tup.getValue();
             String workerAddress = workers.elementAt(workerIndexForKey(row)).address;
-            workerToRowsMap.computeIfAbsent(workerAddress, k -> new ArrayList<>()).add(row + BATCH_ROW_VALUE_SEPARATOR + rowsAndValues.get(row));
+            workerToRowsMap.computeIfAbsent(workerAddress, k -> new ArrayList<>()).add(
+                    row + BATCH_ROW_COL_VALUE_SEPARATOR + column + BATCH_ROW_COL_VALUE_SEPARATOR + value
+            );
         }
 
         try {
@@ -275,15 +283,23 @@ public class KVSClient implements KVS {
                 String workerAddress = entry.getKey();
                 List<String> rowsForWorker = entry.getValue();
 
-                String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, rowsForWorker);
-                byte[] body = rowsString.getBytes(StandardCharsets.UTF_8);
+                List<String> batchRowsForWorker = new ArrayList<>();
+                for (String row : rowsForWorker) {
+                    batchRowsForWorker.add(row);
+                    if (batchRowsForWorker.size() == BATCH_LIMIT) {
+                        String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, batchRowsForWorker);
+                        byte[] body = rowsString.getBytes(StandardCharsets.UTF_8);
 
-                String target = "http://" + workerAddress + "/batch/data/" + tableName + "/" + URLEncoder.encode(column, "UTF-8");
+                        String target = "http://" + workerAddress + "/batch/data/" + tableName + "/";
 
-                byte[] response = HTTP.doRequest("PUT", target, body).body();
-                String result = new String(response);
-                if (!result.equals("OK"))
-                    throw new RuntimeException("PUT returned something other than OK: " + result + "(" + target + ")");
+                        byte[] response = HTTP.doRequest("PUT", target, body).body();
+                        String result = new String(response);
+                        if (!result.equals("OK"))
+                            throw new RuntimeException("PUT returned something other than OK: " + result + "(" + target + ")");
+
+                        batchRowsForWorker = new ArrayList<>();
+                    }
+                }
             }
         } catch (UnsupportedEncodingException uee) {
             throw new RuntimeException("UTF-8 encoding not supported?!?");
@@ -375,7 +391,7 @@ public class KVSClient implements KVS {
         return ((res != null) && (res.statusCode() == 200)) ? res.body() : null;
     }
 
-    public List<String> batchGet(String tableName, String column, List<String> rows) throws IOException {
+    public List<String> batchGetColValue(String tableName, String column, List<String> rows) throws IOException {
         if (!haveWorkers) {
             downloadWorkers();
         }
