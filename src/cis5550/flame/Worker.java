@@ -478,8 +478,10 @@ class Worker extends cis5550.generic.Worker {
                     }
                 }
             }
+            if (myRowColValueList.size() > 0) {
+                myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            }
 
-            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });

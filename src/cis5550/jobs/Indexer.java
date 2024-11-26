@@ -23,7 +23,7 @@ public class Indexer {
 	private static final Logger LOGGER = Logger.getLogger(Indexer.class);
 	private static final String CRAWL_TABLE = "pt-crawl";
 	private static final String INDEX_TABLE = "pt-index";
-	private static final String ALR_INDEXED = "pt-alrindexed";
+	private static final String TO_INDEX = "pt-toindex";
 	private static final String URL_REF = TableColumns.URL.value();
 	private static final String PAGE_REF = TableColumns.PAGE.value();
 	private static final String INDEXED_TABLE = "pt-indexed";
@@ -34,20 +34,15 @@ public class Indexer {
 				KVSClient kvsClient = context.getKVS();
 				try {
 					// using hashed url as key
-//					if (kvsClient.existsRow(ALR_INDEXED, myRow.key())) {
-//						return null;
-//					} else {
-//						kvsClient.putRow(ALR_INDEXED, myRow);
-//						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
-//							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
-//						} else {
-//							return null;
-//						}
-//					}
-					if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
-						return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
-					} else {
+					if (kvsClient.existsRow(TO_INDEX, myRow.key())) {
 						return null;
+					} else {
+						kvsClient.putRow(TO_INDEX, myRow);
+						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
+							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
+						} else {
+							return null;
+						}
 					}
 				} catch (Exception e) {
 					LOGGER.error("KVS error: putting/accessing alr-indexed table");
@@ -60,8 +55,9 @@ public class Indexer {
 		};
 
 		FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
-		KVSClient tempClient = context.getKVS();
-		tempClient.delete(ALR_INDEXED);
+
+		// KVSClient tempClient = context.getKVS();
+//		tempClient.delete(TO_INDEX);
 
 		PairToStringIterable lambda3 = (FlamePair f) -> {
 			if (alreadyTraversed(context, URLDecoder.decode(f._1(), StandardCharsets.UTF_8))) {
