@@ -23,7 +23,7 @@ public class Indexer {
 	private static final Logger LOGGER = Logger.getLogger(Indexer.class);
 	private static final String CRAWL_TABLE = "pt-crawl";
 	private static final String INDEX_TABLE = "pt-index";
-	private static final String TO_INDEX = "pt-toindex";
+	private static final String ALR_INDEXED = "pt-alrindexed";
 	private static final String URL_REF = TableColumns.URL.value();
 	private static final String PAGE_REF = TableColumns.PAGE.value();
 	private static final String INDEXED_TABLE = "pt-indexed";
@@ -34,13 +34,12 @@ public class Indexer {
 				KVSClient kvsClient = context.getKVS();
 				try {
 					// using hashed url as key
-					if (kvsClient.existsRow(TO_INDEX, myRow.key())) {
+					if (kvsClient.existsRow(ALR_INDEXED, myRow.key())) {
 						return null;
 					} else {
+						kvsClient.putRow(ALR_INDEXED, myRow);
 						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
-							kvsClient.putRow(TO_INDEX, myRow);
-							return null;
-							// return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
+							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
 						} else {
 							return null;
 						}
@@ -56,32 +55,19 @@ public class Indexer {
 		};
 
 		FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
+		KVSClient tempClient = context.getKVS();
+		tempClient.delete(ALR_INDEXED);
 
-		RowToString lambda3 = (Row myRow) -> {
-			try {
-				Thread.sleep(100);
-			} catch (Exception e) {
-				LOGGER.error("screaming crying throwing up");
+		PairToStringIterable lambda3 = (FlamePair f) -> {
+			if (alreadyTraversed(context, URLDecoder.decode(f._1(), StandardCharsets.UTF_8))) {
+				System.out.println("alr done: " + f._1());
+				return null;
 			}
-
 			KVSClient kvsClient = context.getKVS();
-
-			String url = URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8);
-			try {
-				if (alreadyTraversed(context, URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8))) {
-					System.out.println("alr done: " + myRow.get(URL_REF));
-					return null;
-				}
-				Row urlIndexed = new Row(Hasher.hash(url));
-				urlIndexed.put(URL_REF, url);
-				kvsClient.putRow(INDEXED_TABLE, urlIndexed);
-			} catch (Exception e) {
-				LOGGER.error("Error checking traversal");
-			}
 
 			String removedTags = "";
 
-			removedTags = myRow.get(PAGE_REF).replaceAll("<[^>]*>", " ");
+			removedTags = f._2().replaceAll("<[^>]*>", " ");
 			removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
 
 			String[] wordsList = removedTags.split(SPACE);
@@ -103,7 +89,7 @@ public class Indexer {
 				}
 			}
 
-			// String url = URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8);
+			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
 			System.out.println(url);
 			HashMap<String, String> myRowValueMap = new HashMap<>();
 			for (String w : words) {
@@ -129,10 +115,12 @@ public class Indexer {
 					LOGGER.error("Error in appending: " + url);
 				}
 			}
-
+			Row urlIndexed = new Row(Hasher.hash(url));
+			urlIndexed.put(URL_REF, url);
+			kvsClient.putRow(INDEXED_TABLE, urlIndexed);
 			return null;
 		};
-		FlameRDD inverted = context.fromTable(TO_INDEX, lambda3);
+		FlameRDD inverted = myPairs.flatMap(lambda3);
 		myPairs.destroy();
 	}
 
