@@ -37,6 +37,10 @@ public class Indexer {
 						System.out.println("alr done: " + f._1());
 						return null;
 					}
+					String url_add = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
+					Row urlIndexed = new Row(Hasher.hash(url_add));
+					urlIndexed.put(URL_REF, url_add);
+					kvsClient.putRow(INDEXED_TABLE, urlIndexed);
 				} catch (Exception e) {
 					LOGGER.error("issue with alr traversed");
 				}
@@ -57,7 +61,7 @@ public class Indexer {
 						continue;
 					}
 					index++;
-					word = word.replaceAll("\\s", "");
+
 					words.add(word);
 					if (wordPositions.containsKey(word)) {
 						wordPositions.put(word, wordPositions.get(word) + SPACE + index);
@@ -72,10 +76,11 @@ public class Indexer {
 				for (String w : words) {
 					try {
 						String val = url + ":" + wordPositions.get(w);
+						w = w.replaceAll("\\s", "");
 						if (w != null && !w.equals("") && !w.equals(" ") && !val.equals("")) {
 							if (w.length() <= 25 && w.length() > 0) {
-								myRowValueMap.put(w, val);
-								// kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
+								// myRowValueMap.put(w, val);
+								kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
 							}
 						}
 					} catch (Exception e) {
@@ -83,22 +88,16 @@ public class Indexer {
 						LOGGER.error("Error:" + w);
 					}
 				}
-				if (myRowValueMap != null && myRowValueMap.size() > 0) {
-					// kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
-					try {
-						kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
-					} catch (Exception e) {
-						LOGGER.error("Error in appending: " + url);
-					}
-				}
-
-				try {
-					Row urlIndexed = new Row(Hasher.hash(url));
-					urlIndexed.put(URL_REF, url);
-					kvsClient.putRow(INDEXED_TABLE, urlIndexed);
-				} catch (Exception e) {
-					LOGGER.error("error logging indexed urls");
-				}
+//				if (myRowValueMap != null && myRowValueMap.size() > 0) {
+//					// kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
+//					try {
+//						// System.out.println(myRowValueMap);
+//						kvsClient.batchAppendToRow(INDEX_TABLE, URL_REF, myRowValueMap);
+//					} catch (Exception e) {
+//						LOGGER.error("Error in appending: " + url);
+//						// System.out.println(myRowValueMap);
+//					}
+//				}
 
 				return null;
 
