@@ -29,13 +29,12 @@ public class Indexer {
 	private static final String PAGE_REF = TableColumns.PAGE.value();
 	private static final String INDEXED_TABLE = "pt-indexed";
 	private static final String SPACE = " ";
+	public static final String UNIQUE_SEPARATOR = "&#!#&";
 	public static void run(FlameContext context, String[] arr) throws Exception {
-		RowToString lambda1 = (Row myRow) -> {
+		RowToPair lambda1 = (Row myRow) -> {
 			try {
-				String rowUrl = myRow.get(URL_REF);
-				String rowPage = myRow.get(PAGE_REF);
-				if (rowUrl != null && rowPage != null) {
-					return rowUrl + "," + rowPage;
+				if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
+					return new FlamePair(myRow.get(URL_REF), myRow.get(PAGE_REF));
 				} else {
 					return null;
 				}
@@ -45,16 +44,16 @@ public class Indexer {
 			return null;
 		};
 
-		FlameRDD myStrs = context.fromTable(CRAWL_TABLE, lambda1);
+		FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
 
-		StringToPair lambda2 = (String s) -> {
-			int index = s.indexOf(",");
-			FlamePair pair = new FlamePair(s.substring(0, index), s.substring(index + 1));
-
-			return pair;
-		};
-		FlamePairRDD myPairs = myStrs.mapToPair(lambda2);
-		myStrs.destroy();
+//		StringToPair lambda2 = (String s) -> {
+//			String[] splitted = s.split(UNIQUE_SEPARATOR);
+//			FlamePair pair = new FlamePair(splitted[0], splitted[1]);
+//
+//			return pair;
+//		};
+//		FlamePairRDD myPairs = myStrs.mapToPair(lambda2);
+//		myStrs.destroy();
 
 		PairToPairIterable lambda3 = (FlamePair f) -> {
 			String removedTags = f._2().replaceAll("<[^>]*>", " ");

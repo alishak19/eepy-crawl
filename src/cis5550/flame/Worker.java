@@ -378,19 +378,21 @@ class Worker extends cis5550.generic.Worker {
 
             FlameContext.RowToPair myLambda = (FlameContext.RowToPair) myParams.lambda();
 
-            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
+            // List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
 
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 String myRowKey = myRow.key();
                 FlamePair myValue = myLambda.op(myRow);
                 if (myValue != null) {
-                    RowColumnValueTuple myTup = new RowColumnValueTuple(myValue._1(), myRow.key(), myValue._2());
-                    myRowColValueList.add(myTup);
+//                    RowColumnValueTuple myTup = new RowColumnValueTuple(myValue._1(), myRow.key(), myValue._2());
+//                    myRowColValueList.add(myTup);
+                    myKVS.put(myParams.outputTable(), myValue._1(), myRowKey, myValue._2());
                 }
+
             }
 
-            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            // myKVS.batchPut(myParams.outputTable(), myRowColValueList);
 
             setResponseStatus(response, OK);
             return "OK";
