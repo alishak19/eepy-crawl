@@ -364,13 +364,17 @@ class Worker extends cis5550.generic.Worker {
 
             FlameContext.RowToPair myLambda = (FlameContext.RowToPair) myParams.lambda();
 
+            Map<String, String> myRowValueMap = new HashMap<>();
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
-                FlamePair myValue = myLambda.op(myRow);
+                String myRowKey = myRow.key();
+                String myValue = myLambda.op(myRow);
                 if (myValue != null) {
-                    myKVS.put(myParams.outputTable(), myValue._1(), myRow.key(), myValue._2());
+                    myRowValueMap.put(myRowKey, myValue);
                 }
             }
+
+            myKVS.batchPut(myParams.outputTable(), COLUMN_NAME, myRowValueMap);
 
             setResponseStatus(response, OK);
             return "OK";
