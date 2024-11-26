@@ -34,15 +34,20 @@ public class Indexer {
 				KVSClient kvsClient = context.getKVS();
 				try {
 					// using hashed url as key
-					if (kvsClient.existsRow(ALR_INDEXED, myRow.key())) {
-						return null;
+//					if (kvsClient.existsRow(ALR_INDEXED, myRow.key())) {
+//						return null;
+//					} else {
+//						kvsClient.putRow(ALR_INDEXED, myRow);
+//						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
+//							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
+//						} else {
+//							return null;
+//						}
+//					}
+					if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
+						return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
 					} else {
-						kvsClient.putRow(ALR_INDEXED, myRow);
-						if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
-							return new FlamePair(URLDecoder.decode(myRow.get(URL_REF), StandardCharsets.UTF_8), myRow.get(PAGE_REF));
-						} else {
-							return null;
-						}
+						return null;
 					}
 				} catch (Exception e) {
 					LOGGER.error("KVS error: putting/accessing alr-indexed table");
