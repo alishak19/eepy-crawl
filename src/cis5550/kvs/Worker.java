@@ -23,6 +23,7 @@ public class Worker extends cis5550.generic.Worker {
     public static final String ID_FILE = "id";
     public static final String BATCH_UNIQUE_SEPARATOR = "&#!#&";
     public static final String BATCH_ROW_COL_VALUE_SEPARATOR = "!&&!##!&&!&&!";
+    public static final String BATCH_ROW_VALUE_SEPARATOR = "!&&!##!&&!&&!";
     public static final String NULL_RETURN = "NULL";
     public static final int ID_LENGTH = 5;
     public static final int PAGE_SIZE = 10;
