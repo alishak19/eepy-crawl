@@ -10,6 +10,7 @@ import cis5550.flame.*;
 import cis5550.flame.FlameContext.RowToString;
 import cis5550.flame.FlameContext.RowToPair;
 import cis5550.flame.FlamePairRDD.PairToPairIterable;
+import cis5550.flame.FlamePairRDD.PairToStringIterable;
 import cis5550.flame.FlamePairRDD.TwoStringsToString;
 import cis5550.flame.FlameRDD.StringToPair;
 import cis5550.tools.Hasher;
@@ -52,11 +53,12 @@ public class Indexer {
 				return null;
 			}
 		};
+
 		FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
 		KVSClient tempClient = context.getKVS();
 		tempClient.delete(ALR_INDEXED);
 
-		PairToPairIterable lambda3 = (FlamePair f) -> {
+		PairToStringIterable lambda3 = (FlamePair f) -> {
 			if (alreadyTraversed(context, URLDecoder.decode(f._1(), StandardCharsets.UTF_8))) {
 				System.out.println("alr done: " + f._1());
 				return null;
@@ -93,8 +95,8 @@ public class Indexer {
 			for (String w : words) {
 				try {
 					String val = url + ":" + wordPositions.get(w);
+					w = w.replaceAll("\\s", "");
 					if (w != null && !w.equals("") && !w.equals(" ") && !val.equals("")) {
-						w = w.replaceAll("\\s", "");
 						if (w.length() <= 25 && w.length() > 0) {
 							myRowValueMap.put(w, val);
 							// kvsClient.appendToRow(INDEX_TABLE, w, URL_REF, val, ",");
@@ -118,7 +120,7 @@ public class Indexer {
 			kvsClient.putRow(INDEXED_TABLE, urlIndexed);
 			return null;
 		};
-		FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
+		FlameRDD inverted = myPairs.flatMap(lambda3);
 		myPairs.destroy();
 	}
 
