@@ -5,6 +5,7 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 
+import cis5550.flame.Partitioner;
 import cis5550.tools.HTTP;
 import cis5550.tools.Logger;
 import cis5550.tools.RowColumnValueTuple;
@@ -263,6 +264,18 @@ public class KVSClient implements KVS {
         put(tableName, row, column, value.getBytes());
     }
 
+    private void batchPutOperation(String tableName, String workerAddress, List<String> batchRowsForWorker) throws IOException {
+        String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, batchRowsForWorker);
+        byte[] body = rowsString.getBytes(StandardCharsets.UTF_8);
+
+        String target = "http://" + workerAddress + "/batch/data/" + tableName + "/";
+
+        byte[] response = HTTP.doRequest("PUT", target, body).body();
+        String result = new String(response);
+        if (!result.equals("OK"))
+            throw new RuntimeException("PUT returned something other than OK: " + result + "(" + target + ")");
+    }
+
     public void batchPut(String tableName, List<RowColumnValueTuple> rowsColsAndValues) throws IOException {
         if (!haveWorkers)
             downloadWorkers();
@@ -287,18 +300,12 @@ public class KVSClient implements KVS {
                 for (String row : rowsForWorker) {
                     batchRowsForWorker.add(row);
                     if (batchRowsForWorker.size() == BATCH_LIMIT) {
-                        String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, batchRowsForWorker);
-                        byte[] body = rowsString.getBytes(StandardCharsets.UTF_8);
-
-                        String target = "http://" + workerAddress + "/batch/data/" + tableName + "/";
-
-                        byte[] response = HTTP.doRequest("PUT", target, body).body();
-                        String result = new String(response);
-                        if (!result.equals("OK"))
-                            throw new RuntimeException("PUT returned something other than OK: " + result + "(" + target + ")");
-
+                        batchPutOperation(tableName, workerAddress, batchRowsForWorker);
                         batchRowsForWorker = new ArrayList<>();
                     }
+                }
+                if (!batchRowsForWorker.isEmpty()) {
+                    batchPutOperation(tableName, workerAddress, batchRowsForWorker);
                 }
             }
         } catch (UnsupportedEncodingException uee) {
