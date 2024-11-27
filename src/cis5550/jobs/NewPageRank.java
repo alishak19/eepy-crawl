@@ -36,6 +36,7 @@ public class NewPageRank {
 
         FlamePairRDD myPageRankRDD = prepareInitPagerankTable(aContext);
 
+        // dis a test
         int myIterations = 1;
         while (true) {
             LOGGER.debug("Iteration " + myIterations++);
