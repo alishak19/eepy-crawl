@@ -164,7 +164,6 @@ class Worker extends cis5550.generic.Worker {
                 if (myAccumulatedValue != null) {
                     RowColumnValueTuple myTup = new RowColumnValueTuple(myRow.key(), COLUMN_NAME, myAccumulatedValue);
                     myRowColValueList.add(myTup);
-                    // myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myAccumulatedValue);
                 }
                 if (myRowColValueList.size() > BATCH_SIZE) {
                     myKVS.batchPut(myParams.outputTable(), myRowColValueList);
@@ -172,7 +171,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            // myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -540,7 +539,7 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            // myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
