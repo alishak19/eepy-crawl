@@ -42,7 +42,7 @@ do
     then
         mkdir $dir
     fi
-    echo "cd '$(PWD)'; java -cp bin cis5550.kvs.Worker $((8000+$i)) $dir localhost:8000" > kvsworker$i.sh
+    echo "cd '$(PWD)'; java -cp bin -Xmx8g cis5550.kvs.Worker $((8000+$i)) $dir localhost:8000" > kvsworker$i.sh
     chmod +x kvsworker$i.sh
     open -a Terminal kvsworker$i.sh
 done
