@@ -3,14 +3,12 @@ package cis5550.jobs;
 import cis5550.flame.FlameContext;
 import cis5550.flame.FlamePair;
 import cis5550.flame.FlamePairRDD;
+import cis5550.flame.FlameRDD;
 import cis5550.jobs.datamodels.TableColumns;
 import cis5550.tools.Hasher;
 import cis5550.tools.Logger;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -22,7 +20,6 @@ public class NewPageRank {
     private static final Logger LOGGER = Logger.getLogger(NewPageRank.class);
     private static final String CRAWL_TABLE = "pt-crawl";
     private static final String PAGERANK_TABLE = "pt-pageranks";
-    private static final String UNIQUE_SEPARATOR = "@#!@!#@";
 
     private static final int CONVERGENCE_PERCENTAGE = 100;
     private static final double CONVERGENCE_THRESHOLD = 0.01;
@@ -36,12 +33,10 @@ public class NewPageRank {
 
         FlamePairRDD myPageRankRDD = prepareInitPagerankTable(aContext);
 
-        // dis a test
         int myIterations = 1;
         while (true) {
             LOGGER.debug("Iteration " + myIterations++);
             myPageRankRDD = pagerankIterate(myPageRankRDD);
-
             if (hasConverged(myPageRankRDD)) {
                 break;
             }
@@ -71,47 +66,34 @@ public class NewPageRank {
     }
 
     private static FlamePairRDD prepareInitPagerankTable(FlameContext aContext) throws Exception {
-        return aContext.fromTable(CRAWL_TABLE, myRow -> {
-                    try {
-                        String myUrl = myRow.get(TableColumns.URL.value());
-                        String myPage = myRow.get(TableColumns.PAGE.value());
-                        return myUrl + UNIQUE_SEPARATOR + myPage;
-                    } catch (Exception e) {
-                        LOGGER.error("Error while reading an element from crawl table. Skipping. ");
-                        return null;
-                    }
-                })
-                .mapToPair(myUrlPageString -> {
-                    if (myUrlPageString != null) {
-                        String[] myUrlPage = myUrlPageString.split(UNIQUE_SEPARATOR);
-                        if (myUrlPage.length != 2) {
-                            LOGGER.error("Invalid URL page pair: " + myUrlPageString);
-                            return null;
-                        }
+        return aContext.pairFromTable(CRAWL_TABLE, myRow -> {
+            try {
+                String myUrl = myRow.get(TableColumns.URL.value());
+                String myPage = myRow.get(TableColumns.PAGE.value());
 
-                        String myUrl = myUrlPage[0];
-                        String myPage = myUrlPage[1];
+                String[] myUrlParts = cleanupUrl(myUrl);
+                String myCleanedUrl = myUrlParts[0] + "://" + myUrlParts[1] + ":" + myUrlParts[2] + myUrlParts[3];
+                List<String> myNormalizedUrls = extractUrls(myPage).stream()
+                        .map(url -> normalizeURL(myCleanedUrl, url))
+                        .filter(Objects::nonNull)
+                        .toList();
 
-                        String[] myUrlParts = cleanupUrl(myUrl);
-                        String myCleanedUrl = myUrlParts[0] + "://" + myUrlParts[1] + ":" + myUrlParts[2] + myUrlParts[3];
-                        List<String> myNormalizedUrls = extractUrls(myPage).stream()
-                                .map(url -> normalizeURL(myCleanedUrl, url))
-                                .filter(Objects::nonNull)
-                                .toList();
+                Set<String> myUrlHashes = myNormalizedUrls.stream().map(Hasher::hash).collect(Collectors.toSet());
 
-                        Set<String> myUrlHashes = myNormalizedUrls.stream().map(Hasher::hash).collect(Collectors.toSet());
+                String myBaseUrlHash = Hasher.hash(myUrl);
+                String myPageRankInit =
+                        INIT_PAGERANK + COMMA + INIT_PAGERANK + COMMA + String.join(COMMA, myUrlHashes);
 
-                        String myBaseUrlHash = Hasher.hash(myUrl);
-                        String myPageRankInit =
-                                INIT_PAGERANK + COMMA + INIT_PAGERANK + COMMA + String.join(COMMA, myUrlHashes);
-                        return new FlamePair(myBaseUrlHash, myPageRankInit);
-                    }
-                    return null;
-                });
+                return new FlamePair(myBaseUrlHash, myPageRankInit);
+            } catch (Exception e) {
+                LOGGER.error("Error while reading an element from crawl table. Skipping. ");
+                return null;
+            }
+        });
     }
 
     private static FlamePairRDD pagerankIterate(FlamePairRDD aPageRankRDD) throws Exception {
-        FlamePairRDD myTransferTable = aPageRankRDD
+        FlamePairRDD myPageRankCalculations = aPageRankRDD
                 .flatMapToPair(myPair -> {
                     String myUrlHash = myPair._1();
                     String[] myPageRankParts = myPair._2().split(COMMA);
@@ -125,7 +107,9 @@ public class NewPageRank {
                                 myOtherUrlHash, String.valueOf(DAMPING_FACTOR * myPageRank / myUrlHashes.size())));
                     }
                     return myResults;
-                })
+                });
+
+        FlamePairRDD myTransferTable = myPageRankCalculations
                 .foldByKey("", (a, b) -> {
                     if (a.isEmpty()) {
                         return b;
@@ -134,7 +118,9 @@ public class NewPageRank {
                     return String.valueOf(myPageRank);
                 });
 
-        return aPageRankRDD.join(myTransferTable).flatMapToPair(myPair -> {
+        myPageRankCalculations.destroy();
+
+        FlamePairRDD myNextPageRankRDD = aPageRankRDD.join(myTransferTable).flatMapToPair(myPair -> {
             String myUrlHash = myPair._1();
             List<String> myParts = List.of(myPair._2().split(COMMA));
             double myPageRank = Double.parseDouble(myParts.getFirst());
@@ -144,19 +130,32 @@ public class NewPageRank {
             return List.of(new FlamePair(
                     myUrlHash, myNewPageRank + COMMA + myPageRank + COMMA + String.join(COMMA, myOutlinks)));
         });
+
+        aPageRankRDD.destroy();
+        myTransferTable.destroy();
+
+        return myNextPageRankRDD;
     }
 
     private static boolean hasConverged(FlamePairRDD aPageRankRDD)
             throws Exception {
-        String myMaxDiffString = aPageRankRDD
+
+        FlameRDD myPageRankAgg = aPageRankRDD
                 .flatMap(myPair -> {
                     String[] myParts = myPair._2().split(COMMA);
                     double myPageRank = Double.parseDouble(myParts[0]);
                     double myPreviousPageRank = Double.parseDouble(myParts[1]);
-                    return List.of(String.valueOf(Math.abs(myPageRank - myPreviousPageRank)));
-                })
-                .flatMap(myDiff -> Double.parseDouble(myDiff) < CONVERGENCE_THRESHOLD ? List.of("1,1") : List.of("0,1"))
-                .fold("0,0", (a, b) -> {
+                    double myPageRankDiff = Math.abs(myPageRank - myPreviousPageRank);
+                    if (myPageRankDiff < CONVERGENCE_THRESHOLD) {
+                        return List.of("1,1");
+                    } else {
+                        return List.of("0,1");
+                    }
+                });
+
+
+        String myMaxDiffString = myPageRankAgg.fold(
+                "0,0", (a, b) -> {
                     String[] myParts = a.split(COMMA);
                     String[] myOtherParts = b.split(COMMA);
                     int myCount = Integer.parseInt(myParts[0]) + Integer.parseInt(myOtherParts[0]);
@@ -164,6 +163,8 @@ public class NewPageRank {
 
                     return myCount + COMMA + myTotal;
                 });
+
+        myPageRankAgg.destroy();
 
         String[] myParts = myMaxDiffString.split(COMMA);
         int myCount = Integer.parseInt(myParts[0]);
@@ -182,5 +183,6 @@ public class NewPageRank {
                             .put(PAGERANK_TABLE, myUrlHash, TableColumns.RANK.value(), String.valueOf(myPageRank));
                     return List.of();
                 });
+        aPageRankRDD.destroy();
     }
 }
