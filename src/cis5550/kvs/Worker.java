@@ -23,6 +23,7 @@ public class Worker extends cis5550.generic.Worker {
     public static final String ID_FILE = "id";
     public static final String BATCH_UNIQUE_SEPARATOR = "&#!#&";
     public static final String BATCH_ROW_COL_VALUE_SEPARATOR = "!&&!##!&&!&&!";
+    public static final String BATCH_ROW_VALUE_SEPARATOR = "!&&!##!&&!&&!";
     public static final String NULL_RETURN = "NULL";
     public static final int ID_LENGTH = 5;
     public static final int PAGE_SIZE = 10;
@@ -98,6 +99,7 @@ public class Worker extends cis5550.generic.Worker {
         put("/data/:table", putRow());
         put("/data/:table/:row/:column", putCell());
         put("/append/:table/:row/:column", appendCell());
+        put("/batchAppend/data/:table/:column", batchAppendCell());
         get("/data/:table/:row/:column", getCell());
         put("/delete/:table", deleteTable());
         put("/rename/:table", renameTable());
@@ -363,6 +365,40 @@ public class Worker extends cis5550.generic.Worker {
             }
 
             int myVersion = theData.append(myTable, myRow, myColumn, myValue, myDelimiter);
+            res.header("Version", String.valueOf(myVersion));
+            setResponseStatus(res, OK);
+            return "OK";
+        };
+    }
+
+    private static Route batchAppendCell() {
+        return (req, res) -> {
+            forwardPutRequest(req);;
+            String myTable = req.params("table");
+            String myColumn = req.params("column");
+            String myDelimiter = ",";
+            byte[] myRowsAndValuesBytes = req.bodyAsBytes();
+
+            if (myTable == null || myColumn == null || myRowsAndValuesBytes == null) {
+                LOGGER.debug("Bad Request: " + myTable + " " + myColumn + " " + myRowsAndValuesBytes);
+                setResponseStatus(res, BAD_REQUEST);
+                return "Bad Request";
+            }
+
+            String myRowsAndValuesStr = new String(myRowsAndValuesBytes, StandardCharsets.UTF_8);
+            String[] myRowsAndValuesList = myRowsAndValuesStr.split(BATCH_UNIQUE_SEPARATOR);
+            // System.out.println(Arrays.toString(myRowsAndValuesList));
+            int myVersion = 0;
+            for (String myRowAndValue : myRowsAndValuesList) {
+                String myRow = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[0];
+                String myValue = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[1];
+                System.out.println(myRowAndValue);
+                System.out.println("");
+                if (myRow != null && !myRow.equals("") && myRow.length() > 0) {
+                    // System.out.println("Row:" + myRow);
+                    myVersion = theData.append(myTable, myRow, myColumn, myValue.getBytes(), myDelimiter);
+                }
+            }
             res.header("Version", String.valueOf(myVersion));
             setResponseStatus(res, OK);
             return "OK";
