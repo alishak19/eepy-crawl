@@ -31,84 +31,82 @@ public class Indexer {
 	private static final String SPACE = " ";
 	public static final String UNIQUE_SEPARATOR = "&#!#&";
 	public static void run(FlameContext context, String[] arr) throws Exception {
-		RowToPair lambda1 = (Row myRow) -> {
-			try {
-				if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
-					return new FlamePair(myRow.get(URL_REF), myRow.get(PAGE_REF));
-				} else {
-					return null;
-				}
-			} catch (Exception e) {
-				LOGGER.error("KVS error: loading crawl table");
-			}
-			return null;
-		};
-
-		FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
-
-//		StringToPair lambda2 = (String s) -> {
-//			String[] splitted = s.split(UNIQUE_SEPARATOR);
-//			FlamePair pair = new FlamePair(splitted[0], splitted[1]);
-//
-//			return pair;
-//		};
-//		FlamePairRDD myPairs = myStrs.mapToPair(lambda2);
-//		myStrs.destroy();
-
-		PairToPairIterable lambda3 = (FlamePair f) -> {
-			String removedTags = f._2().replaceAll("<[^>]*>", " ");
-			removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
-
-			String[] wordsList = removedTags.split("\\s+");
-
-			HashSet<String> words = new HashSet<>();
-			HashMap<String, String> wordPositions = new HashMap<>();
-			int index = 0;
-
-			for (String word : wordsList) {
-				if (word == null || word.equals(SPACE) || word.equals("")) {
-					continue;
-				}
-				index++;
-				words.add(word);
-				if (wordPositions.containsKey(word)) {
-					wordPositions.put(word, wordPositions.get(word) + SPACE + index);
-				} else {
-					wordPositions.put(word, index + "");
-				}
-			}
-
-			String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
-			System.out.println(url);
-			List<FlamePair> wordPairs = new ArrayList<>();
-
-			for (String w : words) {
-				w.replaceAll("\\s", "");
-				if (w.length() > 25) {
-					w = w.substring(0, 25);
-				}
-				FlamePair curr = new FlamePair(w, url + ":" + wordPositions.get(w));
-				wordPairs.add(curr);
-			}
-
-			return wordPairs;
-		};
-		FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
-		myPairs.destroy();
-
-		TwoStringsToString lambda4 = (String urlOne, String urlTwo) -> {
-			if (urlOne.equals("")) {
-				return urlTwo;
-			}
-			return urlOne + "," + urlTwo;
-		};
-		FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
-		inverted.destroy();
-
 		try {
-			invertedList.saveAsTable(INDEX_TABLE);
+			RowToPair lambda1 = (Row myRow) -> {
+				try {
+					if (myRow.get(URL_REF) != null && myRow.get(PAGE_REF) != null) {
+						return new FlamePair(myRow.get(URL_REF), myRow.get(PAGE_REF));
+					} else {
+						return null;
+					}
+				} catch (Exception e) {
+					LOGGER.error("KVS error: loading crawl table");
+				}
+				return null;
+			};
+
+			FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
+
+			PairToPairIterable lambda3 = (FlamePair f) -> {
+				String removedTags = f._2().replaceAll("<[^>]*>", " ");
+				removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
+
+				String[] wordsList = removedTags.split("\\s");
+
+				HashSet<String> words = new HashSet<>();
+				HashMap<String, String> wordPositions = new HashMap<>();
+				int index = 0;
+
+				for (String word : wordsList) {
+					if (word == null || word.equals(SPACE) || word.equals("")) {
+						continue;
+					}
+					index++;
+					words.add(word);
+					if (wordPositions.containsKey(word)) {
+						wordPositions.put(word, wordPositions.get(word) + SPACE + index);
+					} else {
+						wordPositions.put(word, index + "");
+					}
+				}
+
+				String url = URLDecoder.decode(f._1(), StandardCharsets.UTF_8);
+				System.out.println(url);
+				List<FlamePair> wordPairs = new ArrayList<>();
+
+				for (String w : words) {
+					w.replaceAll("\\s+", "");
+					if (w.length() > 25) {
+						w = w.substring(0, 25);
+					}
+					if (w.length() > 0) {
+						FlamePair curr = new FlamePair(w, url + ":" + wordPositions.get(w));
+						wordPairs.add(curr);
+					}
+
+				}
+
+				return wordPairs;
+			};
+			FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
+			myPairs.destroy();
+
+			TwoStringsToString lambda4 = (String urlOne, String urlTwo) -> {
+				if (urlOne.equals("")) {
+					return urlTwo;
+				}
+				return urlOne + "," + urlTwo;
+			};
+			FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
+			inverted.destroy();
+
+			try {
+				invertedList.saveAsTable(INDEX_TABLE);
+			} catch (Exception e) {
+				LOGGER.error("error saving table, check values");
+			}
 		} catch (Exception e) {
-			LOGGER.error("error saving table, check values");
+			LOGGER.error("somewhere");
 		}
 
 		// invertedList.destroy();
