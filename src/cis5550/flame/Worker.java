@@ -13,6 +13,8 @@ import cis5550.tools.RowColumnValueTuple;
 import cis5550.webserver.Request;
 
 class Worker extends cis5550.generic.Worker {
+
+    private static int BATCH_SIZE = 10;
     public static Logger LOGGER = Logger.getLogger(Worker.class);
 
     public static void main(String args[]) {
@@ -164,7 +166,7 @@ class Worker extends cis5550.generic.Worker {
                     myRowColValueList.add(myTup);
                     // myKVS.put(myParams.outputTable(), myRow.key(), COLUMN_NAME, myAccumulatedValue);
                 }
-                if (myRowColValueList.size() > 10) {
+                if (myRowColValueList.size() > BATCH_SIZE) {
                     myKVS.batchPut(myParams.outputTable(), myRowColValueList);
                     myRowColValueList.clear();
                 }
@@ -531,7 +533,7 @@ class Worker extends cis5550.generic.Worker {
                             myI++;
                         }
                     }
-                    if (myRowColValueList.size() > 10) {
+                    if (myRowColValueList.size() > BATCH_SIZE) {
                         myKVS.batchPut(myParams.outputTable(), myRowColValueList);
                         myRowColValueList.clear();
                     }
