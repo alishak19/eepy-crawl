@@ -80,7 +80,17 @@ public class Indexer {
 						w = w.substring(0, 25);
 					}
 					if (w.length() > 0) {
-						FlamePair curr = new FlamePair(w, url + ":" + wordPositions.get(w));
+						PorterStemmer p = new PorterStemmer();
+						for (char c : w.toCharArray()) {
+							p.add(c);
+						}
+						p.stem();
+						String stemmed = p.toString();
+						if (!stemmed.equals(w)) {
+							FlamePair currS = new FlamePair(stemmed, f._1() + ":" + wordPositions.get(w));
+							wordPairs.add(currS);
+						}
+						FlamePair curr = new FlamePair(w, f._1() + ":" + wordPositions.get(w));
 						wordPairs.add(curr);
 					}
 
