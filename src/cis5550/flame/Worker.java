@@ -14,8 +14,8 @@ import cis5550.webserver.Request;
 
 class Worker extends cis5550.generic.Worker {
 
-    private static int BATCH_SIZE = 10;
-    public static Logger LOGGER = Logger.getLogger(Worker.class);
+    private static final int BATCH_SIZE = 500;
+    public static final Logger LOGGER = Logger.getLogger(Worker.class);
 
     public static void main(String args[]) {
         if (args.length != 2) {

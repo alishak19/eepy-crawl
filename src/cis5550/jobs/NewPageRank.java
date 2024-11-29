@@ -120,7 +120,12 @@ public class NewPageRank {
 
         myPageRankCalculations.destroy();
 
-        FlamePairRDD myNextPageRankRDD = aPageRankRDD.join(myTransferTable).flatMapToPair(myPair -> {
+        FlamePairRDD myJoinedRDD = aPageRankRDD.join(myTransferTable);
+
+        aPageRankRDD.destroy();
+        myTransferTable.destroy();
+
+        FlamePairRDD myNextPageRankRDD = myJoinedRDD.flatMapToPair(myPair -> {
             String myUrlHash = myPair._1();
             List<String> myParts = List.of(myPair._2().split(COMMA));
             double myPageRank = Double.parseDouble(myParts.getFirst());
@@ -131,8 +136,7 @@ public class NewPageRank {
                     myUrlHash, myNewPageRank + COMMA + myPageRank + COMMA + String.join(COMMA, myOutlinks)));
         });
 
-        aPageRankRDD.destroy();
-        myTransferTable.destroy();
+        myJoinedRDD.destroy();
 
         return myNextPageRankRDD;
     }
@@ -152,7 +156,6 @@ public class NewPageRank {
                         return List.of("0,1");
                     }
                 });
-
 
         String myMaxDiffString = myPageRankAgg.fold(
                 "0,0", (a, b) -> {
