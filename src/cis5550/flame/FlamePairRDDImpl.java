@@ -117,4 +117,9 @@ public class FlamePairRDDImpl implements FlamePairRDD {
         }
         return new FlamePairRDDImpl(myOutputTable, theKVSClient, theFlameContext);
     }
+
+    @Override
+    public String fold(String zeroElement, FlamePairRDD.StringPairToString lambda, FlamePairRDD.TwoStringsToString lambda2) throws Exception {
+        return theFlameContext.invokePairRDDFold(theTableName, lambda, lambda2, zeroElement);
+    }
 }

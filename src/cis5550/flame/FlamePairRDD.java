@@ -9,6 +9,10 @@ public interface FlamePairRDD {
   	public String op(String a, String b);
   };
 
+  public interface StringPairToString extends Serializable {
+    public String op(String a, FlamePair b);
+  };
+
   public interface PairToPairIterable extends Serializable {
     Iterable<FlamePair> op(FlamePair a) throws Exception;
   };
@@ -76,4 +80,6 @@ public interface FlamePairRDD {
   // extra credit in HW7; if you do not implement it, please return 'null'.
 
   public FlamePairRDD cogroup(FlamePairRDD other) throws Exception;
+
+  public String fold(String zeroElement, FlamePairRDD.StringPairToString lambda, FlamePairRDD.TwoStringsToString lambda2) throws Exception;
 }

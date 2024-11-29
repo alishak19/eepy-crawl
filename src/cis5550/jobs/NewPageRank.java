@@ -144,30 +144,34 @@ public class NewPageRank {
     private static boolean hasConverged(FlamePairRDD aPageRankRDD)
             throws Exception {
 
-        FlameRDD myPageRankAgg = aPageRankRDD
-                .flatMap(myPair -> {
-                    String[] myParts = myPair._2().split(COMMA);
-                    double myPageRank = Double.parseDouble(myParts[0]);
-                    double myPreviousPageRank = Double.parseDouble(myParts[1]);
-                    double myPageRankDiff = Math.abs(myPageRank - myPreviousPageRank);
-                    if (myPageRankDiff < CONVERGENCE_THRESHOLD) {
-                        return List.of("1,1");
-                    } else {
-                        return List.of("0,1");
-                    }
-                });
+        FlamePairRDD.StringPairToString foldLambda = (a, b) -> {
+            String[] myCounts = a.split(COMMA);
+            int myConvergedCount = Integer.parseInt(myCounts[0]);
+            int myTotalCount = Integer.parseInt(myCounts[1]);
 
-        String myMaxDiffString = myPageRankAgg.fold(
-                "0,0", (a, b) -> {
-                    String[] myParts = a.split(COMMA);
-                    String[] myOtherParts = b.split(COMMA);
-                    int myCount = Integer.parseInt(myParts[0]) + Integer.parseInt(myOtherParts[0]);
-                    int myTotal = Integer.parseInt(myParts[1]) + Integer.parseInt(myOtherParts[1]);
+            String[] myParts = b._2().split(COMMA);
+            double myPageRank = Double.parseDouble(myParts[0]);
+            double myPreviousPageRank = Double.parseDouble(myParts[1]);
+            double myPageRankDiff = Math.abs(myPageRank - myPreviousPageRank);
 
-                    return myCount + COMMA + myTotal;
-                });
+            myTotalCount += 1;
+            if (myPageRankDiff < CONVERGENCE_THRESHOLD) {
+                myConvergedCount += 1;
+            }
 
-        myPageRankAgg.destroy();
+            return myConvergedCount + COMMA + myTotalCount;
+        };
+
+        FlamePairRDD.TwoStringsToString aggLambda = (a, b) -> {
+            String[] myParts = a.split(COMMA);
+            String[] myOtherParts = b.split(COMMA);
+            int myCount = Integer.parseInt(myParts[0]) + Integer.parseInt(myOtherParts[0]);
+            int myTotal = Integer.parseInt(myParts[1]) + Integer.parseInt(myOtherParts[1]);
+
+            return myCount + COMMA + myTotal;
+        };
+
+        String myMaxDiffString = aPageRankRDD.fold("0,0", foldLambda, aggLambda);
 
         String[] myParts = myMaxDiffString.split(COMMA);
         int myCount = Integer.parseInt(myParts[0]);

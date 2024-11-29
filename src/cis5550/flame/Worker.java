@@ -625,6 +625,40 @@ class Worker extends cis5550.generic.Worker {
             return myAccumulatedValue;
         });
 
+        post(FlameOperation.PAIR_FOLD.getPath(), (request, response) -> {
+            OperationParameters myParams = getAndValidateFoldParams(request, myJAR);
+
+            if (myParams == null) {
+                setResponseStatus(response, BAD_REQUEST);
+                return "Bad request";
+            }
+
+            KVSClient myKVS = new KVSClient(myParams.kvsCoordinator());
+            Iterator<Row> myRows;
+
+            try {
+                myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
+            } catch (IOException e) {
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
+                return "Internal error";
+            }
+
+            FlamePairRDD.StringPairToString myLambda = (FlamePairRDD.StringPairToString) myParams.lambda();
+            String myAccumulatedValue = myParams.zeroElement();
+
+            while (myRows.hasNext()) {
+                Row myRow = myRows.next();
+                for (String myColumn : myRow.columns()) {
+                    FlamePair myPair = new FlamePair(myRow.key(), myRow.get(myColumn));
+                    myAccumulatedValue = myLambda.op(myAccumulatedValue, myPair);
+                }
+            }
+
+            setResponseStatus(response, OK);
+            return myAccumulatedValue;
+        });
+
         post(FlameOperation.FILTER.getPath(), (request, response) -> {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
