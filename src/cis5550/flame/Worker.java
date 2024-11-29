@@ -171,7 +171,9 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            // myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            if (!myRowColValueList.isEmpty()) {
+                myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            }
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -403,8 +405,9 @@ class Worker extends cis5550.generic.Worker {
 
             }
 
-            // myKVS.batchPut(myParams.outputTable(), myRowColValueList);
-
+            if (!myRowColValueList.isEmpty()) {
+                myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            }
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -491,10 +494,7 @@ class Worker extends cis5550.generic.Worker {
                     }
                 }
             }
-            if (myRowColValueList.size() > 0) {
-                myKVS.batchPut(myParams.outputTable(), myRowColValueList);
-            }
-
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -544,7 +544,9 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            // myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            if (!myRowColValueList.isEmpty()) {
+                myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+            }
             setResponseStatus(response, OK);
             return "OK";
         });
@@ -587,7 +589,6 @@ class Worker extends cis5550.generic.Worker {
                 }
             }
 
-            // myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });
