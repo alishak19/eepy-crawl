@@ -14,7 +14,7 @@ import cis5550.webserver.Request;
 
 class Worker extends cis5550.generic.Worker {
 
-    private static final int BATCH_SIZE = 500;
+    private static final int BATCH_SIZE = 999999;
     public static final Logger LOGGER = Logger.getLogger(Worker.class);
 
     public static void main(String args[]) {
@@ -457,12 +457,10 @@ class Worker extends cis5550.generic.Worker {
         post(FlameOperation.PAIR_FLATMAP.getPath(), (request, response) -> {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
-
             if (myParams == null) {
                 setResponseStatus(response, BAD_REQUEST);
                 return "Bad request";
             }
-
 
             KVSClient myKVS = new KVSClient(myParams.kvsCoordinator());
             Iterator<Row> myRows;
@@ -585,10 +583,10 @@ class Worker extends cis5550.generic.Worker {
                             myRowColValueList.add(myTup);
                         }
                     }
-                    myKVS.batchPut(myParams.outputTable(), myRowColValueList);
                 }
             }
 
+            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
             setResponseStatus(response, OK);
             return "OK";
         });

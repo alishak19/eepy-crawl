@@ -43,7 +43,8 @@ public class NewPageRank {
         }
 
         savePagerankTable(aContext, myPageRankRDD);
-        aContext.output("PageRank completed");
+        LOGGER.debug("Pagerank completed");
+        aContext.output("RAHHH");
     }
 
     private static List<String> extractUrls(String aContent) {
@@ -66,6 +67,7 @@ public class NewPageRank {
     }
 
     private static FlamePairRDD prepareInitPagerankTable(FlameContext aContext) throws Exception {
+        LOGGER.debug("Preparing Pagerank Table");
         return aContext.pairFromTable(CRAWL_TABLE, myRow -> {
             try {
                 String myUrl = myRow.get(TableColumns.URL.value());
@@ -144,6 +146,7 @@ public class NewPageRank {
     private static boolean hasConverged(FlamePairRDD aPageRankRDD)
             throws Exception {
 
+        LOGGER.debug("Checking convergence");
         FlamePairRDD.StringPairToString foldLambda = (a, b) -> {
             String[] myCounts = a.split(COMMA);
             int myConvergedCount = Integer.parseInt(myCounts[0]);
