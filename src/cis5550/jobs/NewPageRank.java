@@ -21,8 +21,8 @@ public class NewPageRank {
     private static final String CRAWL_TABLE = "pt-crawl";
     private static final String PAGERANK_TABLE = "pt-pageranks";
 
-    private static final int CONVERGENCE_PERCENTAGE = 100;
-    private static final double CONVERGENCE_THRESHOLD = 0.01;
+    private static final int CONVERGENCE_PERCENTAGE = 95;
+    private static final double CONVERGENCE_THRESHOLD = 0.05;
 
     private static final double INIT_PAGERANK = 1.0;
     private static final String COMMA = ",";
@@ -180,7 +180,11 @@ public class NewPageRank {
         int myCount = Integer.parseInt(myParts[0]);
         int myTotal = Integer.parseInt(myParts[1]);
 
-        return (myCount / myTotal * 100 >= CONVERGENCE_PERCENTAGE);
+        double myConvergedPercentage = ((double) myCount / myTotal) * 100;
+
+        LOGGER.info("Converged URLs: " + myCount + "/" + myTotal + " (" + myConvergedPercentage + "%)");
+
+        return myConvergedPercentage >= CONVERGENCE_PERCENTAGE;
     }
 
     private static void savePagerankTable(FlameContext aContext, FlamePairRDD aPageRankRDD) throws Exception {
