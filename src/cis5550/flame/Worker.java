@@ -584,8 +584,14 @@ class Worker extends cis5550.generic.Worker {
                                     myRow.get(myColumn) + "," + myOtherRow.get(myOtherColumn));
                             myRowColValueList.add(myTup);
                         }
+                        if (myRowColValueList.size() > BATCH_SIZE) {
+                            myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+                            myRowColValueList.clear();
+                        }
                     }
-                    myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+                    if (!myRowColValueList.isEmpty()) {
+                        myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+                    }
                 }
             }
 
