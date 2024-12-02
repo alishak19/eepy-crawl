@@ -13,7 +13,11 @@
             function handleSearch(event) {
                 event.preventDefault();
                 const query = document.querySelector('input[name="q"]').value;
-                alert(`You searched for: ${query}`);
+                fetch(`http://localhost:80/search?q=${query}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(`Search results: ${JSON.stringify(data)}`);
+                    });
             }
         </script>
     </body>
