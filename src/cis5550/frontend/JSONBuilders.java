@@ -4,6 +4,9 @@ import java.util.List;
 
 public class JSONBuilders {
     public static String buildSearchResults(List<SearchResult> aSearchResults) {
+        if (aSearchResults == null || aSearchResults.isEmpty()) {
+            return "[]";
+        }
         StringBuilder myBuilder = new StringBuilder();
         myBuilder.append("[");
         for (SearchResult myResult : aSearchResults) {

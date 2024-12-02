@@ -13,7 +13,7 @@ import java.util.regex.*;
 import static cis5550.utils.Stopwords.isStopWord;
 
 public class FrontendKVSClient {
-    private static final String KVS_COORDINATOR = "http://localhost:8080";
+    private static final String KVS_COORDINATOR = "localhost:8080";
     private static final KVSClient KVS_CLIENT = new KVSClient(KVS_COORDINATOR);
 
     private static final String CRAWL_TABLE = "pt-crawl";

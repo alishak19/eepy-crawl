@@ -56,6 +56,11 @@ public class EepyCrawlSearch {
         List<SearchResult> myResults = null;
 
         Map<String, Integer> myTFIDFScores = TFIDF.getTFIDFScores(aQuery);
+
+        if (myTFIDFScores == null) {
+            return List.of();
+        }
+
         try {
             Map<String, Double> myPagerankScores = FrontendKVSClient.getPagerankScores(myTFIDFScores.keySet());
         } catch (IOException e) {
