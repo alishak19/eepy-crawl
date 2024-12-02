@@ -597,7 +597,7 @@ class Worker extends cis5550.generic.Worker {
             }
 
             if (!myRowColValueList.isEmpty()) {
-                myKVS.batchPut(myParams.outputTable(), myRowColValueList);
+                myKVS.batchAppendToRow(myParams.outputTable(), myParams.zeroElement(), myRowColValueList);
             }
             setResponseStatus(response, OK);
             return "OK";
