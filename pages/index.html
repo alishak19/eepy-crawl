@@ -1,0 +1,20 @@
+<html>
+    <head>
+        <title>EepyCrawl Search!</title>
+    </head>
+    <body>
+        <h1>EepyCrawl Search!</h1>
+        <p>Welcome to our search page. Prepare to see our insanely good search results.</p>
+        <form onsubmit="handleSearch(event)">
+            <input type="text" name="q" />
+            <input type="submit" value="Search" />
+        </form>
+        <script>
+            function handleSearch(event) {
+                event.preventDefault();
+                const query = document.querySelector('input[name="q"]').value;
+                alert(`You searched for: ${query}`);
+            }
+        </script>
+    </body>
+</html>
