@@ -28,6 +28,10 @@ public class FrontendKVSClient {
     public static Map<String, Integer> getUrlCountData(String aQuery) throws IOException {
         Row myRow = KVS_CLIENT.getRow(INDEX_TABLE, aQuery);
 
+        if (myRow == null) {
+            return new HashMap<>();
+        }
+
         String myIndexEntry = myRow.get(TableColumns.VALUE.value());
         String[] myIndexItems = myIndexEntry.split(COMMA);
 
@@ -54,7 +58,14 @@ public class FrontendKVSClient {
 
     private static Integer getNumTermsInUrl(String aUrl) throws IOException {
         Row myRow = KVS_CLIENT.getRow(CRAWL_TABLE, aUrl);
+        if (myRow == null) {
+            return 0;
+        }
+
         String myPage = myRow.get(TableColumns.PAGE.value());
+        if (myPage == null) {
+            return 0;
+        }
 
         Set<String> myTerms = new HashSet<>();
 
@@ -83,6 +94,9 @@ public class FrontendKVSClient {
         Map<String, Double> myPagerankScores = new HashMap<>();
         for (String myUrl : aUrls) {
             Row myRow = KVS_CLIENT.getRow(PAGERANK_TABLE, myUrl);
+            if (myRow == null) {
+                continue;
+            }
             myPagerankScores.put(myUrl, Double.parseDouble(myRow.get(TableColumns.RANK.value())));
         }
         return myPagerankScores;
