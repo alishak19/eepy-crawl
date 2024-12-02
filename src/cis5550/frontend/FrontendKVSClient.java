@@ -43,9 +43,9 @@ public class FrontendKVSClient {
         return myUrlCountData;
     }
 
-    public static Map<String, Integer> getNumTermsPerUrl(List<String> aUrlList) throws IOException {
+    public static Map<String, Integer> getNumTermsPerUrl(Set<String> aUrlSet) throws IOException {
         Map<String, Integer> numTermsPerUrl = new HashMap<>();
-        for (String myUrl : aUrlList) {
+        for (String myUrl : aUrlSet) {
             int myNumTerms = getNumTermsInUrl(myUrl);
             numTermsPerUrl.put(myUrl, myNumTerms);
         }

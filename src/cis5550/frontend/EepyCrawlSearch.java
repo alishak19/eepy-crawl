@@ -55,7 +55,7 @@ public class EepyCrawlSearch {
 
         List<SearchResult> myResults = null;
 
-        Map<String, Integer> myTFIDFScores = TFIDF.getTFIDFScores(aQuery);
+        Map<String, Double> myTFIDFScores = TFIDF.getTFIDFScores(aQuery);
 
         if (myTFIDFScores == null) {
             return List.of();
