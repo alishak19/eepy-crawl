@@ -87,6 +87,7 @@ public class FileIOUtils {
             long myLockAfter = System.nanoTime();
             LOGGER.info("Time to obtain lock: " + (myLockAfter - myLockBefore) + " ns");
 
+            myChannel.position(myChannel.size());
             long myWriteBefore = System.nanoTime();
             fullyWrite(myChannel, ByteBuffer.wrap(aDelimiter.getBytes()));
             fullyWrite(myChannel, ByteBuffer.wrap(aValue));
