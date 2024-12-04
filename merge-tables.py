@@ -38,6 +38,14 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
         print("Failed to merge: table with the path " + merged_table_path + " already exists!")
         return
     
+    # if table1 or table2 doesn't exist, return error
+    if not os.path.exists(table1_path):
+        print("Failed with error: table 1 does not exist!")
+        return
+    if not os.path.exists(table2_path):
+        print("Failed with error: table 2 does not exist!")
+        return
+    
     os.makedirs(merged_table_path)
 
     # Get list of worker directories in each table
@@ -227,11 +235,57 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
             shutil.copy(file_path_in_2, target_file)
             print("Copied file " + f + " from " + os.path.basename(table2_path) + " to the merged table because it has the most recent timestamp")
 
+def parsePageRankFileContents(file_contents):
+    # EX: acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg rank 19 0.15099369888172004
+    pageranks = {}
+    for line in file_contents:
+        line = line.strip().split()
+        pageranks[line[0]] = float(line[3])
+    
+    return pageranks
+
 def identical_file_resolver_pagerank(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f):
-    # TODO: Combine the pageranks
-    # Combine the scores
-    # collect a set of all the urls from both lists and combine them
-    return "TODO: unimplemented"
+    # EX: acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg rank 19 0.15099369888172004
+
+    # TODO:
+    # Parse each file
+    # Combine their ranks: SUM them together
+    # Write new rank to file
+
+    # Get the file contents of file_path_in_1
+    with open(file_path_in_1, "r") as f:
+        file1_contents = f.readlines()
+        
+    # Get the file contents of file_path_in_2
+    with open(file_path_in_2, "r") as f:
+        file2_contents = f.readlines()
+
+    # Parse the file contents
+    pageranks = parsePageRankFileContents(file1_contents)
+    pageranks2 = parsePageRankFileContents(file2_contents)
+
+    url1 = pageranks[0]
+    url2 = pageranks2[0]
+    rank = "rank"
+    length1 = pageranks[2]
+    length2 = pageranks2[2]
+    new_rank1 = pageranks[3]
+    new_rank2 = pageranks2[3]
+
+    # combine the two newranks by parsing string as double and adding them together
+    new_rank = float(new_rank1) + float(new_rank2)
+
+    # set new_length to be the length of the new_rank as a string
+    new_length = str(len(str(new_rank)))
+
+    if url1 != url2:
+        print("Failed to merge file because the URLs in the file don't match despite having the same KEY")
+        return
+    
+    # Write the new rank to the file
+    with open(os.path.join(target_worker_folder, table_name, d, f), "w") as f:
+        f.write(f"{url1} {rank} {new_length} {new_rank}")
+        print(f"Combined pageranks for {url1} and wrote to the merged table")
 
 if __name__ == "__main__":
     import argparse
