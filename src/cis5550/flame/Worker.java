@@ -583,7 +583,7 @@ class Worker extends cis5550.generic.Worker {
                     if (myResults != null) {
                         for (FlamePair myResult : myResults) {
                             RowColumnValueTuple myTup = new RowColumnValueTuple(myResult._1(),
-                                    createUniqueRowKey(myRow.key(), myI),
+                                    myParams.zeroElement(),
                                     myResult._2());
                             myRowColValueList.add(myTup);
                             myI++;
