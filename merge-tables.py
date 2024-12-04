@@ -228,10 +228,11 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
 
 def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f):
 
-    file1_contents = parseFileContents(file_path_in_1)
-    file2_contents = parseFileContents(file_path_in_2)
-
-    print("Here are the file contents of the conflicting files:")
+    # print the file contents
+    with open(file_path_in_1, "r") as f:
+        file1_contents = f.readlines()
+    with open(file_path_in_2, "r") as f:
+        file2_contents = f.readlines()
     print("File 1 contents: ", file1_contents)
     print("File 2 contents: ", file2_contents)
 
