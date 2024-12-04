@@ -23,7 +23,6 @@ public class FrontendKVSClient {
 
     private static final String COLON = ":";
     private static final String COMMA = ",";
-    private static final String SPACE = " ";
 
     public static Map<String, Integer> getUrlCountData(String aQuery) throws IOException {
         Row myRow = KVS_CLIENT.getRow(INDEX_TABLE, aQuery);
@@ -39,8 +38,7 @@ public class FrontendKVSClient {
 
         for (String myIndexItem : myIndexItems) {
             String[] myIndexEntryArr = myIndexItem.split(COLON);
-            String myPositions = myIndexEntryArr[myIndexEntryArr.length - 1];
-            Integer myCount = myPositions.split(SPACE).length;
+            Integer myCount = Integer.parseInt(myIndexEntryArr[myIndexEntryArr.length - 1]);
             myUrlCountData.put(myIndexItem.substring(0, myIndexItem.lastIndexOf(COLON)), myCount);
         }
 
