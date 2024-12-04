@@ -171,6 +171,10 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
                     # pt-pagerank: combine the pageranks
                     print(f"Merge Conflict: {file_path_in_1} and {file_path_in_2} have the same KEY but different VALUES")
 
+                    # if the directory does not exist in the merged table, create it
+                    if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+                        os.makedirs(os.path.join(target_worker_folder, table_name, d))
+
                     identicalKeyConflictResolver(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f)
 
             print("\n DIFFERING FILE NAME processing --------- \n")
