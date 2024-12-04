@@ -227,6 +227,15 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
     print(f"Tables merged successfully into {args.merged_table_path}")
 
 def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f):
+
+    file1_contents = parseFileContents(file_path_in_1)
+    file2_contents = parseFileContents(file_path_in_2)
+
+    print("Here are the file contents of the conflicting files:")
+    print("File 1 contents: ", file1_contents)
+    print("File 2 contents: ", file2_contents)
+
+
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
         target_file = os.path.join(target_worker_folder, table_name, d, f)
@@ -239,7 +248,7 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
             shutil.copy(file_path_in_2, target_file)
             print("Copied file " + f + " from " + os.path.basename(table2_path) + " to the merged table because it has the most recent timestamp")
 
-def parsePageRankFileContents(file_contents):
+def parseFileContents(file_contents):
     # EX: acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg rank 19 0.15099369888172004
     pageranks = {}
     for line in file_contents:
@@ -265,8 +274,8 @@ def identical_file_resolver_pagerank(table1_path, table2_path, file_path_in_1, f
         file2_contents = f.readlines()
 
     # Parse the file contents
-    pageranks = parsePageRankFileContents(file1_contents)
-    pageranks2 = parsePageRankFileContents(file2_contents)
+    pageranks = parseFileContents(file1_contents)
+    pageranks2 = parseFileContents(file2_contents)
 
     url1 = pageranks[0]
     url2 = pageranks2[0]
