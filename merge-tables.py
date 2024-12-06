@@ -348,19 +348,16 @@ def get_table_size(table_path):
     """
     table_size = 0
     for workers in os.listdir(table_path):
-        if os.path.isdir(os.path.join(table_path, workers)):
-            worker_path = os.path.join(table_path, workers)
-            if os.path.isdir(worker_path):
-                for pt_tables in os.listdir(worker_path):
-                    table_path = os.path.join(worker_path, pt_tables)
-                    if os.path.isdir(table_path):
-                        for sections in os.listdir(table_path):
-                            section_path = os.path.join(table_path, sections)
-                            files = os.listdir(section_path)
-                            print("SECTION file list:")
-                            for file in files:
-                                print(file)
-                            table_size += len(files)
+        worker_path = os.path.join(table_path, workers)
+        if os.path.isdir(worker_path):
+            for pt_tables in os.listdir(worker_path):
+                table_path = os.path.join(worker_path, pt_tables)
+                if os.path.isdir(table_path):
+                    for sections in os.listdir(table_path):
+                        section_path = os.path.join(table_path, sections)
+                        files = os.listdir(section_path)
+                        print("Number of files in ", section_path, " : ", len(files))
+                        table_size += len(files)
     return table_size
 
 if __name__ == "__main__":
