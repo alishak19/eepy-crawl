@@ -5,6 +5,8 @@ import threading
 
 import hashlib
 
+num_conflicting_pages_under_70_similarity = 0
+
 def compute_checksum(file_path, algorithm="sha256"):
     """
     Compute the checksum of a file.
@@ -267,6 +269,7 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
     if similarity_score < 0.7:
         print("Warning: Similarity score is < 0.7")
         print("Similarity score was: ", similarity_score)
+        num_conflicting_pages_under_70_similarity += 1
 
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
@@ -362,6 +365,8 @@ if __name__ == "__main__":
     parser.add_argument("table_name", help="Name of the table to merge (e.g., 'pt-crawl').")
 
     args = parser.parse_args()
+
+    num_conflicting_pages_under_70_similarity = 0
 
     if args.table_name == "pt-crawl":
         merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_crawl)
