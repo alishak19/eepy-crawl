@@ -344,7 +344,7 @@ def get_table_size(table_path):
     :param table_path: Path to the table folder.
         EX: /path/to/table
 
-    :return: Size of the table in bytes
+    :return: number of rows in the table
     """
     table_size = 0
     for workers in os.listdir(table_path):
@@ -356,6 +356,7 @@ def get_table_size(table_path):
                     if os.path.isdir(table_path):
                         for sections in os.listdir(table_path):
                             section_path = os.path.join(table_path, sections)
+                            print("SECTION file list:" + os.listdir(section_path))
                             table_size += len(os.listdir(section_path))
     return table_size
 
