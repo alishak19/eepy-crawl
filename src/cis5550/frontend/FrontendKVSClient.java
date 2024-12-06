@@ -12,12 +12,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.*;
 
 import static cis5550.jobs.datamodels.TableName.*;
+import static cis5550.kvs.Worker.NULL_RETURN;
 import static cis5550.utils.Stopwords.isStopWord;
 
 public class FrontendKVSClient {
     private static final Logger LOGGER = Logger.getLogger(FrontendKVSClient.class);
 
-    private static final String KVS_COORDINATOR = "localhost:8080";
+    private static final String KVS_COORDINATOR = "localhost:8000";
     private static final KVSClient KVS_CLIENT = new KVSClient(KVS_COORDINATOR);
 
     private static final String COLON = ":";
@@ -38,8 +39,13 @@ public class FrontendKVSClient {
 
         for (String myIndexItem : myIndexItems) {
             String[] myIndexEntryArr = myIndexItem.split(COLON);
-            Integer myCount = Integer.parseInt(myIndexEntryArr[myIndexEntryArr.length - 1]);
-            myUrlCountData.put(myIndexItem.substring(0, myIndexItem.lastIndexOf(COLON)), myCount);
+
+            try {
+                Integer myCount = Integer.parseInt(myIndexEntryArr[myIndexEntryArr.length - 1]);
+                myUrlCountData.put(myIndexItem.substring(0, myIndexItem.lastIndexOf(COLON)), myCount);
+            } catch (NumberFormatException e) {
+                LOGGER.error("Error parsing count from index entry: " + myIndexItem);
+            }
         }
         LOGGER.info("URL count data for query: " + aQuery + " is: " + myUrlCountData);
 
@@ -103,7 +109,7 @@ public class FrontendKVSClient {
         for (int i = 0; i < myUrlList.size(); i++) {
             String myUrl = myUrlList.get(i);
             String myPagerank = myPageranks.get(i);
-            if (myPagerank != null) {
+            if (myPagerank != null && !myPagerank.equals(NULL_RETURN)) {
                 myPagerankScores.put(myUrl, Double.parseDouble(myPagerank));
             }
         }
