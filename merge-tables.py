@@ -262,11 +262,11 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
 
     # print how similar the files are to each other
     similarity_score = difflib.SequenceMatcher(None, file1_contents, file2_contents).ratio()
-    print("Similarity: ", similarity_score)
+    # print("Similarity: ", similarity_score)
 
-    if similarity_score < 0.6:
-        print("SIMILARITY SCORE IS LESS THAN 0.6?")
-        return
+    if similarity_score < 0.7:
+        print("Warning: Similarity score is < 0.7")
+        print("Similarity score was: ", similarity_score)
 
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
