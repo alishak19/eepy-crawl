@@ -33,10 +33,14 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
         EX: pt-crawl
     """
 
-    # If merged_table_path already exists, throw an error
+    # If merged_table_path already exists, ask the user if they really want to override it
     if os.path.exists(merged_table_path):
-        print("Failed to merge: table with the path " + merged_table_path + " already exists!")
-        return
+        response = input(f"The merged table path {merged_table_path} already exists. Do you want to override it? (yes/no): ")
+        if response.lower() != "yes":
+            print("Merge operation aborted.")
+            return
+        else :
+            shutil.rmtree(merged_table_path)
     
     # if table1 or table2 doesn't exist, return error
     if not os.path.exists(table1_path):
@@ -239,7 +243,8 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
 
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
-        target_file = os.path.join(target_worker_folder, table_name, d, f)
+        target_file_path = target_worker_folder + "/" + table_name + "/" + d + "/" + f
+        target_file = os.path.join(target_file_path)
         if not os.path.exists(target_file):
             shutil.copy(file_path_in_1, target_file)
             print("Copied file " + f + " from " + os.path.basename(table1_path) + " to the merged table because it has the most recent timestamp")
