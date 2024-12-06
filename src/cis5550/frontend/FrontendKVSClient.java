@@ -90,12 +90,17 @@ public class FrontendKVSClient {
 
     public static Map<String, Double> getPagerankScores(Collection<String> aUrls) throws IOException {
         Map<String, Double> myPagerankScores = new HashMap<>();
-        for (String myUrl : aUrls) {
-            Row myRow = KVS_CLIENT.getRow(PAGERANK_TABLE, myUrl);
-            if (myRow == null) {
-                continue;
+
+        List<String> myUrlList = new ArrayList<>(aUrls);
+
+        List<String> myPageranks = KVS_CLIENT.batchGetColValue(PAGERANK_TABLE, TableColumns.RANK.value(), myUrlList);
+
+        for (int i = 0; i < myUrlList.size(); i++) {
+            String myUrl = myUrlList.get(i);
+            String myPagerank = myPageranks.get(i);
+            if (myPagerank != null) {
+                myPagerankScores.put(myUrl, Double.parseDouble(myPagerank));
             }
-            myPagerankScores.put(myUrl, Double.parseDouble(myRow.get(TableColumns.RANK.value())));
         }
         return myPagerankScores;
     }
