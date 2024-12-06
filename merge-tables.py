@@ -187,6 +187,11 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
                 file_path_in_1 = full_path_in_1 + "/" + f
                 target_file = os.path.join(target_worker_folder, table_name, d, f)
                 if not os.path.exists(target_file):
+                    
+                    # make directory if it doesn't exist
+                    if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+                        os.makedirs(os.path.join(target_worker_folder, table_name, d))
+
                     shutil.copy(file_path_in_1, target_file)
                     print("Copied differing file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
                 
@@ -194,6 +199,11 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
                 file_path_in_2 = full_path_in_2 + "/" + f
                 target_file = os.path.join(target_worker_folder, table_name, d, f)
                 if not os.path.exists(target_file):
+
+#                    make directory if it doesn't exist
+                    if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+                        os.makedirs(os.path.join(target_worker_folder, table_name, d))
+
                     shutil.copy(file_path_in_2, target_file)
                     print("Copied differing file " + f + " from " + os.path.basename(table2_path) + " to the merged table")
 
