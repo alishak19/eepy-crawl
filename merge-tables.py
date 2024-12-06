@@ -356,6 +356,7 @@ def get_table_size(table_path):
                     for sections in os.listdir(table_path):
                         section_path = os.path.join(table_path, sections)
                         files = os.listdir(section_path)
+                        print(files)
                         print("Number of files in ", section_path, " : ", len(files))
                         table_size += len(files)
     return table_size
