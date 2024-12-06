@@ -1,3 +1,4 @@
+import difflib
 import os
 import shutil
 
@@ -250,6 +251,9 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
     # print("File 1 contents: ", file1_contents)
     # print("File 2 contents: ", file2_contents)
 
+    # print how similar the files are to each other
+    print("Similarity: ", difflib.SequenceMatcher(None, file1_contents, file2_contents).ratio())
+    
     print(table1_path)
     print(table2_path)    
     print(file_path_in_1)
