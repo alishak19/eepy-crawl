@@ -60,7 +60,14 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
     worker_folder_dir_2 = [os.path.join(table2_path, d) for d in os.listdir(table2_path) if os.path.isdir(os.path.join(table2_path, d))]
 
     # Make sure the worker directory names match
-    if set([os.path.basename(f) for f in worker_folder_dir_1]) != set([os.path.basename(f) for f in worker_folder_dir_2]):
+    worker_dirs1 = set([os.path.basename(f) for f in worker_folder_dir_1])
+    worker_dirs2 = set([os.path.basename(f) for f in worker_folder_dir_2])
+    # remove __MACOSX if it exists
+    if "__MACOSX" in worker_dirs1:
+        worker_dirs1.remove("__MACOSX")
+    if "__MACOSX" in worker_dirs2:
+        worker_dirs2.remove("__MACOSX")
+    if worker_dirs1 != worker_dirs2:
         print("Failed to merge: worker folders do not match")
         print("There are worker folders in table 1 that are not in table 2: ", set([os.path.basename(f) for f in worker_folder_dir_1]) - set([os.path.basename(f) for f in worker_folder_dir_2]))
         print("There are worker folders in table 2 that are not in table 1: ", set([os.path.basename(f) for f in worker_folder_dir_2]) - set([os.path.basename(f) for f in worker_folder_dir_1]))
