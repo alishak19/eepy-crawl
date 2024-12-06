@@ -356,8 +356,11 @@ def get_table_size(table_path):
                     if os.path.isdir(table_path):
                         for sections in os.listdir(table_path):
                             section_path = os.path.join(table_path, sections)
-                            print("SECTION file list:" + os.listdir(section_path))
-                            table_size += len(os.listdir(section_path))
+                            files = os.listdir(section_path)
+                            print("SECTION file list:")
+                            for file in files:
+                                print(file)
+                            table_size += len()
     return table_size
 
 if __name__ == "__main__":
@@ -372,17 +375,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.table_name == "pt-crawl":
-        merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_crawl)
-    elif args.table_name == "pt-pagerank":
-        merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_pagerank)
-        # print("Failed to merge: pt-pagerank not implemented")
-    else:
-        print("Failed to merge: invalid table name")
+    # if args.table_name == "pt-crawl":
+    #     merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_crawl)
+    # elif args.table_name == "pt-pagerank":
+    #     merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_pagerank)
+    #     # print("Failed to merge: pt-pagerank not implemented")
+    # else:
+    #     print("Failed to merge: invalid table name")
 
     # find the size of the input table
     print("Size of table 1: ", get_table_size(args.table1_path))
     print("Size of table 2: ", get_table_size(args.table2_path))
 
     # find the size of the output table
-    print("Size of merged table: ", get_table_size(args.merged_table_path))
+    # print("Size of merged table: ", get_table_size(args.merged_table_path))
