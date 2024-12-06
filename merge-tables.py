@@ -347,10 +347,15 @@ def get_table_size(table_path):
     :return: Size of the table in bytes
     """
     table_size = 0
-    for root, dirs, files in os.walk(table_path):
-        for file in files:
-            file_path = os.path.join(root, file)
-            table_size += os.path.getsize(file_path)
+    for workers in os.listdir(table_path):
+        worker_path = os.path.join(table_path, workers)
+        for tables in os.listdir(worker_path):
+            table_path = os.path.join(worker_path, tables)
+            for sections in os.listdir(table_path):
+                section_path = os.path.join(table_path, sections)
+                for files in os.listdir(section_path):
+                    file_path = os.path.join(section_path, files)
+                    table_size += 1
     return table_size
 
 if __name__ == "__main__":
