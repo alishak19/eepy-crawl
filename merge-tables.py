@@ -344,21 +344,9 @@ def get_table_size(table_path):
     :param table_path: Path to the table folder.
         EX: /path/to/table
 
-    :return: number of rows in the table
+    :return: number of files in the table
     """
-    table_size = 0
-    for workers in os.listdir(table_path):
-        worker_path = os.path.join(table_path, workers)
-        if os.path.isdir(worker_path):
-            for pt_tables in os.listdir(worker_path):
-                pt_table_path = os.path.join(worker_path, pt_tables)
-                if os.path.isdir(pt_table_path):
-                    for sections in os.listdir(pt_table_path):
-                        section_path = os.path.join(pt_table_path, sections)
-                        files = os.listdir(section_path)
-                        print("Number of files in ", section_path, " : ", len(files))
-                        table_size += len(files)
-    return table_size
+    return sum(len(files) for _, _, files in os.walk(table_path))
 
 if __name__ == "__main__":
     import argparse
@@ -372,17 +360,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # if args.table_name == "pt-crawl":
-    #     merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_crawl)
-    # elif args.table_name == "pt-pagerank":
-    #     merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_pagerank)
-    #     # print("Failed to merge: pt-pagerank not implemented")
-    # else:
-    #     print("Failed to merge: invalid table name")
+    if args.table_name == "pt-crawl":
+        merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_crawl)
+    elif args.table_name == "pt-pagerank":
+        merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_pagerank)
+        # print("Failed to merge: pt-pagerank not implemented")
+    else:
+        print("Failed to merge: invalid table name")
 
     # find the size of the input table
-    print("Size of table 1: ", sum(len(files) for _, _, files in os.walk(args.table1_path)))
-    print("Size of table 2: ", sum(len(files) for _, _, files in os.walk(args.table2_path)))
+    print("Size of table 1: ", get_table_size(args.table1_path))
+    print("Size of table 2: ", get_table_size(args.table2_path))
 
     # find the size of the output table
-    # print("Size of merged table: ", get_table_size(args.merged_table_path))
+    print("Size of merged table: ", get_table_size(args.merged_table_path))
