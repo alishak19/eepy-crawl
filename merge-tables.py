@@ -1,6 +1,7 @@
 import difflib
 import os
 import shutil
+import threading
 
 import hashlib
 
@@ -62,184 +63,192 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
     if set([os.path.basename(f) for f in worker_folder_dir_1]) != set([os.path.basename(f) for f in worker_folder_dir_2]):
         print("Failed to merge: worker folders do not match")
         return
-
-    # For each worker folder: 'worker1', 'worker2', etc.
+    
+    threads = []
     for worker_folder_dir in worker_folder_dir_1:
-        # get the worker folder name
-        # EX: 'worker1'
-        worker_folder_name = os.path.basename(worker_folder_dir)
+        thread = threading.Thread(target=process_worker, args=(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver))
+        threads.append(thread)
+        thread.start()
 
-        # Get the ID file path for each worker folder in both tables
-        # EX: /path/to/table1/worker1/id
-        worker_folder_path_in_1 = os.path.join(table1_path, worker_folder_name)
-        id_file1 = os.path.join(worker_folder_path_in_1, "id")
-        worker_folder_path_in_2 = os.path.join(table2_path, worker_folder_name)
-        id_file2 = os.path.join(worker_folder_path_in_2, "id")
-        
-        if not os.path.exists(id_file1) or not os.path.exists(id_file2):
-            print(f"Failed to merge: ID file missing in {worker_folder_path_in_1} or {worker_folder_path_in_2}")
-            return
-        
-        # Get the target worker folder path in the merged table
-        # EX: /path/to/merged-table/worker1
-        target_worker_folder = os.path.join(merged_table_path, os.path.basename(worker_folder_name))
-        if not os.path.exists(target_worker_folder):
-            os.makedirs(target_worker_folder)
-        
-        # Copy ID file from final table 1 to the merged table
-        target_id_file = os.path.join(target_worker_folder, "id")
-        if not os.path.exists(target_id_file):
-            shutil.copy(id_file1, target_id_file)
-            print("Copied ID file from worker folder " + 
-                  worker_folder_name + 
-                  " in table " + os.path.basename(table1_path) + 
-                  " to the merged table")
-            
-        # For each final table, get the directory at level of the table_name we want to merge
-        # EX: /path/to/table1/worker1/pt-crawl
-        table_folder1 = os.path.join(worker_folder_path_in_1, table_name)
-        table_folder2 = os.path.join(worker_folder_path_in_2, table_name)
-
-        if not os.path.exists(table_folder1) or not os.path.exists(table_folder2):
-            print(f"Failed to merge: {table_name} folder missing in {table_folder1} or {table_folder2}")
-            return
-        
-        # Get the list of directory names for both tables with their full paths
-        # EX: {'__ac': 'table1/worker1/pt-crawl/__ac', '__ao': 'table1/worker1/pt-crawl/__ao'}
-        dirs1_full = {d: os.path.join(table_folder1, d) for d in os.listdir(table_folder1) if os.path.isdir(os.path.join(table_folder1, d))}
-        dirs2_full = {d: os.path.join(table_folder2, d) for d in os.listdir(table_folder2) if os.path.isdir(os.path.join(table_folder2, d))}
-
-        # Extract the relative paths
-        # EX: {'__ac', '__ao'}
-        dirs1_relative = set(dirs1_full.keys())
-        dirs2_relative = set(dirs2_full.keys())
-
-        # Find shared and differing relative paths
-        shared_dirs_relative = dirs1_relative & dirs2_relative
-        differing_dirs_relative = dirs1_relative ^ dirs2_relative
-
-        differing_dirs_only_from_1 = differing_dirs_relative & dirs1_relative
-        differing_dirs_only_from_2 = differing_dirs_relative & dirs2_relative
-
-        print("\nIDENTICAL DIRECTORY NAME processing ---------\n")
-
-        # Process shared directories (sharded by ID)
-        for d in shared_dirs_relative:
-
-            # full_path_in_1 = /path/to/table1/worker1/pt-crawl/__ac
-            full_path_in_1 = table_folder1 + "/" + d
-            files_in_1 = [os.path.join(full_path_in_1, f) for f in os.listdir(full_path_in_1) if os.path.isfile(os.path.join(full_path_in_1, f))]
-            
-            # full_path_in_2 = /path/to/table2/worker1/pt-crawl/__ac
-            full_path_in_2 = table_folder2 + "/" + d
-            files_in_2 = [os.path.join(full_path_in_2, f) for f in os.listdir(full_path_in_2) if os.path.isfile(os.path.join(full_path_in_2, f))]
-
-            # Extract the relative paths of the files
-            # EX: {'aclsfmyimmacwkjesehaoqusrqykmgfghqealqgo', 'acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg', ...}
-            files_relative_in_1 = set([os.path.basename(f) for f in files_in_1])
-            files_relative_in_2 = set([os.path.basename(f) for f in files_in_2])
-            
-            # Find shared and differing relative paths
-            shared_files_relative = files_relative_in_1 & files_relative_in_2
-            differing_files_relative = files_relative_in_1 ^ files_relative_in_2
-
-            differing_files_only_from_1 = differing_files_relative & files_relative_in_1
-            differing_files_only_from_2 = differing_files_relative & files_relative_in_2
-
-            # print("diff files 1: ", differing_files_only_from_1)
-            # print("diff files 2: ", differing_files_only_from_2)
-
-            print("\n IDENTICAL FILE NAME processing ---------\n")
-
-            # Check if shared files have identical content, otherwise merge / fail them
-            for f in shared_files_relative:
-                file_path_in_1 = full_path_in_1 + "/" + f
-                file_path_in_2 = full_path_in_2 + "/" + f
-
-                # Check if the checksums of the files are the same
-                # If they are different, then we have two files with the same KEY but different VALUES
-                if compute_checksum(file_path_in_1) == compute_checksum(file_path_in_2):
-                    # if the directory does not exist in the merged table, create it
-                    if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
-                        os.makedirs(os.path.join(target_worker_folder, table_name, d))
-                    
-                    # Copy the file from final table 1 to the merged table
-                    target_file = os.path.join(target_worker_folder, table_name, d, f)
-                    if not os.path.exists(target_file):
-                        shutil.copy(file_path_in_1, target_file)
-                        print("Copied file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
-
-                else:
-                    # TODO: MERGE operation: what happens when two files have the same key but have different values?
-                    # This is dependent on the type of table
-                    # pt-crawl: select the file with the most recent timestamp
-                    # pt-pagerank: combine the pageranks
-                    print(f"Merge Conflict: {file_path_in_1} and {file_path_in_2} have the same KEY but different VALUES")
-
-                    # if the directory does not exist in the merged table, create it
-                    if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
-                        os.makedirs(os.path.join(target_worker_folder, table_name, d))
-
-                    identicalKeyConflictResolver(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f)
-
-            print("\n DIFFERING FILE NAME processing --------- \n")
-
-            for f in differing_files_only_from_1:
-                file_path_in_1 = full_path_in_1 + "/" + f
-                target_file = os.path.join(target_worker_folder, table_name, d, f)
-                if not os.path.exists(target_file):
-                    
-                    # make directory if it doesn't exist
-                    if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
-                        os.makedirs(os.path.join(target_worker_folder, table_name, d))
-
-                    shutil.copy(file_path_in_1, target_file)
-                    print("Copied differing file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
-                
-            for f in differing_files_only_from_2:
-                file_path_in_2 = full_path_in_2 + "/" + f
-                target_file = os.path.join(target_worker_folder, table_name, d, f)
-                if not os.path.exists(target_file):
-
-#                    make directory if it doesn't exist
-                    if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
-                        os.makedirs(os.path.join(target_worker_folder, table_name, d))
-
-                    shutil.copy(file_path_in_2, target_file)
-                    print("Copied differing file " + f + " from " + os.path.basename(table2_path) + " to the merged table")
-
-        print("\n DIFFERING DIRECTORY NAME processing --------- \n")
-
-        # Process differing directories (sharded by ID)
-        for d in differing_dirs_only_from_1:
-            full_path_in_1 = table_folder1 + "/" + d
-            files_in_1 = [os.path.join(full_path_in_1, f) for f in os.listdir(full_path_in_1) if os.path.isfile(os.path.join(full_path_in_1, f))]
-
-            # if the directory does not exist in the merged table, create it
-            if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
-                os.makedirs(os.path.join(target_worker_folder, table_name, d))
-
-            for f in files_in_1:
-                target_file = os.path.join(target_worker_folder, table_name, d, os.path.basename(f))
-                if not os.path.exists(target_file):
-                    shutil.copy(f, target_file)
-                    print("Copied file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
-
-        for d in differing_dirs_only_from_2:
-            full_path_in_2 = table_folder2 + "/" + d
-            files_in_2 = [os.path.join(full_path_in_2, f) for f in os.listdir(full_path_in_2) if os.path.isfile(os.path.join(full_path_in_2, f))]
-
-            # if the directory does not exist in the merged table, create it
-            if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
-                os.makedirs(os.path.join(target_worker_folder, table_name, d))
-
-            for f in files_in_2:
-                target_file = os.path.join(target_worker_folder, table_name, d, os.path.basename(f))
-                if not os.path.exists(target_file):
-                    shutil.copy(f, target_file)
-                    print("Copied file " + f + " from " + os.path.basename(table2_path) + " to the merged table")
+    for thread in threads:
+        thread.join()
 
     print(f"Tables merged successfully into {args.merged_table_path}")
+
+def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver):
+    # get the worker folder name
+    # EX: 'worker1'
+    worker_folder_name = os.path.basename(worker_folder_dir)
+
+    # Get the ID file path for each worker folder in both tables
+    # EX: /path/to/table1/worker1/id
+    worker_folder_path_in_1 = os.path.join(table1_path, worker_folder_name)
+    id_file1 = os.path.join(worker_folder_path_in_1, "id")
+    worker_folder_path_in_2 = os.path.join(table2_path, worker_folder_name)
+    id_file2 = os.path.join(worker_folder_path_in_2, "id")
+    
+    if not os.path.exists(id_file1) or not os.path.exists(id_file2):
+        print(f"Failed to merge: ID file missing in {worker_folder_path_in_1} or {worker_folder_path_in_2}")
+        return
+    
+    # Get the target worker folder path in the merged table
+    # EX: /path/to/merged-table/worker1
+    target_worker_folder = os.path.join(merged_table_path, os.path.basename(worker_folder_name))
+    if not os.path.exists(target_worker_folder):
+        os.makedirs(target_worker_folder)
+    
+    # Copy ID file from final table 1 to the merged table
+    target_id_file = os.path.join(target_worker_folder, "id")
+    if not os.path.exists(target_id_file):
+        shutil.copy(id_file1, target_id_file)
+        print("Copied ID file from worker folder " + 
+              worker_folder_name + 
+              " in table " + os.path.basename(table1_path) + 
+              " to the merged table")
+        
+    # For each final table, get the directory at level of the table_name we want to merge
+    # EX: /path/to/table1/worker1/pt-crawl
+    table_folder1 = os.path.join(worker_folder_path_in_1, table_name)
+    table_folder2 = os.path.join(worker_folder_path_in_2, table_name)
+
+    if not os.path.exists(table_folder1) or not os.path.exists(table_folder2):
+        print(f"Failed to merge: {table_name} folder missing in {table_folder1} or {table_folder2}")
+        return
+    
+    # Get the list of directory names for both tables with their full paths
+    # EX: {'__ac': 'table1/worker1/pt-crawl/__ac', '__ao': 'table1/worker1/pt-crawl/__ao'}
+    dirs1_full = {d: os.path.join(table_folder1, d) for d in os.listdir(table_folder1) if os.path.isdir(os.path.join(table_folder1, d))}
+    dirs2_full = {d: os.path.join(table_folder2, d) for d in os.listdir(table_folder2) if os.path.isdir(os.path.join(table_folder2, d))}
+
+    # Extract the relative paths
+    # EX: {'__ac', '__ao'}
+    dirs1_relative = set(dirs1_full.keys())
+    dirs2_relative = set(dirs2_full.keys())
+
+    # Find shared and differing relative paths
+    shared_dirs_relative = dirs1_relative & dirs2_relative
+    differing_dirs_relative = dirs1_relative ^ dirs2_relative
+
+    differing_dirs_only_from_1 = differing_dirs_relative & dirs1_relative
+    differing_dirs_only_from_2 = differing_dirs_relative & dirs2_relative
+
+    print("\nIDENTICAL DIRECTORY NAME processing ---------\n")
+
+    # Process shared directories (sharded by ID)
+    for d in shared_dirs_relative:
+
+        # full_path_in_1 = /path/to/table1/worker1/pt-crawl/__ac
+        full_path_in_1 = table_folder1 + "/" + d
+        files_in_1 = [os.path.join(full_path_in_1, f) for f in os.listdir(full_path_in_1) if os.path.isfile(os.path.join(full_path_in_1, f))]
+        
+        # full_path_in_2 = /path/to/table2/worker1/pt-crawl/__ac
+        full_path_in_2 = table_folder2 + "/" + d
+        files_in_2 = [os.path.join(full_path_in_2, f) for f in os.listdir(full_path_in_2) if os.path.isfile(os.path.join(full_path_in_2, f))]
+
+        # Extract the relative paths of the files
+        # EX: {'aclsfmyimmacwkjesehaoqusrqykmgfghqealqgo', 'acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg', ...}
+        files_relative_in_1 = set([os.path.basename(f) for f in files_in_1])
+        files_relative_in_2 = set([os.path.basename(f) for f in files_in_2])
+        
+        # Find shared and differing relative paths
+        shared_files_relative = files_relative_in_1 & files_relative_in_2
+        differing_files_relative = files_relative_in_1 ^ files_relative_in_2
+
+        differing_files_only_from_1 = differing_files_relative & files_relative_in_1
+        differing_files_only_from_2 = differing_files_relative & files_relative_in_2
+
+        # print("diff files 1: ", differing_files_only_from_1)
+        # print("diff files 2: ", differing_files_only_from_2)
+
+        print("\n IDENTICAL FILE NAME processing ---------\n")
+
+        # Check if shared files have identical content, otherwise merge / fail them
+        for f in shared_files_relative:
+            file_path_in_1 = full_path_in_1 + "/" + f
+            file_path_in_2 = full_path_in_2 + "/" + f
+
+            # Check if the checksums of the files are the same
+            # If they are different, then we have two files with the same KEY but different VALUES
+            if compute_checksum(file_path_in_1) == compute_checksum(file_path_in_2):
+                # if the directory does not exist in the merged table, create it
+                if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+                    os.makedirs(os.path.join(target_worker_folder, table_name, d))
+                
+                # Copy the file from final table 1 to the merged table
+                target_file = os.path.join(target_worker_folder, table_name, d, f)
+                if not os.path.exists(target_file):
+                    shutil.copy(file_path_in_1, target_file)
+                    print("Copied file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
+
+            else:
+                # TODO: MERGE operation: what happens when two files have the same key but have different values?
+                # This is dependent on the type of table
+                # pt-crawl: select the file with the most recent timestamp
+                # pt-pagerank: combine the pageranks
+                print(f"Merge Conflict: {file_path_in_1} and {file_path_in_2} have the same KEY but different VALUES")
+
+                # if the directory does not exist in the merged table, create it
+                if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+                    os.makedirs(os.path.join(target_worker_folder, table_name, d))
+
+                identicalKeyConflictResolver(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f)
+
+        print("\n DIFFERING FILE NAME processing --------- \n")
+
+        for f in differing_files_only_from_1:
+            file_path_in_1 = full_path_in_1 + "/" + f
+            target_file = os.path.join(target_worker_folder, table_name, d, f)
+            if not os.path.exists(target_file):
+                
+                # make directory if it doesn't exist
+                if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+                    os.makedirs(os.path.join(target_worker_folder, table_name, d))
+
+                shutil.copy(file_path_in_1, target_file)
+                print("Copied differing file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
+            
+        for f in differing_files_only_from_2:
+            file_path_in_2 = full_path_in_2 + "/" + f
+            target_file = os.path.join(target_worker_folder, table_name, d, f)
+            if not os.path.exists(target_file):
+
+#                make directory if it doesn't exist
+                if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+                    os.makedirs(os.path.join(target_worker_folder, table_name, d))
+
+                shutil.copy(file_path_in_2, target_file)
+                print("Copied differing file " + f + " from " + os.path.basename(table2_path) + " to the merged table")
+
+    print("\n DIFFERING DIRECTORY NAME processing --------- \n")
+
+    # Process differing directories (sharded by ID)
+    for d in differing_dirs_only_from_1:
+        full_path_in_1 = table_folder1 + "/" + d
+        files_in_1 = [os.path.join(full_path_in_1, f) for f in os.listdir(full_path_in_1) if os.path.isfile(os.path.join(full_path_in_1, f))]
+
+        # if the directory does not exist in the merged table, create it
+        if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+            os.makedirs(os.path.join(target_worker_folder, table_name, d))
+
+        for f in files_in_1:
+            target_file = os.path.join(target_worker_folder, table_name, d, os.path.basename(f))
+            if not os.path.exists(target_file):
+                shutil.copy(f, target_file)
+                print("Copied file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
+
+    for d in differing_dirs_only_from_2:
+        full_path_in_2 = table_folder2 + "/" + d
+        files_in_2 = [os.path.join(full_path_in_2, f) for f in os.listdir(full_path_in_2) if os.path.isfile(os.path.join(full_path_in_2, f))]
+
+        # if the directory does not exist in the merged table, create it
+        if not os.path.exists(os.path.join(target_worker_folder, table_name, d)):
+            os.makedirs(os.path.join(target_worker_folder, table_name, d))
+
+        for f in files_in_2:
+            target_file = os.path.join(target_worker_folder, table_name, d, os.path.basename(f))
+            if not os.path.exists(target_file):
+                shutil.copy(f, target_file)
+                print("Copied file " + f + " from " + os.path.basename(table2_path) + " to the merged table")
 
 def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f):
 
@@ -342,7 +351,7 @@ if __name__ == "__main__":
     if args.table_name == "pt-crawl":
         merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_crawl)
     elif args.table_name == "pt-pagerank":
-        # merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_pagerank)
-        print("Failed to merge: pt-pagerank not implemented")
+        merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_pagerank)
+        # print("Failed to merge: pt-pagerank not implemented")
     else:
         print("Failed to merge: invalid table name")
