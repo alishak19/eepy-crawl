@@ -62,6 +62,8 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
     # Make sure the worker directory names match
     if set([os.path.basename(f) for f in worker_folder_dir_1]) != set([os.path.basename(f) for f in worker_folder_dir_2]):
         print("Failed to merge: worker folders do not match")
+        print("There are worker folders in table 1 that are not in table 2: ", set([os.path.basename(f) for f in worker_folder_dir_1]) - set([os.path.basename(f) for f in worker_folder_dir_2]))
+        print("There are worker folders in table 2 that are not in table 1: ", set([os.path.basename(f) for f in worker_folder_dir_2]) - set([os.path.basename(f) for f in worker_folder_dir_1
         return
     
     threads = []
