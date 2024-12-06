@@ -99,7 +99,7 @@ public class EepyCrawlSearch {
 
     private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores) {
         return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .map(myEntry -> new SearchResult("", myEntry.getKey(), ""))
+                .map(myEntry -> new SearchResult(" ", myEntry.getKey(), " "))
                 .collect(Collectors.toList());
     }
 }

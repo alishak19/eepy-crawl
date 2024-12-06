@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class CacheTableEntryUtils {
-    private static final String CACHE_TABLE_SEPARATOR = ")($%^$)_$^&@";
+    private static final String CACHE_TABLE_SEPARATOR = "&&##&#&";
 
     public static String createEntry(List<SearchResult> aSearchResults) {
         StringBuilder myBuilder = new StringBuilder();

@@ -1,9 +1,9 @@
 package cis5550.frontend;
 
 public record SearchResult(String title, String url, String snippet) {
-    private static final String UNIQUE_SEPARATOR = "%*&^%*^";
+    private static final String UNIQUE_SEPARATOR = "&#&";
     public String string() {
-        return title + UNIQUE_SEPARATOR + url + UNIQUE_SEPARATOR + snippet;
+        return title + UNIQUE_SEPARATOR + (url.isEmpty() ? " " : url) + UNIQUE_SEPARATOR + (snippet.isEmpty() ? " " : snippet);
     }
     public static SearchResult fromString(String aString) {
         String[] myParts = aString.split(UNIQUE_SEPARATOR);
