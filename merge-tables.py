@@ -250,13 +250,13 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
 
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
-        target_file_path = target_worker_folder + "/" + table_name + "/" + d + "/" + file_path_in_1
+        target_file_path = target_worker_folder + "/" + table_name + "/" + d + "/" + os.path.basename(file_path_in_1)
         target_file = os.path.join(target_file_path)
         if not os.path.exists(target_file):
             shutil.copy(file_path_in_1, target_file)
             print("Copied file " + f + " from " + os.path.basename(table1_path) + " to the merged table because it has the most recent timestamp")
     else:
-        target_file_path = target_worker_folder + "/" + table_name + "/" + d + "/" + file_path_in_2
+        target_file_path = target_worker_folder + "/" + table_name + "/" + d + "/" + os.path.basename(file_path_in_2)
         target_file = os.path.join(target_file_path)
         if not os.path.exists(target_file):
             shutil.copy(file_path_in_2, target_file)
