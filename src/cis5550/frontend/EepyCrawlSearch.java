@@ -3,13 +3,14 @@ package cis5550.frontend;
 import cis5550.tools.Logger;
 import cis5550.webserver.Route;
 import cis5550.webserver.datamodels.ContentType;
+import com.sun.source.tree.Tree;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static cis5550.webserver.Server.*;
 
@@ -60,15 +61,26 @@ public class EepyCrawlSearch {
 
         Map<String, Double> myTFIDFScores = TFIDF.getTFIDFScores(aQuery);
 
-        if (myTFIDFScores == null) {
-            return List.of();
-        }
+        Map<String, Double> myPagerankScores = new HashMap<>();
 
         try {
-            Map<String, Double> myPagerankScores = FrontendKVSClient.getPagerankScores(myTFIDFScores.keySet());
+            myPagerankScores = FrontendKVSClient.getPagerankScores(myTFIDFScores.keySet());
         } catch (IOException e) {
             LOGGER.error("Error getting pagerank scores from KVS");
         }
+
+        Map<String, Double> myCombinedScores = new HashMap<>();
+
+        for (String myUrl : myTFIDFScores.keySet()) {
+            double myTFIDFScore = myTFIDFScores.get(myUrl);
+            double myPagerankScore = 0.0;
+            if (myPagerankScores.containsKey(myUrl)) {
+                myPagerankScore = myPagerankScores.get(myUrl);
+            }
+            myCombinedScores.put(myUrl, getFinalCombinedScore(myTFIDFScore, myPagerankScore));
+        }
+
+        myResults = buildSearchResultsFromScores(myCombinedScores);
 
         try {
             FrontendKVSClient.putInCache(aQuery, myResults);
@@ -78,10 +90,16 @@ public class EepyCrawlSearch {
 
         LOGGER.info("Returning search results for query: " + aQuery);
 
-        return List.of(
-            new SearchResult("Title 1", "https://www.example.com/1", "Snippet 1"),
-            new SearchResult("Title 2", "https://www.example.com/2", "Snippet 2"),
-            new SearchResult("Title 3", "https://www.example.com/3", "Snippet 3")
-        );
+        return myResults;
+    }
+
+    private static Double getFinalCombinedScore(Double aTFIDFScore, Double aPagerankScore) {
+        return aTFIDFScore + aPagerankScore;
+    }
+
+    private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores) {
+        return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .map(myEntry -> new SearchResult("", myEntry.getKey(), ""))
+                .collect(Collectors.toList());
     }
 }

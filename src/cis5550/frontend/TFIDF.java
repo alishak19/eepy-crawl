@@ -16,14 +16,14 @@ public class TFIDF {
     
     public static Map<String, Double> getTFIDFScores(String aQuery) {
         LOGGER.info("Getting TF-IDF scores for query: " + aQuery);
-        Map<String, Integer> myUrlCountData = null;
+        Map<String, Integer> myUrlCountData = new HashMap<>();
         try {
             myUrlCountData = FrontendKVSClient.getUrlCountData(aQuery);
         } catch (IOException e) {
             LOGGER.error("Error getting URL count data from KVS");
         }
 
-        Map<String, Integer> myUrlTermCountData = null;
+        Map<String, Integer> myUrlTermCountData = new HashMap<>();
         try {
             myUrlTermCountData = FrontendKVSClient.getNumTermsPerUrl(myUrlCountData.keySet());
         } catch (IOException e) {
