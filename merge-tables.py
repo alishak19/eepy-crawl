@@ -336,6 +336,21 @@ def identical_file_resolver_pagerank(table1_path, table2_path, file_path_in_1, f
         f.write(f"{url1} {rank} {new_length} {new_rank}")
         print(f"Combined pageranks for {url1} and wrote to the merged table")
 
+def get_table_size(table_path):
+    """
+    Get the size of the table
+    :param table_path: Path to the table folder.
+        EX: /path/to/table
+
+    :return: Size of the table in bytes
+    """
+    table_size = 0
+    for root, dirs, files in os.walk(table_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            table_size += os.path.getsize(file_path)
+    return table_size
+
 if __name__ == "__main__":
     import argparse
 
@@ -355,3 +370,10 @@ if __name__ == "__main__":
         # print("Failed to merge: pt-pagerank not implemented")
     else:
         print("Failed to merge: invalid table name")
+
+    # find the size of the input table
+    print("Size of table 1: ", get_table_size(args.table1_path))
+    print("Size of table 2: ", get_table_size(args.table2_path))
+
+    # find the size of the output table
+    print("Size of merged table: ", get_table_size(args.merged_table_path))
