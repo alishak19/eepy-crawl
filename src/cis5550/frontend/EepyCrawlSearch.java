@@ -15,6 +15,7 @@ import static cis5550.webserver.Server.*;
 
 public class EepyCrawlSearch {
     private static final Logger LOGGER = Logger.getLogger(EepyCrawlSearch.class);
+
     private static final String PAGE_DIR = "pages";
     private static final int PORT = 80;
 
@@ -40,11 +41,13 @@ public class EepyCrawlSearch {
     }
 
     private static List<SearchResult> getSearchResults(String aQuery) {
+        LOGGER.info("Getting search results for query: " + aQuery);
         if (aQuery == null || aQuery.isEmpty()) {
             return List.of();
         }
 
         try {
+            LOGGER.debug("Checking cache for query: " + aQuery);
             List<SearchResult> myCachedResults = FrontendKVSClient.getFromCache(aQuery);
             if (myCachedResults != null) {
                 return myCachedResults;
@@ -72,6 +75,8 @@ public class EepyCrawlSearch {
         } catch (IOException e) {
             LOGGER.error("Error putting search results in cache");
         }
+
+        LOGGER.info("Returning search results for query: " + aQuery);
 
         return List.of(
             new SearchResult("Title 1", "https://www.example.com/1", "Snippet 1"),

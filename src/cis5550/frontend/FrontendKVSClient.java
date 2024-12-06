@@ -3,6 +3,7 @@ package cis5550.frontend;
 import cis5550.jobs.datamodels.TableColumns;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
+import cis5550.tools.Logger;
 import cis5550.utils.CacheTableEntryUtils;
 
 import java.io.IOException;
@@ -13,6 +14,8 @@ import java.util.regex.*;
 import static cis5550.utils.Stopwords.isStopWord;
 
 public class FrontendKVSClient {
+    private static final Logger LOGGER = Logger.getLogger(FrontendKVSClient.class);
+
     private static final String KVS_COORDINATOR = "localhost:8080";
     private static final KVSClient KVS_CLIENT = new KVSClient(KVS_COORDINATOR);
 
@@ -25,6 +28,7 @@ public class FrontendKVSClient {
     private static final String COMMA = ",";
 
     public static Map<String, Integer> getUrlCountData(String aQuery) throws IOException {
+        LOGGER.info("Getting URL count data for query: " + aQuery);
         Row myRow = KVS_CLIENT.getRow(INDEX_TABLE, aQuery);
 
         if (myRow == null) {
@@ -41,11 +45,13 @@ public class FrontendKVSClient {
             Integer myCount = Integer.parseInt(myIndexEntryArr[myIndexEntryArr.length - 1]);
             myUrlCountData.put(myIndexItem.substring(0, myIndexItem.lastIndexOf(COLON)), myCount);
         }
+        LOGGER.info("URL count data for query: " + aQuery + " is: " + myUrlCountData);
 
         return myUrlCountData;
     }
 
     public static Map<String, Integer> getNumTermsPerUrl(Set<String> aUrlSet) throws IOException {
+        LOGGER.info("Getting number of terms per URL for " + aUrlSet.size() + " URLs");
         List<String> myUrlList = new ArrayList<>(aUrlSet);
 
         List<String> myPageContents = KVS_CLIENT.batchGetColValue(CRAWL_TABLE, TableColumns.PAGE.value(), myUrlList);
@@ -58,6 +64,7 @@ public class FrontendKVSClient {
                 numTermsPerUrl.put(myUrl, getNumTermsInUrl(myPage));
             }
         }
+        LOGGER.info("Number of terms per URL for " + aUrlSet.size() + " URLs: " + numTermsPerUrl);
         return numTermsPerUrl;
     }
 
@@ -90,6 +97,7 @@ public class FrontendKVSClient {
     }
 
     public static Map<String, Double> getPagerankScores(Collection<String> aUrls) throws IOException {
+        LOGGER.info("Getting pagerank scores for " + aUrls.size() + " URLs");
         Map<String, Double> myPagerankScores = new HashMap<>();
 
         List<String> myUrlList = new ArrayList<>(aUrls);
@@ -103,6 +111,7 @@ public class FrontendKVSClient {
                 myPagerankScores.put(myUrl, Double.parseDouble(myPagerank));
             }
         }
+        LOGGER.info("Pagerank scores for " + aUrls.size() + " URLs: " + myPagerankScores);
         return myPagerankScores;
     }
 

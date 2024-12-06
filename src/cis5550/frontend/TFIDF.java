@@ -15,6 +15,7 @@ public class TFIDF {
     private static final int APPROX_CORPUS_SIZE = 100000;
     
     public static Map<String, Double> getTFIDFScores(String aQuery) {
+        LOGGER.info("Getting TF-IDF scores for query: " + aQuery);
         Map<String, Integer> myUrlCountData = null;
         try {
             myUrlCountData = FrontendKVSClient.getUrlCountData(aQuery);
@@ -39,6 +40,8 @@ public class TFIDF {
             double myTF = (double) myQueryCount / myTermCount;
             myTFIDFScores.put(myUrl, myTF * myIDF);
         }
+
+        LOGGER.info("TF-IDF scores for query: " + aQuery + " are: " + myTFIDFScores);
 
         return myTFIDFScores;
     }
