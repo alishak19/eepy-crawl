@@ -146,8 +146,8 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
             differing_files_only_from_1 = differing_files_relative & files_relative_in_1
             differing_files_only_from_2 = differing_files_relative & files_relative_in_2
 
-            print("diff files 1: ", differing_files_only_from_1)
-            print("diff files 2: ", differing_files_only_from_2)
+            # print("diff files 1: ", differing_files_only_from_1)
+            # print("diff files 2: ", differing_files_only_from_2)
 
             print("\n IDENTICAL FILE NAME processing ---------\n")
 
@@ -252,14 +252,12 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
     # print("File 2 contents: ", file2_contents)
 
     # print how similar the files are to each other
-    print("Similarity: ", difflib.SequenceMatcher(None, file1_contents, file2_contents).ratio())
-    
-    print(table1_path)
-    print(table2_path)    
-    print(file_path_in_1)
-    print(file_path_in_2)
-    print(target_worker_folder)
-    print(table_name)
+    similarity_score = difflib.SequenceMatcher(None, file1_contents, file2_contents).ratio()
+    print("Similarity: ", similarity_score)
+
+    if similarity_score < 0.6:
+        print("SIMILARITY SCORE IS LESS THAN 0.6?")
+        return
 
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
@@ -343,5 +341,8 @@ if __name__ == "__main__":
 
     if args.table_name == "pt-crawl":
         merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_crawl)
+    elif args.table_name == "pt-pagerank":
+        # merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_pagerank)
+        print("Failed to merge: pt-pagerank not implemented")
     else:
         print("Failed to merge: invalid table name")
