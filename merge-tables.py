@@ -351,12 +351,11 @@ def get_table_size(table_path):
         worker_path = os.path.join(table_path, workers)
         if os.path.isdir(worker_path):
             for pt_tables in os.listdir(worker_path):
-                table_path = os.path.join(worker_path, pt_tables)
-                if os.path.isdir(table_path):
-                    for sections in os.listdir(table_path):
-                        section_path = os.path.join(table_path, sections)
+                pt_table_path = os.path.join(worker_path, pt_tables)
+                if os.path.isdir(pt_table_path):
+                    for sections in os.listdir(pt_table_path):
+                        section_path = os.path.join(pt_table_path, sections)
                         files = os.listdir(section_path)
-                        print(files)
                         print("Number of files in ", section_path, " : ", len(files))
                         table_size += len(files)
     return table_size
@@ -382,8 +381,8 @@ if __name__ == "__main__":
     #     print("Failed to merge: invalid table name")
 
     # find the size of the input table
-    print("Size of table 1: ", get_table_size(args.table1_path))
-    print("Size of table 2: ", get_table_size(args.table2_path))
+    print("Size of table 1: ", sum(len(files) for _, _, files in os.walk(args.table1_path)))
+    print("Size of table 2: ", sum(len(files) for _, _, files in os.walk(args.table2_path)))
 
     # find the size of the output table
     # print("Size of merged table: ", get_table_size(args.merged_table_path))
