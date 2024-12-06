@@ -360,7 +360,7 @@ def get_table_size(table_path):
                             print("SECTION file list:")
                             for file in files:
                                 print(file)
-                            table_size += len()
+                            table_size += len(files)
     return table_size
 
 if __name__ == "__main__":
