@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.*;
 
+import static cis5550.jobs.datamodels.TableName.*;
 import static cis5550.utils.Stopwords.isStopWord;
 
 public class FrontendKVSClient {
@@ -19,17 +20,12 @@ public class FrontendKVSClient {
     private static final String KVS_COORDINATOR = "localhost:8080";
     private static final KVSClient KVS_CLIENT = new KVSClient(KVS_COORDINATOR);
 
-    private static final String CRAWL_TABLE = "pt-crawl";
-    private static final String INDEX_TABLE = "pt-index";
-    private static final String PAGERANK_TABLE = "pt-pagerank";
-    private static final String CACHE_TABLE = "pt-cache";
-
     private static final String COLON = ":";
     private static final String COMMA = ",";
 
     public static Map<String, Integer> getUrlCountData(String aQuery) throws IOException {
         LOGGER.info("Getting URL count data for query: " + aQuery);
-        Row myRow = KVS_CLIENT.getRow(INDEX_TABLE, aQuery);
+        Row myRow = KVS_CLIENT.getRow(INDEX_TABLE.getName(), aQuery);
 
         if (myRow == null) {
             return new HashMap<>();
@@ -54,7 +50,7 @@ public class FrontendKVSClient {
         LOGGER.info("Getting number of terms per URL for " + aUrlSet.size() + " URLs");
         List<String> myUrlList = new ArrayList<>(aUrlSet);
 
-        List<String> myPageContents = KVS_CLIENT.batchGetColValue(CRAWL_TABLE, TableColumns.PAGE.value(), myUrlList);
+        List<String> myPageContents = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrlList);
 
         Map<String, Integer> numTermsPerUrl = new HashMap<>();
         for (int i = 0; i < myUrlList.size(); i++) {
@@ -102,7 +98,7 @@ public class FrontendKVSClient {
 
         List<String> myUrlList = new ArrayList<>(aUrls);
 
-        List<String> myPageranks = KVS_CLIENT.batchGetColValue(PAGERANK_TABLE, TableColumns.RANK.value(), myUrlList);
+        List<String> myPageranks = KVS_CLIENT.batchGetColValue(PAGERANK_TABLE.getName(), TableColumns.RANK.value(), myUrlList);
 
         for (int i = 0; i < myUrlList.size(); i++) {
             String myUrl = myUrlList.get(i);
@@ -116,7 +112,7 @@ public class FrontendKVSClient {
     }
 
     public static List<SearchResult> getFromCache(String aQuery) throws IOException {
-        Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE, aQuery);
+        Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
         if (myQueryRow == null) {
             return null;
         }
@@ -130,6 +126,6 @@ public class FrontendKVSClient {
         String myEntry = CacheTableEntryUtils.createEntry(aSearchResults);
         Row myRow = new Row(aQuery);
         myRow.put(TableColumns.VALUE.value(), myEntry);
-        KVS_CLIENT.putRow(CACHE_TABLE, myRow);
+        KVS_CLIENT.putRow(CACHE_TABLE.getName(), myRow);
     }
 }
