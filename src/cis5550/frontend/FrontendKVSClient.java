@@ -46,29 +46,30 @@ public class FrontendKVSClient {
     }
 
     public static Map<String, Integer> getNumTermsPerUrl(Set<String> aUrlSet) throws IOException {
+        List<String> myUrlList = new ArrayList<>(aUrlSet);
+
+        List<String> myPageContents = KVS_CLIENT.batchGetColValue(CRAWL_TABLE, TableColumns.PAGE.value(), myUrlList);
+
         Map<String, Integer> numTermsPerUrl = new HashMap<>();
-        for (String myUrl : aUrlSet) {
-            int myNumTerms = getNumTermsInUrl(myUrl);
-            numTermsPerUrl.put(myUrl, myNumTerms);
+        for (int i = 0; i < myUrlList.size(); i++) {
+            String myUrl = myUrlList.get(i);
+            String myPage = myPageContents.get(i);
+            if (myPage != null) {
+                numTermsPerUrl.put(myUrl, getNumTermsInUrl(myPage));
+            }
         }
         return numTermsPerUrl;
     }
 
-    private static Integer getNumTermsInUrl(String aUrl) throws IOException {
-        Row myRow = KVS_CLIENT.getRow(CRAWL_TABLE, aUrl);
-        if (myRow == null) {
-            return 0;
-        }
-
-        String myPage = myRow.get(TableColumns.PAGE.value());
-        if (myPage == null) {
+    private static Integer getNumTermsInUrl(String aPage) {
+        if (aPage == null) {
             return 0;
         }
 
         Set<String> myTerms = new HashSet<>();
 
         Pattern wordPattern = Pattern.compile("\\b[a-zA-Z0-9]{5,19}\\b"); // Words between 5 and 19 characters long
-        String textContent = myPage.replaceAll("<[^>]*>", " ");
+        String textContent = aPage.replaceAll("<[^>]*>", " ");
 
         Matcher matcher = wordPattern.matcher(textContent.toLowerCase());
         while (matcher.find()) {
