@@ -267,6 +267,8 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
     if similarity_score < 0.7:
         print("Warning: Similarity score is < 0.7")
         print("Similarity score was: ", similarity_score)
+        print("File 1 contents: ", file1_contents)
+        print("File 2 contents: ", file2_contents)
 
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
