@@ -240,6 +240,15 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
     # print("File 1 contents: ", file1_contents)
     # print("File 2 contents: ", file2_contents)
 
+    print(table1_path)
+    print(table2_path)    
+    print(file_path_in_1)
+    print(file_path_in_2)
+    print(target_worker_folder)
+    print(table_name)
+    print(d)
+    print(f)
+
 
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
