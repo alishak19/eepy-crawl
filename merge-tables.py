@@ -75,10 +75,10 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
     
     threads = []
     for worker_folder_dir in worker_folder_dir_1:
-        # process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver)
-        thread = threading.Thread(target=process_worker, args=(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver))
-        threads.append(thread)
-        thread.start()
+        process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver)
+        # thread = threading.Thread(target=process_worker, args=(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver))
+        # threads.append(thread)
+        # thread.start()
 
     for thread in threads:
         thread.join()
@@ -86,6 +86,13 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
     print(f"Tables merged successfully into {args.merged_table_path}")
 
 def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver):
+
+    num_diff_dirs_same_files_merged = 0
+    num_diff_dirs_diff_files_merged = 0
+    num_same_dirs_diff_files_merged = 0
+    num_same_dirs_same_files_same_contents_merged = 0
+    num_same_dirs_same_files_diff_contents_merged = 0
+
     # get the worker folder name
     # EX: 'worker1'
     worker_folder_name = os.path.basename(worker_folder_dir)
@@ -167,6 +174,10 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
         differing_files_only_from_1 = differing_files_relative & files_relative_in_1
         differing_files_only_from_2 = differing_files_relative & files_relative_in_2
 
+        print("number of differing files:" + str(len(differing_files_relative)))
+        print("number of differing files only from 1:" + str(len(differing_files_only_from_1)))
+        print("number of differing files only from 2:" + str(len(differing_files_only_from_2)))
+
         # print("diff files 1: ", differing_files_only_from_1)
         # print("diff files 2: ", differing_files_only_from_2)
 
@@ -190,6 +201,8 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
                     shutil.copy(file_path_in_1, target_file)
                     print("Copied file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
 
+                num_same_dirs_same_files_same_contents_merged += 1
+
             else:
                 # TODO: MERGE operation: what happens when two files have the same key but have different values?
                 # This is dependent on the type of table
@@ -202,6 +215,8 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
                     os.makedirs(os.path.join(target_worker_folder, table_name, d))
 
                 identicalKeyConflictResolver(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f)
+
+                num_same_dirs_same_files_diff_contents_merged += 1
 
         print("\n DIFFERING FILE NAME processing --------- \n")
 
@@ -216,6 +231,8 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
 
                 shutil.copy(file_path_in_1, target_file)
                 print("Copied differing file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
+
+                num_same_dirs_diff_files_merged += 1
             
         for f in differing_files_only_from_2:
             file_path_in_2 = full_path_in_2 + "/" + f
@@ -228,6 +245,8 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
 
                 shutil.copy(file_path_in_2, target_file)
                 print("Copied differing file " + f + " from " + os.path.basename(table2_path) + " to the merged table")
+
+                num_same_dirs_diff_files_merged += 1
 
     print("\n DIFFERING DIRECTORY NAME processing --------- \n")
 
@@ -246,6 +265,8 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
                 shutil.copy(f, target_file)
                 print("Copied file " + f + " from " + os.path.basename(table1_path) + " to the merged table")
 
+                num_diff_dirs_diff_files_merged += 1
+
     for d in differing_dirs_only_from_2:
         full_path_in_2 = table_folder2 + "/" + d
         files_in_2 = [os.path.join(full_path_in_2, f) for f in os.listdir(full_path_in_2) if os.path.isfile(os.path.join(full_path_in_2, f))]
@@ -259,6 +280,15 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
             if not os.path.exists(target_file):
                 shutil.copy(f, target_file)
                 print("Copied file " + f + " from " + os.path.basename(table2_path) + " to the merged table")
+
+                num_diff_dirs_diff_files_merged += 1
+
+    print("\n SUMMARY --------- \n")
+    print(f"Number of directories with same files merged: {num_same_dirs_same_files_same_contents_merged}")
+    print(f"Number of directories with same files but different contents merged: {num_same_dirs_same_files_diff_contents_merged}")
+    print(f"Number of directories with different files merged: {num_diff_dirs_diff_files_merged}")
+    print(f"Number of directories with same files merged: {num_same_dirs_diff_files_merged}")
+    print(f"Number of directories with different files merged: {num_diff_dirs_diff_files_merged}")
 
 def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f):
 
