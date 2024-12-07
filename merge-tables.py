@@ -146,8 +146,15 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
     shared_dirs_relative = dirs1_relative & dirs2_relative
     differing_dirs_relative = dirs1_relative ^ dirs2_relative
 
+    print("number of directories total: " + str(len(dirs1_relative | dirs2_relative)))
+    print("number of shared directories:" + str(len(shared_dirs_relative)))
+    print("number of differing directories:" + str(len(differing_dirs_relative)))
+
     differing_dirs_only_from_1 = differing_dirs_relative & dirs1_relative
     differing_dirs_only_from_2 = differing_dirs_relative & dirs2_relative
+
+    print("number of differing directories only from 1:" + str(len(differing_dirs_only_from_1)))
+    print("number of differing directories only from 2:" + str(len(differing_dirs_only_from_2)))
 
     print("\nIDENTICAL DIRECTORY NAME processing ---------\n")
 
@@ -284,11 +291,10 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
                 num_diff_dirs_diff_files_merged += 1
 
     print("\n SUMMARY --------- \n")
-    print(f"Number of directories with same files merged: {num_same_dirs_same_files_same_contents_merged}")
-    print(f"Number of directories with same files but different contents merged: {num_same_dirs_same_files_diff_contents_merged}")
-    print(f"Number of directories with different files merged: {num_diff_dirs_diff_files_merged}")
-    print(f"Number of directories with same files merged: {num_same_dirs_diff_files_merged}")
-    print(f"Number of directories with different files merged: {num_diff_dirs_diff_files_merged}")
+    print(f"Number of same directories with same files with same contents merged: {num_same_dirs_same_files_same_contents_merged}")
+    print(f"Number of same directories with same files but different contents merged: {num_same_dirs_same_files_diff_contents_merged}")
+    print(f"Number of different directories with different files merged: {num_diff_dirs_diff_files_merged}")
+    print(f"Number of same directories with different files merged: {num_same_dirs_diff_files_merged}")
 
 def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f):
 
