@@ -80,14 +80,13 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
         # threads.append(thread)
         # thread.start()
 
-    for thread in threads:
-        thread.join()
+    # for thread in threads:
+    #     thread.join()
 
     print(f"Tables merged successfully into {args.merged_table_path}")
 
 def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver):
 
-    num_diff_dirs_same_files_merged = 0
     num_diff_dirs_diff_files_merged = 0
     num_same_dirs_diff_files_merged = 0
     num_same_dirs_same_files_same_contents_merged = 0
@@ -169,6 +168,9 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
         full_path_in_2 = table_folder2 + "/" + d
         files_in_2 = [os.path.join(full_path_in_2, f) for f in os.listdir(full_path_in_2) if os.path.isfile(os.path.join(full_path_in_2, f))]
 
+        print("NUMBER OF FILES IN 1: "  + str(len(files_in_1)))
+        print("NUMBER OF FILES IN 2: "  + str(len(files_in_2)))
+
         # Extract the relative paths of the files
         # EX: {'aclsfmyimmacwkjesehaoqusrqykmgfghqealqgo', 'acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg', ...}
         files_relative_in_1 = set([os.path.basename(f) for f in files_in_1])
@@ -181,6 +183,7 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
         differing_files_only_from_1 = differing_files_relative & files_relative_in_1
         differing_files_only_from_2 = differing_files_relative & files_relative_in_2
 
+        print("number of shared files:" + str(len(shared_files_relative)))
         print("number of differing files:" + str(len(differing_files_relative)))
         print("number of differing files only from 1:" + str(len(differing_files_only_from_1)))
         print("number of differing files only from 2:" + str(len(differing_files_only_from_2)))
