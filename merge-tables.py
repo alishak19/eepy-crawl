@@ -75,13 +75,13 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
     
     threads = []
     for worker_folder_dir in worker_folder_dir_1:
-        process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver)
-        # thread = threading.Thread(target=process_worker, args=(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver))
-        # threads.append(thread)
-        # thread.start()
+        # process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver)
+        thread = threading.Thread(target=process_worker, args=(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver))
+        threads.append(thread)
+        thread.start()
 
-    # for thread in threads:
-    #     thread.join()
+    for thread in threads:
+        thread.join()
 
     print(f"Tables merged successfully into {args.merged_table_path}")
 
@@ -145,15 +145,15 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
     shared_dirs_relative = dirs1_relative & dirs2_relative
     differing_dirs_relative = dirs1_relative ^ dirs2_relative
 
-    print("number of directories total: " + str(len(dirs1_relative | dirs2_relative)))
-    print("number of shared directories:" + str(len(shared_dirs_relative)))
-    print("number of differing directories:" + str(len(differing_dirs_relative)))
+    # print("number of directories total: " + str(len(dirs1_relative | dirs2_relative)))
+    # print("number of shared directories:" + str(len(shared_dirs_relative)))
+    # print("number of differing directories:" + str(len(differing_dirs_relative)))
 
     differing_dirs_only_from_1 = differing_dirs_relative & dirs1_relative
     differing_dirs_only_from_2 = differing_dirs_relative & dirs2_relative
 
-    print("number of differing directories only from 1:" + str(len(differing_dirs_only_from_1)))
-    print("number of differing directories only from 2:" + str(len(differing_dirs_only_from_2)))
+    # print("number of differing directories only from 1:" + str(len(differing_dirs_only_from_1)))
+    # print("number of differing directories only from 2:" + str(len(differing_dirs_only_from_2)))
 
     print("\nIDENTICAL DIRECTORY NAME processing ---------\n")
 
@@ -168,8 +168,8 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
         full_path_in_2 = table_folder2 + "/" + d
         files_in_2 = [os.path.join(full_path_in_2, f) for f in os.listdir(full_path_in_2) if os.path.isfile(os.path.join(full_path_in_2, f))]
 
-        print("NUMBER OF FILES IN 1: "  + str(len(files_in_1)))
-        print("NUMBER OF FILES IN 2: "  + str(len(files_in_2)))
+        # print("NUMBER OF FILES IN 1: "  + str(len(files_in_1)))
+        # print("NUMBER OF FILES IN 2: "  + str(len(files_in_2)))
 
         # Extract the relative paths of the files
         # EX: {'aclsfmyimmacwkjesehaoqusrqykmgfghqealqgo', 'acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg', ...}
@@ -183,10 +183,10 @@ def process_worker(worker_folder_dir, table1_path, table2_path, merged_table_pat
         differing_files_only_from_1 = differing_files_relative & files_relative_in_1
         differing_files_only_from_2 = differing_files_relative & files_relative_in_2
 
-        print("number of shared files:" + str(len(shared_files_relative)))
-        print("number of differing files:" + str(len(differing_files_relative)))
-        print("number of differing files only from 1:" + str(len(differing_files_only_from_1)))
-        print("number of differing files only from 2:" + str(len(differing_files_only_from_2)))
+        # print("number of shared files:" + str(len(shared_files_relative)))
+        # print("number of differing files:" + str(len(differing_files_relative)))
+        # print("number of differing files only from 1:" + str(len(differing_files_only_from_1)))
+        # print("number of differing files only from 2:" + str(len(differing_files_only_from_2)))
 
         # print("diff files 1: ", differing_files_only_from_1)
         # print("diff files 2: ", differing_files_only_from_2)
@@ -316,8 +316,8 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
     if similarity_score < 0.7:
         print("Warning: Similarity score is < 0.7")
         print("Similarity score was: ", similarity_score)
-        print("File 1 contents: ", file1_contents)
-        print("File 2 contents: ", file2_contents)
+        # print("File 1 contents: ", file1_contents)
+        # print("File 2 contents: ", file2_contents)
 
     # Copy the file which has the most recent timestamp
     if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
