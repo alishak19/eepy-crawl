@@ -75,13 +75,13 @@ def merge_final_tables(table1_path, table2_path, merged_table_path, table_name, 
     
     threads = []
     for worker_folder_dir in worker_folder_dir_1:
-        # process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver)
-        thread = threading.Thread(target=process_worker, args=(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver))
-        threads.append(thread)
-        thread.start()
+        process_worker(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver)
+    #     thread = threading.Thread(target=process_worker, args=(worker_folder_dir, table1_path, table2_path, merged_table_path, table_name, identicalKeyConflictResolver))
+    #     threads.append(thread)
+    #     thread.start()
 
-    for thread in threads:
-        thread.join()
+    # for thread in threads:
+    #     thread.join()
 
     print(f"Tables merged successfully into {args.merged_table_path}")
 
