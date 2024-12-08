@@ -2,6 +2,7 @@ package cis5550.frontend;
 
 import cis5550.tools.Logger;
 import cis5550.frontend.FrontendKVSClient;
+import cis5550.tools.PorterStemmer;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -10,15 +11,29 @@ import java.util.Map;
 public class TFIDF {
     private static final Logger LOGGER = Logger.getLogger(TFIDF.class);
 
-    private static final String CRAWL_TABLE = "pt-crawl";
-    private static final String INDEX_TABLE = "pt-index";
     private static final int APPROX_CORPUS_SIZE = 100000;
     
     public static Map<String, Double> getTFIDFScores(String aQuery) {
         LOGGER.info("Getting TF-IDF scores for query: " + aQuery);
         Map<String, Integer> myUrlCountData = new HashMap<>();
+
+        PorterStemmer myStemmer = new PorterStemmer();
+        myStemmer.add(aQuery.toCharArray(), aQuery.length());
+        myStemmer.stem();
+        String myStemmedWord = new String(myStemmer.getResultBuffer());
+
+        Map<String, Integer> myStemmedUrlCountData = new HashMap<>();
         try {
             myUrlCountData = FrontendKVSClient.getUrlCountData(aQuery);
+            myStemmedUrlCountData = FrontendKVSClient.getUrlCountData(myStemmedWord);
+
+            for (String myUrl : myStemmedUrlCountData.keySet()) {
+                if (myUrlCountData.containsKey(myUrl)) {
+                    myUrlCountData.put(myUrl, myUrlCountData.get(myUrl) + myStemmedUrlCountData.get(myUrl));
+                } else {
+                    myUrlCountData.put(myUrl, myStemmedUrlCountData.get(myUrl));
+                }
+            }
         } catch (IOException e) {
             LOGGER.error("Error getting URL count data from KVS");
         }
