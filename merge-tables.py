@@ -352,12 +352,12 @@ def identical_file_resolver_pagerank(table1_path, table2_path, file_path_in_1, f
     # Write new rank to file
 
     # Get the file contents of file_path_in_1
-    with open(file_path_in_1, "r") as f:
-        file1_contents = f.readlines()
+    with open(file_path_in_1, "r") as f1:
+        file1_contents = f1.readlines()
         
     # Get the file contents of file_path_in_2
-    with open(file_path_in_2, "r") as f:
-        file2_contents = f.readlines()
+    with open(file_path_in_2, "r") as f2:
+        file2_contents = f2.readlines()
 
     print("File 1 contents: ", file1_contents)
     print("File 2 contents: ", file2_contents)
