@@ -414,7 +414,7 @@ if __name__ == "__main__":
 
     if args.table_name == "pt-crawl":
         merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_crawl)
-    elif args.table_name == "pt-pagerank":
+    elif args.table_name == "pt-pageranks":
         merge_final_tables(args.table1_path, args.table2_path, args.merged_table_path, args.table_name, identical_file_resolver_pagerank)
         # print("Failed to merge: pt-pagerank not implemented")
     else:
