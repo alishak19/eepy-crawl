@@ -341,7 +341,7 @@ def parseFileContents(file_contents):
     # EX: acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg rank 19 0.15099369888172004
     pageranks = {}
     # Split by space
-    file_contents = file_contents[0].split()
+    file_contents = file_contents[0].split(" ")
     
     return pageranks
 
