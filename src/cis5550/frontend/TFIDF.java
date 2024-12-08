@@ -3,16 +3,20 @@ package cis5550.frontend;
 import cis5550.tools.Logger;
 import cis5550.frontend.FrontendKVSClient;
 import cis5550.tools.PorterStemmer;
+import cis5550.utils.CollectionsUtils;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class TFIDF {
     private static final Logger LOGGER = Logger.getLogger(TFIDF.class);
 
-    private static final int APPROX_CORPUS_SIZE = 100000;
-    
+    private static final double APPROX_CORPUS_SIZE = 100000.0;
+    private static final int CRAWL_TABLE_BATCH_SIZE = 50;
+
     public static Map<String, Double> getTFIDFScores(String aQuery) {
         LOGGER.info("Getting TF-IDF scores for query: " + aQuery);
         Map<String, Integer> myUrlCountData = new HashMap<>();
@@ -40,7 +44,10 @@ public class TFIDF {
 
         Map<String, Integer> myUrlTermCountData = new HashMap<>();
         try {
-            myUrlTermCountData = FrontendKVSClient.getNumTermsPerUrl(myUrlCountData.keySet());
+            List<Set<String>> myPartitionedUrls = CollectionsUtils.partition(myUrlCountData.keySet(), CRAWL_TABLE_BATCH_SIZE);
+            for (Set<String> myUrls : myPartitionedUrls) {
+                myUrlTermCountData.putAll(FrontendKVSClient.getNumTermsPerUrl(myUrls));
+            }
         } catch (IOException e) {
             LOGGER.error("Error getting URL Term count data from KVS");
         }
