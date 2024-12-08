@@ -36,6 +36,8 @@ public class EepyCrawlSearch {
             String myQuery = req.queryParams("q");
             LOGGER.info("Received search query: " + myQuery);
 
+            myQuery = myQuery.toLowerCase().trim();
+
             List<SearchResult> myResults = getSearchResults(myQuery);
             return JSONBuilders.buildSearchResults(myResults);
         };
