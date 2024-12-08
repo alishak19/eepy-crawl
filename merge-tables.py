@@ -361,6 +361,9 @@ def identical_file_resolver_pagerank(table1_path, table2_path, file_path_in_1, f
     with open(file_path_in_2, "r") as f:
         file2_contents = f.readlines()
 
+    print("File 1 contents: ", file1_contents)
+    print("File 2 contents: ", file2_contents)
+
     # Parse the file contents
     pageranks = parseFileContents(file1_contents)
     pageranks2 = parseFileContents(file2_contents)
