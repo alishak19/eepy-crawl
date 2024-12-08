@@ -339,11 +339,9 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
     
 def parseFileContents(file_contents):
     # EX: acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg rank 19 0.15099369888172004
-    pageranks = {}
     # Split by space
     file_contents = file_contents[0].split(" ")
-    
-    return pageranks
+    return file_contents
 
 def identical_file_resolver_pagerank(table1_path, table2_path, file_path_in_1, file_path_in_2, target_worker_folder, table_name, d, f):
     # EX: acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg rank 19 0.15099369888172004
