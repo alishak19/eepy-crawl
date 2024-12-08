@@ -386,8 +386,9 @@ def identical_file_resolver_pagerank(table1_path, table2_path, file_path_in_1, f
     
     # Write the new rank to the file
     with open(os.path.join(target_worker_folder, table_name, d, f), "w") as f:
-        f.write(f"{url1} {rank} {new_length} {new_rank}")
-        print(f"Combined pageranks for {url1} and wrote to the merged table")
+        new_contents = url1 + " " + rank + " " + new_length + " " + str(new_rank)
+        f.write(new_contents)
+        print(f"Combined pageranks for {url1} and wrote \"{new_contents}\" to the merged table")
 
 def get_table_size(table_path):
     """
