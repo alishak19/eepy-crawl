@@ -366,6 +366,9 @@ def identical_file_resolver_pagerank(table1_path, table2_path, file_path_in_1, f
     pageranks = parseFileContents(file1_contents)
     pageranks2 = parseFileContents(file2_contents)
 
+    print("Parsed file 1 contents: ", pageranks)
+    print("Parsed file 2 contents: ", pageranks2)
+
     url1 = pageranks[0]
     url2 = pageranks2[0]
     rank = "rank"
