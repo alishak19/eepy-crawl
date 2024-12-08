@@ -320,21 +320,23 @@ def identical_file_resolver_crawl(table1_path, table2_path, file_path_in_1, file
         # print("File 2 contents: ", file2_contents)
 
     # Copy the file which has the most recent timestamp
-    if os.path.getmtime(file_path_in_1) > os.path.getmtime(file_path_in_2):
+
+    # Copy the file which has more content
+    if len(file1_contents) > len(file2_contents):
         file = os.path.basename(file_path_in_1)
         target_file_path = target_worker_folder + "/" + table_name + "/" + d + "/" + file
         target_file = os.path.join(target_file_path)
         if not os.path.exists(target_file):
             shutil.copy(file_path_in_1, target_file)
-            print("Copied file " + file + " from " + os.path.basename(table1_path) + " to the merged table because it has the most recent timestamp")
+            print("Copied file " + file + " from " + os.path.basename(table1_path) + " to the merged table because it has more content")
     else:
         file = os.path.basename(file_path_in_2)
         target_file_path = target_worker_folder + "/" + table_name + "/" + d + "/" + file
         target_file = os.path.join(target_file_path)
         if not os.path.exists(target_file):
             shutil.copy(file_path_in_2, target_file)
-            print("Copied file " + file + " from " + os.path.basename(table2_path) + " to the merged table because it has the most recent timestamp")
-
+            print("Copied file " + file + " from " + os.path.basename(table2_path) + " to the merged table because it has content")
+    
 def parseFileContents(file_contents):
     # EX: acgoqkfofgrieoyecofgvaqmimpipiggcqxijocg rank 19 0.15099369888172004
     pageranks = {}
