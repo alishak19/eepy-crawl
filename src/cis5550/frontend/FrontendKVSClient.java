@@ -3,6 +3,7 @@ package cis5550.frontend;
 import cis5550.jobs.datamodels.TableColumns;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
+import cis5550.tools.Hasher;
 import cis5550.tools.Logger;
 import cis5550.utils.CacheTableEntryUtils;
 
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.*;
+import java.util.stream.Collectors;
 
 import static cis5550.jobs.datamodels.TableName.*;
 import static cis5550.kvs.Worker.NULL_RETURN;
@@ -50,6 +52,35 @@ public class FrontendKVSClient {
         LOGGER.info("URL count data for query: " + aQuery + " is: " + myUrlCountData);
 
         return myUrlCountData;
+    }
+
+    public static Map<String, String> getTitlesPerUrl(List<String> aUrlList) throws IOException {
+        LOGGER.info("Getting the title for a url hash " + aUrlList.size() + " URLs");
+
+        List<String> myUrls = aUrlList.stream().map(aUrl -> Hasher.hash(aUrl)).collect(Collectors.toList());
+        List<String> myPageContentsList = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrls);
+
+        Pattern pattern = Pattern.compile("<title>(.*?)</title>", Pattern.CASE_INSENSITIVE);
+
+        Map<String, String> titlesPerUrl = new HashMap<>();
+        for (int i = 0; i < myUrls.size(); i++) {
+            String myUrl = myUrls.get(i);
+            String myPageContent = myPageContentsList.get(i);
+            Matcher matcher = pattern.matcher(myPageContent);
+            LOGGER.info("Title for URL: " + aUrlList.get(i) + " is: ");
+            System.out.println("Title for URL: " + aUrlList.get(i) + " is: ");
+            if (matcher.find()) {
+                String title = matcher.group(1);
+                LOGGER.info(title);
+                System.out.print(title);
+                titlesPerUrl.put(myUrl, title);
+            } else {
+                titlesPerUrl.put(myUrl, aUrlList.get(i));
+            }
+        }
+
+        LOGGER.info("Titles for " + aUrlList.size() + " URLs.");
+        return titlesPerUrl;
     }
 
     public static Map<String, Integer> getNumTermsPerUrl(Set<String> aUrlSet) throws IOException {
