@@ -85,6 +85,7 @@ public class FrontendKVSClient {
 
             if (matcherTitle.find()) {
                 title = matcherTitle.group(1).trim();
+                title = HTMLParser.unescapeHtml(title);
             }
             if (matcherSnippet.find()) {
                 snippet = matcherSnippet.group(1).trim();
