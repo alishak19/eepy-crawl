@@ -1,8 +1,8 @@
 package cis5550.frontend;
 
 import cis5550.jobs.datamodels.TableColumns;
+import cis5550.tools.HTMLParser;
 import cis5550.utils.CollectionsUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
 import cis5550.tools.Hasher;
@@ -51,7 +51,8 @@ public class FrontendKVSClient {
 
             try {
                 Integer myCount = Integer.parseInt(myIndexEntryArr[myIndexEntryArr.length - 1]);
-                myUrlCountData.put(myIndexItem.substring(0, myIndexItem.lastIndexOf(COLON)), myCount);
+                String myUrl = myIndexItem.substring(0, myIndexItem.lastIndexOf(COLON));
+                myUrlCountData.put(URLDecoder.decode(myUrl, StandardCharsets.UTF_8), myCount);
             } catch (NumberFormatException e) {
                 LOGGER.error("Error parsing count from index entry: " + myIndexItem);
             }
@@ -70,8 +71,8 @@ public class FrontendKVSClient {
         Pattern patternSnippet = Pattern.compile("<meta\\s+name\\s*=\\s*['\"]description['\"]\\s+content\\s*=\\s*['\"](.*?)['\"]", Pattern.CASE_INSENSITIVE);
 
         Map<String, UrlInfo> infoPerUrl = new HashMap<>();
-        for (int i = 0; i < aUrlList.size(); i++) {
-            String myNormalizedUrl = URLDecoder.decode(aUrlList.get(i), StandardCharsets.UTF_8);
+        for (String s : aUrlList) {
+            String myNormalizedUrl = URLDecoder.decode(s, StandardCharsets.UTF_8);
             String myPageContent = myPageContents.get(Hasher.hash(myNormalizedUrl));
             if (myPageContent == null) {
                 continue;
@@ -87,7 +88,7 @@ public class FrontendKVSClient {
             }
             if (matcherSnippet.find()) {
                 snippet = matcherSnippet.group(1).trim();
-                snippet = StringEscapeUtils.unescapeHtml4(snippet);
+                snippet = HTMLParser.unescapeHtml(snippet);
             }
 
             infoPerUrl.put(myNormalizedUrl, new UrlInfo(title, snippet));
@@ -99,7 +100,6 @@ public class FrontendKVSClient {
         LOGGER.info("Getting number of terms per URL for " + aUrlSet.size() + " URLs");
 
         Map<String, String> myPageContents = partitionedBatchedGetCrawlTableValues(aUrlSet);
-
         Map<String, Integer> myNumTermsPerUrl = myPageContents.entrySet().stream()
                 .map(myEntry -> Map.entry(myEntry.getKey(), getNumTermsInUrl(myEntry.getValue())))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -177,7 +177,6 @@ public class FrontendKVSClient {
         ConcurrentMap<String, String> myPageContents = new ConcurrentHashMap<>();
 
         Collection<String> myUrlHashes = aAllUrls.stream()
-                .map(myUrl -> URLDecoder.decode(myUrl, StandardCharsets.UTF_8))
                 .map(Hasher::hash)
                 .toList();
 
@@ -191,9 +190,14 @@ public class FrontendKVSClient {
                 try {
                     List<String> myPartitionPageContents = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrlHashesBatch.stream().toList());
                     Map<String, String> myPartitionPageContentsMap = new HashMap<>();
-                    for (int i = 0; i < myUrlHashesBatch.size(); i++) {
-                        myPartitionPageContentsMap.put(myUrlHashesBatch.iterator().next(), myPartitionPageContents.get(i));
+
+                    Iterator<String> hashIterator = myUrlHashesBatch.iterator();
+                    for (String pageContent : myPartitionPageContents) {
+                        if (hashIterator.hasNext()) {
+                            myPartitionPageContentsMap.put(hashIterator.next(), pageContent);
+                        }
                     }
+
                     return myPartitionPageContentsMap;
                 } catch (IOException e) {
                     LOGGER.error("Error getting page contents from KVS");

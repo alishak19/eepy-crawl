@@ -1,11 +1,14 @@
 package cis5550.frontend;
 
+import cis5550.tools.Hasher;
 import cis5550.tools.Logger;
 import cis5550.frontend.FrontendKVSClient;
 import cis5550.tools.PorterStemmer;
 import cis5550.utils.CollectionsUtils;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +28,7 @@ public class TFIDF {
         myStemmer.stem();
         String myStemmedWord = new String(myStemmer.getResultBuffer());
 
-        Map<String, Integer> myStemmedUrlCountData = new HashMap<>();
+        Map<String, Integer> myStemmedUrlCountData;
         try {
             myUrlCountData = FrontendKVSClient.getUrlCountData(aQuery);
             myStemmedUrlCountData = FrontendKVSClient.getUrlCountData(myStemmedWord);
@@ -54,7 +57,7 @@ public class TFIDF {
         Map<String, Double> myTFIDFScores = new HashMap<>();
         for (String myUrl : myUrlCountData.keySet()) {
             Integer myQueryCount = myUrlCountData.get(myUrl);
-            Integer myTermCount = myUrlTermCountData.get(myUrl);
+            Integer myTermCount = myUrlTermCountData.get(Hasher.hash(myUrl));
             double myTF = (double) myQueryCount / myTermCount;
             myTFIDFScores.put(myUrl, myTF * myIDF);
         }

@@ -1,7 +1,6 @@
 package cis5550.frontend;
 
 import cis5550.tools.Logger;
-import cis5550.utils.CollectionsUtils;
 import cis5550.webserver.Route;
 import cis5550.webserver.datamodels.ContentType;
 
@@ -12,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static cis5550.webserver.Server.*;
@@ -109,10 +107,20 @@ public class EepyCrawlSearch {
 
     private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, UrlInfo> aInfoPerUrl) {
         return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .map(myEntry -> new SearchResult(aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).title(),
-                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8),
-                        aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).snippet(),
-                        myEntry.getValue()))
+                .map(entry -> {
+                    String decodedUrl = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8);
+                    if (decodedUrl == null || aInfoPerUrl.get(decodedUrl) == null) {
+                        return null;
+                    } else {
+                        return new SearchResult(
+                                aInfoPerUrl.get(decodedUrl).title(),
+                                decodedUrl,
+                                aInfoPerUrl.get(decodedUrl).snippet(),
+                                entry.getValue()
+                        );
+                    }
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 }
