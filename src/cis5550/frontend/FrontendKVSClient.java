@@ -56,28 +56,36 @@ public class FrontendKVSClient {
         return myUrlCountData;
     }
 
-    public static Map<String, String> getTitlesPerUrl(List<String> aUrlList) throws IOException {
+    public static Map<String, UrlInfo> getInfoPerUrl(List<String> aUrlList) throws IOException {
         LOGGER.info("Getting titles for " + aUrlList.size() + " URLs");
         List<String> myUrls = aUrlList.stream()
                 .map(aUrl -> URLDecoder.decode(aUrl, StandardCharsets.UTF_8))
                 .map(aUrl -> Hasher.hash(aUrl)).collect(Collectors.toList());
         List<String> myPageContentsList = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrls);
 
-        Pattern pattern = Pattern.compile("<title[^>]*>([\\s\\S]*?)</title>", Pattern.CASE_INSENSITIVE);
+        Pattern patternTitle = Pattern.compile("<title[^>]*>([\\s\\S]*?)</title>", Pattern.CASE_INSENSITIVE);
+        Pattern patternSnippet = Pattern.compile("<meta\\s+name\\s*=\\s*['\"]description['\"]\\s+content\\s*=\\s*['\"](.*?)['\"]", Pattern.CASE_INSENSITIVE);
 
-        Map<String, String> titlesPerUrl = new HashMap<>();
+        Map<String, UrlInfo> infoPerUrl = new HashMap<>();
         for (int i = 0; i < myUrls.size(); i++) {
             String myNormalizedUrl = URLDecoder.decode(aUrlList.get(i), StandardCharsets.UTF_8);
             String myPageContent = myPageContentsList.get(i);
-            Matcher matcher = pattern.matcher(myPageContent);
-            if (matcher.find()) {
-                String title = matcher.group(1).trim();
-                titlesPerUrl.put(myNormalizedUrl, title);
-            } else {
-                titlesPerUrl.put(myNormalizedUrl, myNormalizedUrl);
+            Matcher matcherTitle = patternTitle.matcher(myPageContent);
+            Matcher matcherSnippet = patternSnippet.matcher(myPageContent);
+
+            String title = myNormalizedUrl;
+            String snippet = "No preview available";
+
+            if (matcherTitle.find()) {
+                title = matcherTitle.group(1).trim();
             }
+            if (matcherSnippet.find()) {
+                snippet = URLDecoder.decode(matcherSnippet.group(1)).trim();
+            }
+
+            infoPerUrl.put(myNormalizedUrl, new UrlInfo(title, snippet));
         }
-        return titlesPerUrl;
+        return infoPerUrl;
     }
 
     public static Map<String, Integer> getNumTermsPerUrl(Set<String> aUrlSet) throws IOException {

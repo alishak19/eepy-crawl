@@ -72,9 +72,9 @@ public class EepyCrawlSearch {
             LOGGER.error("Error getting pagerank scores from KVS");
         }
 
-        Map<String, String> myTitlesPerUrl = null;
+        Map<String, UrlInfo> myInfoPerUrl = null;
         try {
-            myTitlesPerUrl = FrontendKVSClient.getTitlesPerUrl(myTFIDFScores.keySet().stream().toList());
+            myInfoPerUrl = FrontendKVSClient.getInfoPerUrl(myTFIDFScores.keySet().stream().toList());
         } catch (IOException e) {
             LOGGER.error("Error getting titles per URL from KVS");
         }
@@ -90,7 +90,7 @@ public class EepyCrawlSearch {
             myCombinedScores.put(myUrl, getFinalCombinedScore(myTFIDFScore, myPagerankScore));
         }
 
-        List<SearchResult> myResults = buildSearchResultsFromScores(myCombinedScores, myTitlesPerUrl);
+        List<SearchResult> myResults = buildSearchResultsFromScores(myCombinedScores, myInfoPerUrl);
         try {
             FrontendKVSClient.putInCache(aQuery, myResults);
         } catch (IOException e) {
@@ -106,13 +106,10 @@ public class EepyCrawlSearch {
         return aTFIDFScore + aPagerankScore;
     }
 
-    private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, String> aTitlesPerUrl) {
-        return aScores.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .map(myEntry -> new SearchResult(
-                        aTitlesPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)),
-                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8),
-                        " "))
+    private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, UrlInfo> aInfoPerUrl) {
+        return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .map(myEntry -> new SearchResult(aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).title(),
+                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8), aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).snippet()))
                 .collect(Collectors.toList());
     }
 }
