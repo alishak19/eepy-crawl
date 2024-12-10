@@ -8,6 +8,8 @@ import cis5550.tools.Logger;
 import cis5550.utils.CacheTableEntryUtils;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.*;
@@ -55,31 +57,26 @@ public class FrontendKVSClient {
     }
 
     public static Map<String, String> getTitlesPerUrl(List<String> aUrlList) throws IOException {
-        LOGGER.info("Getting the title for a url hash " + aUrlList.size() + " URLs");
-
-        List<String> myUrls = aUrlList.stream().map(aUrl -> Hasher.hash(aUrl)).collect(Collectors.toList());
+        LOGGER.info("Getting titles for " + aUrlSet.size() + " URLs");
+        List<String> myUrls = aUrlList.stream()
+                .map(aUrl -> URLDecoder.decode(aUrl, StandardCharsets.UTF_8))
+                .map(aUrl -> Hasher.hash(aUrl)).collect(Collectors.toList());
         List<String> myPageContentsList = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrls);
 
-        Pattern pattern = Pattern.compile("<title>(.*?)</title>", Pattern.CASE_INSENSITIVE);
+        Pattern pattern = Pattern.compile("<title[^>]*>([\\s\\S]*?)</title>", Pattern.CASE_INSENSITIVE);
 
         Map<String, String> titlesPerUrl = new HashMap<>();
         for (int i = 0; i < myUrls.size(); i++) {
-            String myUrl = myUrls.get(i);
+            String myNormalizedUrl = URLDecoder.decode(aUrlList.get(i), StandardCharsets.UTF_8);
             String myPageContent = myPageContentsList.get(i);
             Matcher matcher = pattern.matcher(myPageContent);
-            LOGGER.info("Title for URL: " + aUrlList.get(i) + " is: ");
-            System.out.println("Title for URL: " + aUrlList.get(i) + " is: ");
             if (matcher.find()) {
-                String title = matcher.group(1);
-                LOGGER.info(title);
-                System.out.print(title);
-                titlesPerUrl.put(myUrl, title);
+                String title = matcher.group(1).trim();
+                titlesPerUrl.put(myNormalizedUrl, title);
             } else {
-                titlesPerUrl.put(myUrl, aUrlList.get(i));
+                titlesPerUrl.put(myNormalizedUrl, myNormalizedUrl);
             }
         }
-
-        LOGGER.info("Titles for " + aUrlList.size() + " URLs.");
         return titlesPerUrl;
     }
 

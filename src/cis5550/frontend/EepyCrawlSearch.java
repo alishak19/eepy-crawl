@@ -6,12 +6,12 @@ import cis5550.webserver.datamodels.ContentType;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.net.URLDecoder;
 
 import static cis5550.webserver.Server.*;
 
@@ -30,13 +30,6 @@ public class EepyCrawlSearch {
             return new String(Files.readAllBytes(Paths.get(PAGE_DIR + File.separator + "index.html")));
         });
         get("/search", searchRoute());
-
-        /*
-        Hash url
-        Index into crawl table with row key, get page
-        Run regex and get whatever is inside title tag
-        Choose that as title
-         */
     }
 
     private static Route searchRoute() {
@@ -71,21 +64,13 @@ public class EepyCrawlSearch {
             LOGGER.error("Error getting cached results from KVS");
         }
 
-        List<SearchResult> myResults = null;
-
-
-
         Map<String, Double> myTFIDFScores = TFIDF.getTFIDFScores(aQuery);
-
         Map<String, Double> myPagerankScores = new HashMap<>();
-
         try {
             myPagerankScores = FrontendKVSClient.getPagerankScores(myTFIDFScores.keySet());
         } catch (IOException e) {
             LOGGER.error("Error getting pagerank scores from KVS");
         }
-
-        Map<String, Double> myCombinedScores = new HashMap<>();
 
         Map<String, String> myTitlesPerUrl = null;
         try {
@@ -94,17 +79,18 @@ public class EepyCrawlSearch {
             LOGGER.error("Error getting titles per URL from KVS");
         }
 
+        Map<String, Double> myCombinedScores = new HashMap<>();
         for (String myUrl : myTFIDFScores.keySet()) {
             double myTFIDFScore = myTFIDFScores.get(myUrl);
             double myPagerankScore = 0.0;
             if (myPagerankScores.containsKey(myUrl)) {
                 myPagerankScore = myPagerankScores.get(myUrl);
+                System.out.println(myPagerankScore);
             }
             myCombinedScores.put(myUrl, getFinalCombinedScore(myTFIDFScore, myPagerankScore));
         }
 
-        myResults = buildSearchResultsFromScores(myCombinedScores, myTitlesPerUrl);
-
+        List<SearchResult> myResults = buildSearchResultsFromScores(myCombinedScores, myTitlesPerUrl);
         try {
             FrontendKVSClient.putInCache(aQuery, myResults);
         } catch (IOException e) {
@@ -121,9 +107,12 @@ public class EepyCrawlSearch {
     }
 
     private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, String> aTitlesPerUrl) {
-        return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .map(myEntry -> new SearchResult(aTitlesPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)),
-                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8), " "))
+        return aScores.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .map(myEntry -> new SearchResult(
+                        aTitlesPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)),
+                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8),
+                        " "))
                 .collect(Collectors.toList());
     }
 }
