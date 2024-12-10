@@ -3,11 +3,11 @@ package cis5550.utils;
 import java.util.*;
 
 public class CollectionsUtils {
-    public static <T> List<Set<T>> partition(Set<T> aSet, int aPartitionSize) {
-        List<Set<T>> myPartitions = new LinkedList<>();
+    public static <T> List<Collection<T>> partition(Collection<T> aCollection, int aPartitionSize) {
+        List<Collection<T>> myPartitions = new LinkedList<>();
 
-        Set<T> myCurrentPartition = new HashSet<>();
-        for (T myItem : aSet) {
+        Collection<T> myCurrentPartition = new HashSet<>();
+        for (T myItem : aCollection) {
             myCurrentPartition.add(myItem);
             if (myCurrentPartition.size() == aPartitionSize) {
                 myPartitions.add(myCurrentPartition);

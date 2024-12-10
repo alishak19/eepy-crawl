@@ -15,7 +15,6 @@ public class TFIDF {
     private static final Logger LOGGER = Logger.getLogger(TFIDF.class);
 
     private static final double APPROX_CORPUS_SIZE = 100000.0;
-    private static final int CRAWL_TABLE_BATCH_SIZE = 50;
 
     public static Map<String, Double> getTFIDFScores(String aQuery) {
         LOGGER.info("Getting TF-IDF scores for query: " + aQuery);
@@ -44,10 +43,7 @@ public class TFIDF {
 
         Map<String, Integer> myUrlTermCountData = new HashMap<>();
         try {
-            List<Set<String>> myPartitionedUrls = CollectionsUtils.partition(myUrlCountData.keySet(), CRAWL_TABLE_BATCH_SIZE);
-            for (Set<String> myUrls : myPartitionedUrls) {
-                myUrlTermCountData.putAll(FrontendKVSClient.getNumTermsPerUrl(myUrls));
-            }
+            myUrlTermCountData = FrontendKVSClient.getNumTermsPerUrl(myUrlCountData.keySet());
         } catch (IOException e) {
             LOGGER.error("Error getting URL Term count data from KVS");
         }

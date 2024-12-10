@@ -1,6 +1,7 @@
 package cis5550.frontend;
 
 import cis5550.tools.Logger;
+import cis5550.utils.CollectionsUtils;
 import cis5550.webserver.Route;
 import cis5550.webserver.datamodels.ContentType;
 
@@ -11,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static cis5550.webserver.Server.*;
@@ -72,7 +74,7 @@ public class EepyCrawlSearch {
             LOGGER.error("Error getting pagerank scores from KVS");
         }
 
-        Map<String, UrlInfo> myInfoPerUrl = null;
+        Map<String, UrlInfo> myInfoPerUrl = new HashMap<>();
         try {
             myInfoPerUrl = FrontendKVSClient.getInfoPerUrl(myTFIDFScores.keySet().stream().toList());
         } catch (IOException e) {

@@ -1,6 +1,7 @@
 package cis5550.frontend;
 
 import cis5550.jobs.datamodels.TableColumns;
+import cis5550.utils.CollectionsUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
@@ -12,7 +13,7 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.regex.*;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,9 @@ public class FrontendKVSClient {
 
     private static final String COLON = ":";
     private static final String COMMA = ",";
+
+    private static final int CRAWL_TABLE_BATCH_SIZE = 50;
+    private static final int NUM_THREADS = 8;
 
     public static Map<String, Integer> getUrlCountData(String aQuery) throws IOException {
         LOGGER.info("Getting URL count data for query: " + aQuery);
@@ -59,19 +63,19 @@ public class FrontendKVSClient {
 
     public static Map<String, UrlInfo> getInfoPerUrl(List<String> aUrlList) throws IOException {
         LOGGER.info("Getting titles for " + aUrlList.size() + " URLs");
-        List<String> myUrls = aUrlList.stream()
-                .map(aUrl -> URLDecoder.decode(aUrl, StandardCharsets.UTF_8))
-                .map(Hasher::hash)
-                .collect(Collectors.toList());
-        List<String> myPageContentsList = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrls);
+
+        Map<String, String> myPageContents = partitionedBatchedGetCrawlTableValues(aUrlList);
 
         Pattern patternTitle = Pattern.compile("<title[^>]*>([\\s\\S]*?)</title>", Pattern.CASE_INSENSITIVE);
         Pattern patternSnippet = Pattern.compile("<meta\\s+name\\s*=\\s*['\"]description['\"]\\s+content\\s*=\\s*['\"](.*?)['\"]", Pattern.CASE_INSENSITIVE);
 
         Map<String, UrlInfo> infoPerUrl = new HashMap<>();
-        for (int i = 0; i < myUrls.size(); i++) {
+        for (int i = 0; i < aUrlList.size(); i++) {
             String myNormalizedUrl = URLDecoder.decode(aUrlList.get(i), StandardCharsets.UTF_8);
-            String myPageContent = myPageContentsList.get(i);
+            String myPageContent = myPageContents.get(Hasher.hash(myNormalizedUrl));
+            if (myPageContent == null) {
+                continue;
+            }
             Matcher matcherTitle = patternTitle.matcher(myPageContent);
             Matcher matcherSnippet = patternSnippet.matcher(myPageContent);
 
@@ -93,20 +97,15 @@ public class FrontendKVSClient {
 
     public static Map<String, Integer> getNumTermsPerUrl(Set<String> aUrlSet) throws IOException {
         LOGGER.info("Getting number of terms per URL for " + aUrlSet.size() + " URLs");
-        List<String> myUrlList = new ArrayList<>(aUrlSet);
 
-        List<String> myPageContents = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrlList);
+        Map<String, String> myPageContents = partitionedBatchedGetCrawlTableValues(aUrlSet);
 
-        Map<String, Integer> numTermsPerUrl = new HashMap<>();
-        for (int i = 0; i < myUrlList.size(); i++) {
-            String myUrl = myUrlList.get(i);
-            String myPage = myPageContents.get(i);
-            if (myPage != null) {
-                numTermsPerUrl.put(myUrl, getNumTermsInUrl(myPage));
-            }
-        }
-        LOGGER.info("Number of terms per URL for " + aUrlSet.size() + " URLs: " + numTermsPerUrl);
-        return numTermsPerUrl;
+        Map<String, Integer> myNumTermsPerUrl = myPageContents.entrySet().stream()
+                .map(myEntry -> Map.entry(myEntry.getKey(), getNumTermsInUrl(myEntry.getValue())))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        LOGGER.info("Number of terms per URL for " + aUrlSet.size() + " URLs: " + myNumTermsPerUrl);
+        return myNumTermsPerUrl;
     }
 
     private static Integer getNumTermsInUrl(String aPage) {
@@ -172,5 +171,48 @@ public class FrontendKVSClient {
         Row myRow = new Row(aQuery);
         myRow.put(TableColumns.VALUE.value(), myEntry);
         KVS_CLIENT.putRow(CACHE_TABLE.getName(), myRow);
+    }
+
+    private static Map<String, String> partitionedBatchedGetCrawlTableValues(Collection<String> aAllUrls) {
+        ConcurrentMap<String, String> myPageContents = new ConcurrentHashMap<>();
+
+        Collection<String> myUrlHashes = aAllUrls.stream()
+                .map(myUrl -> URLDecoder.decode(myUrl, StandardCharsets.UTF_8))
+                .map(Hasher::hash)
+                .toList();
+
+        ExecutorService myExecutor = Executors.newFixedThreadPool(NUM_THREADS);
+
+        List<Collection<String>> myPartitionedUrlHahes = CollectionsUtils.partition(myUrlHashes, CRAWL_TABLE_BATCH_SIZE);
+        List<Callable<Map<String, String>>> myTasks = new ArrayList<>(myPartitionedUrlHahes.size());
+
+        for (Collection<String> myUrlHashesBatch : myPartitionedUrlHahes) {
+            myTasks.add(() -> {
+                try {
+                    List<String> myPartitionPageContents = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrlHashesBatch.stream().toList());
+                    Map<String, String> myPartitionPageContentsMap = new HashMap<>();
+                    for (int i = 0; i < myUrlHashesBatch.size(); i++) {
+                        myPartitionPageContentsMap.put(myUrlHashesBatch.iterator().next(), myPartitionPageContents.get(i));
+                    }
+                    return myPartitionPageContentsMap;
+                } catch (IOException e) {
+                    LOGGER.error("Error getting page contents from KVS");
+                    return null;
+                }
+            });
+        }
+
+        try {
+            myExecutor.invokeAll(myTasks).forEach(myFuture -> {
+                try {
+                    myPageContents.putAll(myFuture.get());
+                } catch (InterruptedException | ExecutionException e) {
+                    LOGGER.error("Error getting page contents from KVS");
+                }
+            });
+        } catch (InterruptedException e) {
+            LOGGER.error("Error getting page contents from KVS, executor interrupted");
+        }
+        return myPageContents;
     }
 }
