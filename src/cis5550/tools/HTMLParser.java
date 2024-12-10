@@ -53,7 +53,7 @@ public class HTMLParser {
         }
         hexMatcher.appendTail(result);
 
-        String res = result.toString().replace("\"", "\\\"");
+        String res = result.toString().replace("\"", "\"");
 
         return res;
     }
