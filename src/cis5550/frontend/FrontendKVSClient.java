@@ -63,16 +63,16 @@ public class FrontendKVSClient {
                 .map(aUrl -> Hasher.hash(aUrl)).collect(Collectors.toList());
         List<String> myPageContentsList = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrls);
 
-        Pattern pattern = Pattern.compile("<title[^>]*>([\\s\\S]*?)</title>", Pattern.CASE_INSENSITIVE);
-        Pattern pattern2 = Pattern.compile("<meta\\s+name\\s*=\\s*['\"]description['\"]\\s+content\\s*=\\s*['\"](.*?)['\"]", Pattern.CASE_INSENSITIVE);
+        Pattern patternTitle = Pattern.compile("<title[^>]*>([\\s\\S]*?)</title>", Pattern.CASE_INSENSITIVE);
+        Pattern patternSnippet = Pattern.compile("<meta\\s+name\\s*=\\s*['\"]description['\"]\\s+content\\s*=\\s*['\"](.*?)['\"]", Pattern.CASE_INSENSITIVE);
 
         Map<String, UrlInfo> infoPerUrl = new HashMap<>();
         for (int i = 0; i < myUrls.size(); i++) {
             String myNormalizedUrl = URLDecoder.decode(aUrlList.get(i), StandardCharsets.UTF_8);
             String myPageContent = myPageContentsList.get(i);
-            Matcher matcherTitle = pattern.matcher(myPageContent);
+            Matcher matcherTitle = patternTitle.matcher(myPageContent);
 
-            Matcher matcherSnippet = pattern2.matcher(myPageContent);
+            Matcher matcherSnippet = patternSnippet.matcher(myPageContent);
 
             String title = myNormalizedUrl;
             String snippet = "No preview available";
