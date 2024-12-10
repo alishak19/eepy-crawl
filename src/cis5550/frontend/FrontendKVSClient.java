@@ -61,7 +61,8 @@ public class FrontendKVSClient {
         LOGGER.info("Getting titles for " + aUrlList.size() + " URLs");
         List<String> myUrls = aUrlList.stream()
                 .map(aUrl -> URLDecoder.decode(aUrl, StandardCharsets.UTF_8))
-                .map(aUrl -> Hasher.hash(aUrl)).collect(Collectors.toList());
+                .map(Hasher::hash)
+                .collect(Collectors.toList());
         List<String> myPageContentsList = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrls);
 
         Pattern patternTitle = Pattern.compile("<title[^>]*>([\\s\\S]*?)</title>", Pattern.CASE_INSENSITIVE);

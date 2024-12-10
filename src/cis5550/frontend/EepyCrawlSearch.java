@@ -85,7 +85,6 @@ public class EepyCrawlSearch {
             double myPagerankScore = 0.0;
             if (myPagerankScores.containsKey(myUrl)) {
                 myPagerankScore = myPagerankScores.get(myUrl);
-                System.out.println(myPagerankScore);
             }
             myCombinedScores.put(myUrl, getFinalCombinedScore(myTFIDFScore, myPagerankScore));
         }
@@ -109,7 +108,8 @@ public class EepyCrawlSearch {
     private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, UrlInfo> aInfoPerUrl) {
         return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .map(myEntry -> new SearchResult(aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).title(),
-                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8), aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).snippet()))
+                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8),
+                        aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).snippet()))
                 .collect(Collectors.toList());
     }
 }
