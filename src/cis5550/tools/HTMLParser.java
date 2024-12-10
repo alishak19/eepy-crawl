@@ -44,16 +44,17 @@ public class HTMLParser {
         }
         decimalMatcher.appendTail(result);
         input = result.toString();
-        input = input.replace("\"", "\\\"");
 
         Matcher hexMatcher = HEX_PATTERN.matcher(input);
         result = new StringBuffer();
         while (hexMatcher.find()) {
             int codePoint = Integer.parseInt(hexMatcher.group(1), 16);
-            hexMatcher.appendReplacement(result, new String(Character.toChars(codePoint)));
+            hexMatcher.appendReplacement(result, Matcher.quoteReplacement(new String(Character.toChars(codePoint))));
         }
         hexMatcher.appendTail(result);
 
-        return result.toString();
+        String res = result.toString().replace("\"", "\\\"");
+
+        return res;
     }
 }
