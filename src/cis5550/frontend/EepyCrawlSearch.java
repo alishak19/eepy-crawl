@@ -42,8 +42,6 @@ public class EepyCrawlSearch {
             List<SearchResult> myResults = getSearchResults(myQuery);
             String jsonString = JSONBuilders.buildSearchResults(myResults);
 
-//            System.out.println("jsonString: " + jsonString);
-
             return jsonString;
         };
     }
@@ -109,7 +107,7 @@ public class EepyCrawlSearch {
         return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .map(entry -> {
                     String decodedUrl = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8);
-                    if (decodedUrl == null || aInfoPerUrl.get(decodedUrl) == null) {
+                    if (decodedUrl == null || aInfoPerUrl.get(decodedUrl) == null || !decodedUrl.contains("http")) {
                         return null;
                     } else {
                         return new SearchResult(

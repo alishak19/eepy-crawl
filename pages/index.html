@@ -178,7 +178,7 @@
                 resultsContainer.innerHTML = '<div class="no-results">Loading results...</div>';
 
                 try {
-                    const response = await fetch(`http://ec2-54-175-216-77.compute-1.amazonaws.com/search?q=${encodeURIComponent(query)}`);
+                    const response = await fetch(`http://localhost/search?q=${encodeURIComponent(query)}`);
                     const rawJson = await response.text();
                     const sanitizedJson = rawJson.replace(/[\x00-\x1F\x7F]/g, '').replace(/\u2028/g, '').replace(/\u2029/g, '');
                     const data = JSON.parse(sanitizedJson);
