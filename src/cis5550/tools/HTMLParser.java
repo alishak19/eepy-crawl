@@ -13,7 +13,7 @@ public class HTMLParser {
         HTML_ENTITIES.put("&gt;", ">");
         HTML_ENTITIES.put("&amp;", "&");
         // HTML_ENTITIES.put("&quot;", "\"");
-        HTML_ENTITIES.put("&apos;", "'");
+        // HTML_ENTITIES.put("&apos;", "'");
         HTML_ENTITIES.put("&#39;", "'");
         HTML_ENTITIES.put("&nbsp;", " ");
         HTML_ENTITIES.put("&cent;", "¢");
