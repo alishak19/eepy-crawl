@@ -12,7 +12,7 @@ public class HTMLParser {
         HTML_ENTITIES.put("&lt;", "<");
         HTML_ENTITIES.put("&gt;", ">");
         HTML_ENTITIES.put("&amp;", "&");
-        HTML_ENTITIES.put("&quot;", "\\\"");
+        // HTML_ENTITIES.put("&quot;", "\"");
         HTML_ENTITIES.put("&apos;", "'");
         HTML_ENTITIES.put("&nbsp;", " ");
         HTML_ENTITIES.put("&cent;", "¢");
@@ -44,16 +44,17 @@ public class HTMLParser {
         }
         decimalMatcher.appendTail(result);
         input = result.toString();
-        input = input.replace("\"", "\\\"");
 
         Matcher hexMatcher = HEX_PATTERN.matcher(input);
         result = new StringBuffer();
         while (hexMatcher.find()) {
             int codePoint = Integer.parseInt(hexMatcher.group(1), 16);
-            hexMatcher.appendReplacement(result, new String(Character.toChars(codePoint)));
+            hexMatcher.appendReplacement(result, Matcher.quoteReplacement(new String(Character.toChars(codePoint))));
         }
         hexMatcher.appendTail(result);
 
-        return result.toString();
+        String res = result.toString();
+
+        return res;
     }
 }
