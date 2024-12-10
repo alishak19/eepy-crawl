@@ -47,7 +47,6 @@ public class FrontendKVSClient {
         Map<String, Integer> myUrlCountData = new ConcurrentHashMap<>();
 
         for (String myIndexItem : myIndexItems) {
-            System.out.println(myIndexItem);
             String[] myIndexEntryArr = myIndexItem.split(COLON);
 
             try {
