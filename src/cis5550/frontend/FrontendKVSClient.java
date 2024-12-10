@@ -1,6 +1,7 @@
 package cis5550.frontend;
 
 import cis5550.jobs.datamodels.TableColumns;
+import org.apache.commons.text.StringEscapeUtils;
 import cis5550.kvs.KVSClient;
 import cis5550.kvs.Row;
 import cis5550.tools.Hasher;
@@ -80,7 +81,8 @@ public class FrontendKVSClient {
                 title = matcherTitle.group(1).trim();
             }
             if (matcherSnippet.find()) {
-                snippet = URLDecoder.decode(matcherSnippet.group(1)).trim();
+                snippet = matcherSnippet.group(1).trim();
+                snippet = StringEscapeUtils.unescapeHtml4(snippet);
             }
 
             infoPerUrl.put(myNormalizedUrl, new UrlInfo(title, snippet));
