@@ -79,6 +79,13 @@ public class EepyCrawlSearch {
             LOGGER.error("Error getting titles per URL from KVS");
         }
 
+        Map<String, String> mySnippetsPerUrl = null;
+        try {
+            mySnippetsPerUrl = FrontendKVSClient.getSnippetsPerUrl(myTFIDFScores.keySet().stream().toList());
+        } catch (IOException e) {
+            LOGGER.error("Error getting titles per URL from KVS");
+        }
+
         Map<String, Double> myCombinedScores = new HashMap<>();
         for (String myUrl : myTFIDFScores.keySet()) {
             double myTFIDFScore = myTFIDFScores.get(myUrl);
@@ -106,13 +113,10 @@ public class EepyCrawlSearch {
         return aTFIDFScore + aPagerankScore;
     }
 
-    private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, String> aTitlesPerUrl) {
-        return aScores.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .map(myEntry -> new SearchResult(
-                        aTitlesPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)),
-                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8),
-                        " "))
+    private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, String> aTitlesPerUrl, Map<String, String> aSnippetsPerUrl) {
+        return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .map(myEntry -> new SearchResult(aTitlesPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)),
+                        URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8), aSnippetsPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8))))
                 .collect(Collectors.toList());
     }
 }

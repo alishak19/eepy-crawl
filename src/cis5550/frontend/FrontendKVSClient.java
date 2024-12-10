@@ -80,6 +80,32 @@ public class FrontendKVSClient {
         return titlesPerUrl;
     }
 
+    public static Map<String, String> getSnippetsPerUrl(List<String> aUrlList) throws IOException {
+        LOGGER.info("Getting the snippet for a url hash " + aUrlList.size() + " URLs");
+
+        List<String> myUrls = aUrlList.stream().map(aUrl -> Hasher.hash(aUrl)).collect(Collectors.toList());
+        List<String> myPageContentsList = KVS_CLIENT.batchGetColValue(CRAWL_TABLE.getName(), TableColumns.PAGE.value(), myUrls);
+
+        Pattern pattern = Pattern.compile("<meta\\s+name\\s*=\\s*['\"]description['\"]\\s+content\\s*=\\s*['\"](.*?)['\"]", Pattern.CASE_INSENSITIVE);
+
+        Map<String, String> snippetsPerUrl = new HashMap<>();
+        for (int i = 0; i < myUrls.size(); i++) {
+            String myNormalizedUrl = URLDecoder.decode(aUrlList.get(i), StandardCharsets.UTF_8);
+            String myPageContent = myPageContentsList.get(i);
+            Matcher matcher = pattern.matcher(myPageContent);
+
+            if (matcher.find()) {
+                String snippet = URLDecoder.decode(matcher.group(1));
+                if (snippet != null && snippet != "null") {
+                    snippetsPerUrl.put(myNormalizedUrl, snippet);
+                }
+            } else {
+                snippetsPerUrl.put(myNormalizedUrl, "No preview available");
+            }
+        }
+        return snippetsPerUrl;
+    }
+
     public static Map<String, Integer> getNumTermsPerUrl(Set<String> aUrlSet) throws IOException {
         LOGGER.info("Getting number of terms per URL for " + aUrlSet.size() + " URLs");
         List<String> myUrlList = new ArrayList<>(aUrlSet);
