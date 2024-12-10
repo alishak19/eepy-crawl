@@ -111,7 +111,8 @@ public class EepyCrawlSearch {
         return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .map(myEntry -> new SearchResult(aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).title(),
                         URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8),
-                        aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).snippet()))
+                        aInfoPerUrl.get(URLDecoder.decode(myEntry.getKey(), StandardCharsets.UTF_8)).snippet(),
+                        myEntry.getValue()))
                 .collect(Collectors.toList());
     }
 }
