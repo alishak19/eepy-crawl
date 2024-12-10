@@ -71,7 +71,6 @@ public class FrontendKVSClient {
             String myNormalizedUrl = URLDecoder.decode(aUrlList.get(i), StandardCharsets.UTF_8);
             String myPageContent = myPageContentsList.get(i);
             Matcher matcherTitle = patternTitle.matcher(myPageContent);
-
             Matcher matcherSnippet = patternSnippet.matcher(myPageContent);
 
             String title = myNormalizedUrl;
@@ -83,6 +82,7 @@ public class FrontendKVSClient {
             if (matcherSnippet.find()) {
                 snippet = URLDecoder.decode(matcherSnippet.group(1)).trim();
             }
+
             infoPerUrl.put(myNormalizedUrl, new UrlInfo(title, snippet));
         }
         return infoPerUrl;
