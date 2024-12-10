@@ -17,21 +17,18 @@
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                border: 5px solid magenta;
             }
 
             #search-container {
                 display: flex;
                 flex-direction: column;
-                padding: 3%;
                 justify-content: center;
-                border: 5px solid orange;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+                margin-top: -1vh;
                 padding: 5%;
             }
 
             h1 {
-                color: #02466e;
+                color: #000000;
                 text-align: center;
                 margin: 20px 0;
                 font-size: 3rem;
@@ -44,7 +41,7 @@
             }
 
             #heading {
-                color: #69005c;
+                color: #000000;
                 text-align: center;
                 margin-top: 5vh;
                 font-size: 45px;
@@ -59,7 +56,7 @@
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                margin-top: 0;
+                margin-top: -5%;
                 height: 5vh;
                 padding: 2%;
             }
@@ -83,7 +80,7 @@
                 padding: 10px 20px;
                 font-size: 16px;
                 border: none;
-                background-color: #007BFF;
+                background-color: #174EA6;
                 color: white;
                 border-radius: 4px;
                 cursor: pointer;
@@ -93,7 +90,7 @@
             }
 
             button:hover {
-                background-color: #0056b3;
+                background-color: #103e87;
             }
 
             #searchResults {
@@ -172,7 +169,7 @@
                 document.getElementById('heading').style.marginTop = '1vh';
                 document.getElementById('heading').style.padding = '0';
                 document.getElementById('search-form').style.padding = '0';
-                document.getElementById('search-form').style.marginTop = '0';
+                document.getElementById('search-form').style.marginTop = '-4vh';
                 document.getElementById('search-container').style.border = 'none';
                 document.getElementById('search-container').style.boxShadow = 'none';
                 document.body.style.justifyContent = 'flex-start';
@@ -182,7 +179,9 @@
 
                 try {
                     const response = await fetch(`http://localhost:80/search?q=${encodeURIComponent(query)}`);
-                    const data = await response.json();
+                    const rawJson = await response.text();
+                    const sanitizedJson = rawJson.replace(/[\x00-\x1F\x7F]/g, '').replace(/\u2028/g, '').replace(/\u2029/g, '');
+                    const data = JSON.parse(sanitizedJson);
 
                     resultsContainer.innerHTML = '';
 

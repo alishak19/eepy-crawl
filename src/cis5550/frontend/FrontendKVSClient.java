@@ -57,7 +57,7 @@ public class FrontendKVSClient {
     }
 
     public static Map<String, String> getTitlesPerUrl(List<String> aUrlList) throws IOException {
-        LOGGER.info("Getting titles for " + aUrlSet.size() + " URLs");
+        LOGGER.info("Getting titles for " + aUrlList.size() + " URLs");
         List<String> myUrls = aUrlList.stream()
                 .map(aUrl -> URLDecoder.decode(aUrl, StandardCharsets.UTF_8))
                 .map(aUrl -> Hasher.hash(aUrl)).collect(Collectors.toList());
