@@ -58,8 +58,11 @@ public class TFIDF {
         for (String myUrl : myUrlCountData.keySet()) {
             Integer myQueryCount = myUrlCountData.get(myUrl);
             Integer myTermCount = myUrlTermCountData.get(Hasher.hash(myUrl));
-            double myTF = (double) myQueryCount / myTermCount;
-            myTFIDFScores.put(myUrl, myTF * myIDF);
+            if (myQueryCount != null && myTermCount != null) {
+                double myTF = (double) myQueryCount / myTermCount;
+                myTFIDFScores.put(myUrl, myTF * myIDF);
+            }
+
         }
 
         LOGGER.info("TF-IDF scores for query: " + aQuery + " are: " + myTFIDFScores);
