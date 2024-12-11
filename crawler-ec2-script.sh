@@ -22,9 +22,9 @@ jar cf indexer.jar bin/cis5550/jobs/Indexer.class
 sleep 1
 
 # Compile and create PageRank.jar
-javac -d bin --source-path src src/cis5550/jobs/PageRank.java
+javac -d bin --source-path src src/cis5550/jobs/NewPageRank.java
 sleep 1
-jar cf pagerank.jar bin/cis5550/jobs/PageRank.class
+jar cf pagerank.jar bin/cis5550/jobs/NewPageRank.class
 sleep 1
 
 # Launch KVS Coordinator
@@ -43,7 +43,7 @@ do
     then
         mkdir $dir
     fi
-    echo "cd '$(pwd)'; java -cp bin -Xmx1024m cis5550.kvs.Worker $((8000+$i)) $dir localhost:8000" > kvsworker$i.sh
+    echo "cd '$(pwd)'; java -cp bin -Xmx8g cis5550.kvs.Worker $((8000+$i)) $dir localhost:8000" > kvsworker$i.sh
     chmod +x kvsworker$i.sh
     # Run each KVS worker in the background and log output/errors to specific file
     nohup ./kvsworker$i.sh > kvsworker$i.log 2>&1 &
