@@ -107,6 +107,8 @@ public class FrontendKVSClient {
                 .map(myEntry -> Map.entry(myEntry.getKey(), getNumTermsInUrl(myEntry.getValue())))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
+        myPageContents.clear();
+
         LOGGER.info("Number of terms per URL for " + aUrlSet.size() + " URLs: " + myNumTermsPerUrl);
         return myNumTermsPerUrl;
     }
@@ -178,7 +180,6 @@ public class FrontendKVSClient {
 
     private static Map<String, String> partitionedBatchedGetCrawlTableValues(Collection<String> aAllUrls) {
         ConcurrentMap<String, String> myPageContents = new ConcurrentHashMap<>();
-
         Collection<String> myUrlHashes = aAllUrls.stream()
                 .map(Hasher::hash)
                 .toList();

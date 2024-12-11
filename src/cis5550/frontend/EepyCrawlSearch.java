@@ -11,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static cis5550.webserver.Server.*;
 
@@ -102,7 +101,7 @@ public class EepyCrawlSearch {
     }
 
     private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, UrlInfo> aInfoPerUrl) {
-        return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+        List<SearchResult> results = aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .map(entry -> {
                     String decodedUrl = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8);
                     if (decodedUrl == null || aInfoPerUrl.get(decodedUrl) == null || !decodedUrl.contains("http")) {
@@ -117,6 +116,11 @@ public class EepyCrawlSearch {
                     }
                 })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
+
+        aScores.clear();
+        aInfoPerUrl.clear();
+
+        return results;
     }
 }
