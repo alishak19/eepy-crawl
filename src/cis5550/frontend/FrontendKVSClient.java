@@ -51,8 +51,10 @@ public class FrontendKVSClient {
 
             try {
                 Integer myCount = Integer.parseInt(myIndexEntryArr[myIndexEntryArr.length - 1]);
-                String myUrl = myIndexItem.substring(0, myIndexItem.lastIndexOf(COLON));
-                myUrlCountData.put(URLDecoder.decode(myUrl, StandardCharsets.UTF_8), myCount);
+                if (myIndexItem.lastIndexOf(COLON) > 0) {
+                    String myUrl = myIndexItem.substring(0, myIndexItem.lastIndexOf(COLON));
+                    myUrlCountData.put(URLDecoder.decode(myUrl, StandardCharsets.UTF_8), myCount);
+                }
             } catch (NumberFormatException e) {
                 LOGGER.error("Error parsing count from index entry: " + myIndexItem);
             }

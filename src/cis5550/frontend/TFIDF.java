@@ -62,7 +62,6 @@ public class TFIDF {
                 double myTF = (double) myQueryCount / myTermCount;
                 myTFIDFScores.put(myUrl, myTF * myIDF);
             }
-
         }
 
         LOGGER.info("TF-IDF scores for query: " + aQuery + " are: " + myTFIDFScores);
