@@ -165,7 +165,7 @@ public class FrontendKVSClient {
     }
 
     public static List<SearchResult> getFromCache(String aQuery) throws IOException {
-        aQuery.replaceAll("\\s+", "");
+        aQuery = aQuery.replaceAll("\\s+", "");
         Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
         if (myQueryRow == null) {
             return null;
