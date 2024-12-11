@@ -165,16 +165,14 @@ public class FrontendKVSClient {
     }
 
     public static List<SearchResult> getFromCache(String aQuery) throws IOException {
-        List<SearchResult> results = new ArrayList<>();
-        for (String word : aQuery.split(" ")) {
-            Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
-            if (myQueryRow == null) {
-                return null;
-            }
-            results.addAll(CacheTableEntryUtils.parseEntry(myQueryRow.get(TableColumns.VALUE.value())));
+        if (aQuery.contains(" ")) {
+            aQuery.replace(" ", "_");
         }
-
-        return results;
+        Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
+        if (myQueryRow == null) {
+            return null;
+        }
+        return CacheTableEntryUtils.parseEntry(myQueryRow.get(TableColumns.VALUE.value()));
     }
 
     public static void putInCache(String aQuery, List<SearchResult> aSearchResults) throws IOException {
@@ -182,6 +180,9 @@ public class FrontendKVSClient {
             return;
         }
         String myEntry = CacheTableEntryUtils.createEntry(aSearchResults);
+        if (aQuery.contains(" ")) {
+            aQuery.replace(" ", "_");
+        }
         Row myRow = new Row(aQuery);
         myRow.put(TableColumns.VALUE.value(), myEntry);
         KVS_CLIENT.putRow(CACHE_TABLE.getName(), myRow);
