@@ -23,13 +23,30 @@ import java.nio.charset.StandardCharsets;
 public class Indexer {
 	private static final Logger LOGGER = Logger.getLogger(Indexer.class);
 	private static final String CRAWL_TABLE = "pt-crawl";
-	private static final String INDEX_TABLE = "pt-index";
+	private static final String INDEX_TABLE = "at-index";
 	private static final String TO_INDEX = "pt-toindex";
 	private static final String URL_REF = TableColumns.URL.value();
 	private static final String PAGE_REF = TableColumns.PAGE.value();
+	private static final String VAL_REF = TableColumns.VALUE.value();
 	private static final String INDEXED_TABLE = "pt-indexed";
 	private static final String SPACE = " ";
 	public static final String UNIQUE_SEPARATOR = "&#!#&";
+	private static final Set<String> STOPWORDS1 = Set.of(
+			"a", "an", "the", "and", "or", "but", "is", "are", "was", "were",
+			"be", "has", "he", "it", "its", "that", "will", "i", "me", "my",
+			"myself", "we", "our", "ours", "ourselves", "you", "your",
+			"yours", "yourself", "yourselves", "him", "his", "himself",
+			"she", "her", "hers", "herself", "they", "them",
+			"their", "theirs", "themselves", "what", "which", "who", "whom", "this",
+			"these", "those", "am", "been", "being", "have", "had", "having",
+			"do", "does", "did", "doing", "about", "against", "between", "into", "through",
+			"during", "before", "after", "above", "below", "to", "from", "up", "down", "in",
+			"out", "on", "off", "over", "under", "again", "further", "then", "once", "here",
+			"there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more",
+			"most", "other", "some", "such", "no", "nor", "not", "only", "own", "same",
+			"so", "than", "too", "very", "s", "t", "can", "just", "don", "should", "now"
+	);
+
 	public static void run(FlameContext context, String[] arr) throws Exception {
 		try {
 			RowToPair lambda1 = (Row myRow) -> {
@@ -46,7 +63,6 @@ public class Indexer {
 			};
 
 			FlamePairRDD myPairs = context.pairFromTable(CRAWL_TABLE, lambda1);
-
 			PairToPairIterable lambda3 = (FlamePair f) -> {
 				String removedTags = f._2().replaceAll("<[^>]*>", " ");
 				removedTags = removedTags.toLowerCase().replaceAll("[^a-z0-9\\s]", " ");
@@ -54,19 +70,19 @@ public class Indexer {
 				String[] wordsList = removedTags.split("\\s");
 
 				HashSet<String> words = new HashSet<>();
-				HashMap<String, String> wordPositions = new HashMap<>();
+				HashMap<String, Integer> wordCount = new HashMap<>();
 				int index = 0;
 
 				for (String word : wordsList) {
-					if (word == null || word.equals(SPACE) || word.equals("")) {
+					if (word == null || word.equals(SPACE) || word.equals("") || STOPWORDS1.contains(word)) {
 						continue;
 					}
 					index++;
 					words.add(word);
-					if (wordPositions.containsKey(word)) {
-						wordPositions.put(word, wordPositions.get(word) + SPACE + index);
+					if (wordCount.containsKey(word)) {
+						wordCount.put(word, wordCount.get(word) + 1);
 					} else {
-						wordPositions.put(word, index + "");
+						wordCount.put(word, 1);
 					}
 				}
 
@@ -76,8 +92,8 @@ public class Indexer {
 
 				for (String w : words) {
 					w.replaceAll("\\s+", "");
-					if (w.length() > 25) {
-						w = w.substring(0, 25);
+					if (w.length() > 20) {
+						continue;
 					}
 					if (w.length() > 0) {
 						PorterStemmer p = new PorterStemmer();
@@ -87,10 +103,10 @@ public class Indexer {
 						p.stem();
 						String stemmed = p.toString();
 						if (!stemmed.equals(w)) {
-							FlamePair currS = new FlamePair(stemmed, f._1() + ":" + wordPositions.get(w));
+							FlamePair currS = new FlamePair(stemmed, f._1() + ":" + wordCount.get(w));
 							wordPairs.add(currS);
 						}
-						FlamePair curr = new FlamePair(w, f._1() + ":" + wordPositions.get(w));
+						FlamePair curr = new FlamePair(w, url + ":" + wordCount.get(w));
 						wordPairs.add(curr);
 					}
 
@@ -98,23 +114,7 @@ public class Indexer {
 
 				return wordPairs;
 			};
-			FlamePairRDD inverted = myPairs.flatMapToPair(lambda3);
-			myPairs.destroy();
-
-			TwoStringsToString lambda4 = (String urlOne, String urlTwo) -> {
-				if (urlOne.equals("")) {
-					return urlTwo;
-				}
-				return urlOne + "," + urlTwo;
-			};
-			FlamePairRDD invertedList = inverted.foldByKey("", lambda4);
-			inverted.destroy();
-
-			try {
-				invertedList.saveAsTable(INDEX_TABLE);
-			} catch (Exception e) {
-				LOGGER.error("error saving table, check values");
-			}
+			myPairs.flatMapToPairTable(lambda3, INDEX_TABLE, VAL_REF);
 		} catch (Exception e) {
 			LOGGER.error("somewhere");
 		}

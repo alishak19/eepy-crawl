@@ -357,7 +357,7 @@ public class KVSClient implements KVS {
                 List<String> batchRowsForWorker = new ArrayList<>();
                 for (String row : rowsForWorker) {
                     batchRowsForWorker.add(row);
-                    if (batchRowsForWorker.size() == BATCH_LIMIT) {
+                    if (batchRowsForWorker.size() >= BATCH_LIMIT) {
                         String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, rowsForWorker);
                         byte[] body = rowsString.getBytes(StandardCharsets.UTF_8);
 
@@ -370,6 +370,19 @@ public class KVSClient implements KVS {
 
                         batchRowsForWorker = new ArrayList<>();
                     }
+                }
+                if (batchRowsForWorker.size() > 0) {
+                    String rowsString = String.join(BATCH_UNIQUE_SEPARATOR, rowsForWorker);
+                    byte[] body = rowsString.getBytes(StandardCharsets.UTF_8);
+
+                    String target = "http://" + workerAddress + "/batchAppend/data/" + tableName + "/" + URLEncoder.encode(column, "UTF-8");
+
+                    byte[] response = HTTP.doRequest("PUT", target, body).body();
+                    String result = new String(response);
+                    if (!result.equals("OK"))
+                        System.out.println("PUT returned something other than OK: " + result + "(" + target + ")");
+
+                    batchRowsForWorker = new ArrayList<>();
                 }
             }
         } catch (UnsupportedEncodingException uee) {
