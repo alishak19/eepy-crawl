@@ -39,6 +39,7 @@ public class EepyCrawlSearch {
             myQuery = myQuery.toLowerCase().trim();
 
             List<SearchResult> myResults = getSearchResults(myQuery);
+            System.out.println(myResults);
             return JSONBuilders.buildSearchResults(myResults);
         };
     }
