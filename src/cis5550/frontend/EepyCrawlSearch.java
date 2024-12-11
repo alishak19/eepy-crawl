@@ -42,7 +42,7 @@ public class EepyCrawlSearch {
             List<SearchResult> myResults = getSearchResults(myQuery);
             String jsonString = JSONBuilders.buildSearchResults(myResults);
 
-//            System.out.println("jsonString: " + jsonString);
+            System.out.println("jsonString: " + jsonString);
 
             return jsonString;
         };
