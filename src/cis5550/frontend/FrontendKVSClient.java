@@ -166,7 +166,7 @@ public class FrontendKVSClient {
 
     public static List<SearchResult> getFromCache(String aQuery) throws IOException {
         if (aQuery.contains(" ")) {
-            aQuery.replace(" ", "_");
+            aQuery.replace(" ", "");
         }
         Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
         if (myQueryRow == null) {
@@ -181,7 +181,7 @@ public class FrontendKVSClient {
         }
         String myEntry = CacheTableEntryUtils.createEntry(aSearchResults);
         if (aQuery.contains(" ")) {
-            aQuery.replace(" ", "_");
+            aQuery.replace(" ", "");
         }
         Row myRow = new Row(aQuery);
         myRow.put(TableColumns.VALUE.value(), myEntry);
