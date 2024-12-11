@@ -165,6 +165,7 @@ public class FrontendKVSClient {
     }
 
     public static List<SearchResult> getFromCache(String aQuery) throws IOException {
+        aQuery = aQuery.replaceAll("\\s+", "");
         Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
         if (myQueryRow == null) {
             return null;
@@ -177,6 +178,7 @@ public class FrontendKVSClient {
             return;
         }
         String myEntry = CacheTableEntryUtils.createEntry(aSearchResults);
+        aQuery = aQuery.replaceAll("\\s+", "");
         Row myRow = new Row(aQuery);
         myRow.put(TableColumns.VALUE.value(), myEntry);
         KVS_CLIENT.putRow(CACHE_TABLE.getName(), myRow);
