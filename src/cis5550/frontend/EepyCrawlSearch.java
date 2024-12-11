@@ -11,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static cis5550.webserver.Server.*;
 
@@ -47,7 +46,6 @@ public class EepyCrawlSearch {
             myQuery = myQuery.toLowerCase().trim();
 
             List<SearchResult> myResults = getSearchResults(myQuery);
-
             return JSONBuilders.buildSearchResults(myResults);
         };
     }
@@ -68,7 +66,7 @@ public class EepyCrawlSearch {
             LOGGER.error("Error getting cached results from KVS");
         }
 
-        Map<String, Double> myTFIDFScores = TFIDF.getTFIDFScores(aQuery);
+        Map<String, Double> myTFIDFScores = TFIDF.aggregateTFIDFScores(aQuery);
         Map<String, Double> myPagerankScores = new HashMap<>();
         try {
             myPagerankScores = FrontendKVSClient.getPagerankScores(myTFIDFScores.keySet());
@@ -163,21 +161,31 @@ public class EepyCrawlSearch {
     }
 
     private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, UrlInfo> aInfoPerUrl) {
-        return aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+        List<SearchResult> results = aScores.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .map(entry -> {
-                    String decodedUrl = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8);
-                    if (decodedUrl == null || aInfoPerUrl.get(decodedUrl) == null || !decodedUrl.contains("http")) {
+                    try {
+                        String decodedUrl = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8);
+                        if (decodedUrl == null || aInfoPerUrl.get(decodedUrl) == null || !decodedUrl.contains("http")) {
+                            return null;
+                        } else {
+                            return new SearchResult(
+                                    aInfoPerUrl.get(decodedUrl).title(),
+                                    decodedUrl,
+                                    aInfoPerUrl.get(decodedUrl).snippet(),
+                                    entry.getValue()
+                            );
+                        }
+                    } catch (Exception e) {
+                        LOGGER.error("Failed to debug URL: " + e);
                         return null;
-                    } else {
-                        return new SearchResult(
-                                aInfoPerUrl.get(decodedUrl).title(),
-                                decodedUrl,
-                                aInfoPerUrl.get(decodedUrl).snippet(),
-                                entry.getValue()
-                        );
                     }
                 })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
+
+        aScores.clear();
+        aInfoPerUrl.clear();
+
+        return results;
     }
 }

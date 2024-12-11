@@ -74,27 +74,31 @@ public class FrontendKVSClient {
 
         Map<String, UrlInfo> infoPerUrl = new HashMap<>();
         for (String s : aUrlList) {
-            String myNormalizedUrl = URLDecoder.decode(s, StandardCharsets.UTF_8);
-            String myPageContent = myPageContents.get(Hasher.hash(myNormalizedUrl));
-            if (myPageContent == null) {
-                continue;
-            }
-            Matcher matcherTitle = patternTitle.matcher(myPageContent);
-            Matcher matcherSnippet = patternSnippet.matcher(myPageContent);
+            try {
+                String myNormalizedUrl = URLDecoder.decode(s, StandardCharsets.UTF_8);
+                String myPageContent = myPageContents.get(Hasher.hash(myNormalizedUrl));
+                if (myPageContent == null) {
+                    continue;
+                }
+                Matcher matcherTitle = patternTitle.matcher(myPageContent);
+                Matcher matcherSnippet = patternSnippet.matcher(myPageContent);
 
-            String title = myNormalizedUrl;
-            String snippet = "No preview available";
+                String title = myNormalizedUrl;
+                String snippet = "No preview available";
 
-            if (matcherTitle.find()) {
-                title = matcherTitle.group(1).trim();
-                title = HTMLParser.unescapeHtml(title);
-            }
-            if (matcherSnippet.find()) {
-                snippet = matcherSnippet.group(1).trim();
-                snippet = HTMLParser.unescapeHtml(snippet);
-            }
+                if (matcherTitle.find()) {
+                    title = matcherTitle.group(1).trim();
+                    title = HTMLParser.unescapeHtml(title);
+                }
+                if (matcherSnippet.find()) {
+                    snippet = matcherSnippet.group(1).trim();
+                    snippet = HTMLParser.unescapeHtml(snippet);
+                }
 
-            infoPerUrl.put(myNormalizedUrl, new UrlInfo(title, snippet));
+                infoPerUrl.put(myNormalizedUrl, new UrlInfo(title, snippet));
+            } catch (Exception e) {
+                LOGGER.error("Exception thrown while getting URL info: " + e);
+            }
         }
         return infoPerUrl;
     }
@@ -106,6 +110,8 @@ public class FrontendKVSClient {
         Map<String, Integer> myNumTermsPerUrl = myPageContents.entrySet().stream()
                 .map(myEntry -> Map.entry(myEntry.getKey(), getNumTermsInUrl(myEntry.getValue())))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        myPageContents.clear();
 
         LOGGER.info("Number of terms per URL for " + aUrlSet.size() + " URLs: " + myNumTermsPerUrl);
         return myNumTermsPerUrl;
@@ -159,6 +165,7 @@ public class FrontendKVSClient {
     }
 
     public static List<SearchResult> getFromCache(String aQuery) throws IOException {
+        aQuery = aQuery.replaceAll("\\s+", "");
         Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
         if (myQueryRow == null) {
             return null;
@@ -171,6 +178,7 @@ public class FrontendKVSClient {
             return;
         }
         String myEntry = CacheTableEntryUtils.createEntry(aSearchResults);
+        aQuery = aQuery.replaceAll("\\s+", "");
         Row myRow = new Row(aQuery);
         myRow.put(TableColumns.VALUE.value(), myEntry);
         KVS_CLIENT.putRow(CACHE_TABLE.getName(), myRow);
@@ -178,7 +186,6 @@ public class FrontendKVSClient {
 
     private static Map<String, String> partitionedBatchedGetCrawlTableValues(Collection<String> aAllUrls) {
         ConcurrentMap<String, String> myPageContents = new ConcurrentHashMap<>();
-
         Collection<String> myUrlHashes = aAllUrls.stream()
                 .map(Hasher::hash)
                 .toList();
