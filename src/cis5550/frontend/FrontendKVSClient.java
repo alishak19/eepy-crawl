@@ -165,11 +165,16 @@ public class FrontendKVSClient {
     }
 
     public static List<SearchResult> getFromCache(String aQuery) throws IOException {
-        Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
-        if (myQueryRow == null) {
-            return null;
+        List<SearchResult> results = new ArrayList<>();
+        for (String word : aQuery.split(" ")) {
+            Row myQueryRow = KVS_CLIENT.getRow(CACHE_TABLE.getName(), aQuery);
+            if (myQueryRow == null) {
+                return null;
+            }
+            results.addAll(CacheTableEntryUtils.parseEntry(myQueryRow.get(TableColumns.VALUE.value())));
         }
-        return CacheTableEntryUtils.parseEntry(myQueryRow.get(TableColumns.VALUE.value()));
+
+        return results;
     }
 
     public static void putInCache(String aQuery, List<SearchResult> aSearchResults) throws IOException {
