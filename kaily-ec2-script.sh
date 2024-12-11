@@ -24,7 +24,8 @@ sleep 1
 # Compile and create PageRank.jar
 javac -d bin --source-path src src/cis5550/jobs/NewPageRank.java
 sleep 1
-jar cf new-pagerank.jar bin/cis5550/jobs/NewPageRank.class
+jar cf pagerank.jar bin/cis5550/jobs/NewPageRank.class
+>>>>>>> main:crawler-ec2-script.sh
 sleep 1
 
 # Launch KVS Coordinator
@@ -43,7 +44,9 @@ do
     then
         mkdir $dir
     fi
-    echo "cd '$(pwd)'; java -cp bin -Xmx512m cis5550.kvs.Worker $((8000+$i)) $dir localhost:8000" > kvsworker$i.sh
+
+    echo "cd '$(pwd)'; java -cp bin -Xmx16g cis5550.kvs.Worker $((8000+$i)) $dir localhost:8000" > kvsworker$i.sh
+>>>>>>> main:crawler-ec2-script.sh
     chmod +x kvsworker$i.sh
     # Run each KVS worker in the background and log output/errors to specific file
     nohup ./kvsworker$i.sh > kvsworker$i.log 2>&1 &

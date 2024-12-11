@@ -65,6 +65,8 @@ public interface FlamePairRDD {
 
   public FlamePairRDD flatMapToPair(PairToPairIterable lambda) throws Exception;
 
+  public void flatMapToPairTable(PairToPairIterable lambda, String tableName, String column) throws Exception;
+
   // join() joins the current PairRDD A with another PairRDD B. Suppose A contains
   // a pair (k,v_A) and B contains a pair (k,v_B). Then the result should contain
   // a pair (k,v_A+","+v_B).

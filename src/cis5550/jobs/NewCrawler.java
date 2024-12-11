@@ -33,7 +33,7 @@ public class NewCrawler {
     private static final int CONNECT_TIMEOUT = 1000;
     private static final int READ_TIMEOUT = 4000;
 
-    private static final Logger LOGGER = Logger.getLogger(Crawler.class);
+    private static final Logger LOGGER = Logger.getLogger(NewCrawler.class);
     private static final Denylist myDenylist = new Denylist();
 
     public static void run(FlameContext aContext, String[] aArgs) throws Exception {

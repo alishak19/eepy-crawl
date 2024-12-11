@@ -87,6 +87,19 @@ public class FlamePairRDDImpl implements FlamePairRDD {
     }
 
     @Override
+    public void flatMapToPairTable(PairToPairIterable lambda, String tableName, String aColumn) throws Exception {
+        String myOutputTable = theFlameContext.invokeOperationWithOutputTable(
+                theTableName,
+                FlameOperation.PAIR_FLATMAP_TO_PAIR_TABLE,
+                Serializer.objectToByteArray(lambda),
+                tableName,
+                aColumn);
+        if (myOutputTable == null) {
+            throw new Exception("Failed to invoke flatMapToPairTable operation");
+        }
+    }
+
+    @Override
     public FlamePairRDD join(FlamePairRDD other) throws Exception {
         if (!(other instanceof FlamePairRDDImpl)) {
             throw new Exception("Unsupported RDD type");

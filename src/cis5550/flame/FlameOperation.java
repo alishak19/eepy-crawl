@@ -12,6 +12,7 @@ public enum FlameOperation {
     FLATMAP_TO_PAIR("/rdd/flatMapToPair"),
     PAIR_FLATMAP("/pairRDD/flatMap"),
     PAIR_FLATMAP_TO_PAIR("/pairRDD/flatMapToPair"),
+    PAIR_FLATMAP_TO_PAIR_TABLE("/pairRDD/flatMapToPairTable"),
     JOIN("/pairRDD/join"),
     FOLD("/rdd/fold"),
     FILTER("/rdd/filter"),

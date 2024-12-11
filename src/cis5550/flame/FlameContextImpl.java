@@ -79,9 +79,9 @@ public class FlameContextImpl implements FlameContext, Serializable {
     }
 
     public String invokeOperation(
-            String aInputTable, FlameOperation aFlameOperation, byte[] aLambda, String aZeroElement) {
+            String aInputTable, FlameOperation aFlameOperation, byte[] aLambda, String aZeroElement, String aOutputTable) {
         LOGGER.debug("Invoking operation " + aFlameOperation + " on table " + aInputTable);
-        String myOutputTable = getNewTableName();
+        String myOutputTable = aOutputTable == null ? getNewTableName() : aOutputTable;
 
         ConcurrentLinkedDeque<HTTP.Response> myResponses = new ConcurrentLinkedDeque<>();
         List<Thread> myThreads = new LinkedList<>();
@@ -126,6 +126,15 @@ public class FlameContextImpl implements FlameContext, Serializable {
 
     public String invokeOperation(String aInputTable, FlameOperation aFlameOperation, byte[] aLambda) {
         return invokeOperation(aInputTable, aFlameOperation, aLambda, null);
+    }
+
+    public String invokeOperationWithOutputTable(String aInputTable, FlameOperation aFlameOperation, byte[] aLambda, String aOutputTable, String aColumn) {
+        return invokeOperation(aInputTable, aFlameOperation, aLambda, aColumn, aOutputTable);
+    }
+
+    public String invokeOperation(
+            String aInputTable, FlameOperation aFlameOperation, byte[] aLambda, String aZeroElement) {
+        return invokeOperation(aInputTable, aFlameOperation, aLambda, aZeroElement, null);
     }
 
     public String invokeFold(String aInputTable, FlamePairRDD.TwoStringsToString aLambda, String aZeroElement) {

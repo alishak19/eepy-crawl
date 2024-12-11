@@ -5,6 +5,8 @@ import cis5550.tools.Logger;
 import java.util.*;
 import java.io.*;
 
+import static cis5550.utils.FileIOUtils.readRestOfStream;
+
 public class Row implements Serializable {
 
     protected String key;
@@ -173,6 +175,47 @@ public class Row implements Serializable {
             throw new RuntimeException("This should not happen!");
         }
         ;
+
+        return baos.toByteArray();
+    }
+
+    public static Row readFromAppendOnly(RandomAccessFile in) {
+        try {
+            String theKey = readStringSpace(in);
+            if (theKey == null)
+                return null;
+
+            Row newRow = new Row(theKey);
+            String keyOrMarker = readStringSpace(in);
+            byte[] value = readRestOfStream(in);
+            newRow.put(keyOrMarker, value);
+            return newRow;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("This should not happen!");
+        }
+    }
+
+    public synchronized byte[] toAppendOnlyByteArray() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        try {
+            baos.write(key.getBytes());
+            baos.write(' ');
+
+            if (values.size() != 1) {
+                throw new RuntimeException("Append only rows must have exactly one column");
+            }
+
+            for (String s : values.keySet()) {
+                baos.write(s.getBytes());
+                baos.write(' ');
+                baos.write(values.get(s));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("This should not happen!");
+        }
 
         return baos.toByteArray();
     }

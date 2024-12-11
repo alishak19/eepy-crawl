@@ -5,6 +5,7 @@ import cis5550.webserver.routing.RoutesContainer;
 import cis5550.webserver.sessions.SessionsContainer;
 import cis5550.webserver.utils.HostsContainer;
 
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
@@ -48,7 +49,7 @@ public class ServerImpl implements Runnable {
 
         try {
             LOGGER.info("Starting " + (theSecure ? "HTTPS" : "HTTP") + " server on port " + thePort);
-            theSocket = new ServerSocket(thePort);
+            theSocket = new ServerSocket(thePort, 0, InetAddress.getByName("0.0.0.0"));
         } catch (Exception e) {
             LOGGER.error("Failed to create server socket", e);
         }

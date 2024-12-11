@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>EepyCrawl Search!</title>
+        <style>
+            body {
+                font-family: 'Futura PT', sans-serif;
+                margin: 0;
+                padding: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: #fff;
+                color: #333;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+            #search-container {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                margin-top: -1vh;
+                padding: 5%;
+            }
+
+            h1 {
+                color: #000000;
+                text-align: center;
+                margin: 20px 0;
+                font-size: 3rem;
+            }
+
+            p {
+                text-align: center;
+                margin: 10px 0 30px;
+                color: #555;
+            }
+
+            #heading {
+                color: #000000;
+                text-align: center;
+                margin-top: 5vh;
+                font-size: 45px;
+            }
+
+            #subheading {
+                margin-top:-1.5vh;
+                color: #666;
+            }
+
+            #search-form {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-top: -5%;
+                height: 5vh;
+                padding: 2%;
+            }
+
+            form {
+                display: flex;
+                gap: 10px;
+            }
+
+            input[type="text"] {
+                padding: 10px;
+                font-size: 16px;
+                border: 2px solid #ccc;
+                border-radius: 4px;
+                width: 250px;
+                box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+                border-radius: 10px;
+            }
+
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                border: none;
+                background-color: #174EA6;
+                color: white;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 0.3s ease, transform 0.2s ease;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                border-radius: 10px;
+            }
+
+            button:hover {
+                background-color: #103e87;
+            }
+
+            #searchResults {
+                width: 100%;
+                max-width: 800px;
+                margin: 20px auto;
+                padding: 0 20px;
+            }
+
+            .result {
+                border-bottom: 1px solid #ddd;
+                padding: 15px 0;
+            }
+
+            .result:last-child {
+                border-bottom: none;
+            }
+
+            .result-title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #1a0dab;
+            }
+
+            .result-title a {
+                text-decoration: none;
+                color: inherit;
+            }
+
+            .result-title a:hover {
+                text-decoration: underline;
+            }
+
+            .result-url {
+                color: #006621;
+                font-size: 14px;
+                margin-top: 5px;
+            }
+
+            .result-snippet {
+                font-size: 16px;
+                color: #545454;
+                margin-top: 5px;
+            }
+
+            .no-results {
+                text-align: center;
+                font-size: 18px;
+                color: #888;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="search-container">
+            <h1 id="heading">EepyCrawl Search!</h1>
+            <p id="subheading">Welcome to our search page.</p>
+            <div id="search-form">
+                <form onsubmit="handleSearch(event)">
+                    <input type="text" name="q" placeholder="Type your search query..." />
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="searchResults"></div>
+
+        <script>
+            async function handleSearch(event) {
+                event.preventDefault();
+                const query = document.querySelector('input[name="q"]').value;
+                if (!query.trim()) {
+                    alert("Please enter a search query.");
+                    return;
+                }
+                document.getElementById('subheading').style.opacity = '0';
+                document.getElementById('heading').style.marginTop = '1vh';
+                document.getElementById('heading').style.padding = '0';
+                document.getElementById('search-form').style.padding = '0';
+                document.getElementById('search-form').style.marginTop = '-4vh';
+                document.getElementById('search-container').style.border = 'none';
+                document.getElementById('search-container').style.boxShadow = 'none';
+                document.body.style.justifyContent = 'flex-start';
+
+                const resultsContainer = document.getElementById('searchResults');
+                resultsContainer.innerHTML = '<div class="no-results">Loading results...</div>';
+
+                try {
+                    const response = await fetch(`http://ec2-3-94-113-103.compute-1.amazonaws.com/search?q=${encodeURIComponent(query)}`);
+                    const rawJson = await response.text();
+                    const sanitizedJson = rawJson.replace(/[\x00-\x1F\x7F]/g, '').replace(/\u2028/g, '').replace(/\u2029/g, '');
+                    const data = JSON.parse(sanitizedJson);
+
+                    resultsContainer.innerHTML = '';
+
+                    if (data.length > 0) {
+                        data.forEach(item => {
+                            const resultDiv = document.createElement('div');
+                            resultDiv.classList.add('result');
+
+                            const resultTitle = document.createElement('div');
+                            resultTitle.classList.add('result-title');
+                            resultTitle.innerHTML = `<a href="${item.url}" target="_blank">${item.title}</a>`;
+
+                            const resultUrl = document.createElement('div');
+                            resultUrl.classList.add('result-url');
+                            resultUrl.textContent = item.url;
+
+                            const resultSnippet = document.createElement('div');
+                            resultSnippet.classList.add('result-snippet');
+                            resultSnippet.textContent = item.snippet;
+
+                            resultDiv.appendChild(resultTitle);
+                            resultDiv.appendChild(resultUrl);
+                            resultDiv.appendChild(resultSnippet);
+
+                            resultsContainer.appendChild(resultDiv);
+                        });
+                    } else {
+                        resultsContainer.innerHTML = '<div class="no-results">No results found.</div>';
+                    }
+                } catch (error) {
+                    console.error("Error fetching search results:", error);
+                    resultsContainer.innerHTML = '<div class="no-results">Failed to fetch results. Please try again later.</div>';
+                }
+            }
+        </script>
+    </body>
+</html>

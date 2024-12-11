@@ -551,6 +551,58 @@ class Worker extends cis5550.generic.Worker {
             return "OK";
         });
 
+        post(FlameOperation.PAIR_FLATMAP_TO_PAIR_TABLE.getPath(), (request, response) -> {
+            OperationParameters myParams = getAndValidateParams(request, myJAR);
+
+            if (myParams == null) {
+                setResponseStatus(response, BAD_REQUEST);
+                return "Bad request";
+            }
+
+            KVSClient myKVS = new KVSClient(myParams.kvsCoordinator());
+            Iterator<Row> myRows;
+
+            try {
+                myRows = myKVS.scan(myParams.inputTable(), myParams.fromKey(), myParams.toKeyExclusive());
+            } catch (IOException e) {
+                LOGGER.debug("Failed to scan rows", e);
+                setResponseStatus(response, INTERNAL_SERVER_ERROR);
+                return "Internal error";
+            }
+
+            FlamePairRDD.PairToPairIterable myLambda = (FlamePairRDD.PairToPairIterable) myParams.lambda();
+
+            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
+            int myI = 0;
+            while (myRows.hasNext()) {
+                Row myRow = myRows.next();
+                for (String myColumn : myRow.columns()) {
+                    FlamePair myPair = new FlamePair(myRow.key(), myRow.get(myColumn));
+                    Iterable<FlamePair> myResults = myLambda.op(myPair);
+
+                    if (myResults != null) {
+                        for (FlamePair myResult : myResults) {
+                            RowColumnValueTuple myTup = new RowColumnValueTuple(myResult._1(),
+                                    myParams.zeroElement(),
+                                    myResult._2());
+                            myRowColValueList.add(myTup);
+                            myI++;
+                        }
+                    }
+                    if (myRowColValueList.size() > BATCH_SIZE) {
+                        myKVS.batchAppendToRow(myParams.outputTable(), myParams.zeroElement(), myRowColValueList);
+                        myRowColValueList.clear();
+                    }
+                }
+            }
+
+            if (!myRowColValueList.isEmpty()) {
+                myKVS.batchAppendToRow(myParams.outputTable(), myParams.zeroElement(), myRowColValueList);
+            }
+            setResponseStatus(response, OK);
+            return "OK";
+        });
+
         post(FlameOperation.JOIN.getPath(), (request, response) -> {
             OperationParameters myParams = getAndValidateParams(request, myJAR);
 
