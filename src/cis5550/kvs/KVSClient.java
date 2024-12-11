@@ -15,7 +15,7 @@ import static cis5550.kvs.Worker.*;
 public class KVSClient implements KVS {
 
     private static Logger LOGGER = Logger.getLogger(KVSClient.class);
-    private static int BATCH_LIMIT = 10;
+    private static int BATCH_LIMIT = 50000;
 
     String coordinator;
 

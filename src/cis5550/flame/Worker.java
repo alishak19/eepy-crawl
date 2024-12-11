@@ -15,7 +15,7 @@ import cis5550.jobs.datamodels.TableColumns;
 
 class Worker extends cis5550.generic.Worker {
 
-    private static final int BATCH_SIZE = 100;
+    private static final int BATCH_SIZE = 50000;
     private static final String INDEX_TABLE = "pt-index";
 
     public static Logger LOGGER = Logger.getLogger(Worker.class);
@@ -389,27 +389,16 @@ class Worker extends cis5550.generic.Worker {
 
             FlameContext.RowToPair myLambda = (FlameContext.RowToPair) myParams.lambda();
 
-            List<RowColumnValueTuple> myRowColValueList = new ArrayList<>();
-
             while (myRows.hasNext()) {
                 Row myRow = myRows.next();
                 String myRowKey = myRow.key();
                 FlamePair myValue = myLambda.op(myRow);
                 if (myValue != null) {
-                    RowColumnValueTuple myTup = new RowColumnValueTuple(myValue._1(), myRow.key(), myValue._2());
-                    myRowColValueList.add(myTup);
-                }
-
-                if (myRowColValueList.size() > BATCH_SIZE) {
-                    myKVS.batchPut(myParams.outputTable(), myRowColValueList);
-                    myRowColValueList.clear();
+                    myKVS.put(myParams.outputTable(), myValue._1(), myRowKey, myValue._2());
                 }
 
             }
 
-            if (!myRowColValueList.isEmpty()) {
-                myKVS.batchPut(myParams.outputTable(), myRowColValueList);
-            }
             setResponseStatus(response, OK);
             return "OK";
         });
