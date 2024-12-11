@@ -83,7 +83,7 @@ public class EepyCrawlSearch {
             if (myPagerankScores.containsKey(myUrl)) {
                 myPagerankScore = myPagerankScores.get(myUrl);
             }
-            myCombinedScores.put(myUrl, getFinalCombinedScore(myTFIDFScore, myPagerankScore));
+            myCombinedScores.put(myUrl, getFinalCombinedScore(myTFIDFScore, myPagerankScore, aQuery, myUrl, myInfoPerUrl));
         }
 
         List<SearchResult> myResults = buildSearchResultsFromScores(myCombinedScores, myInfoPerUrl);
@@ -98,8 +98,63 @@ public class EepyCrawlSearch {
         return myResults;
     }
 
-    private static Double getFinalCombinedScore(Double aTFIDFScore, Double aPagerankScore) {
-        return aTFIDFScore + aPagerankScore;
+    private static Double getFinalCombinedScore(Double aTFIDFScore, Double aPagerankScore, String aQuery, String aUrl, Map<String, UrlInfo> aInfoPerUrl) {
+        double myTFIDFWeight = 0.95;
+        double myTitleWeightUpdate = 3.0;
+        double myTitleMissingUpdate = 0.4;
+        double mySnippetMissingUpdate = 0.3;
+
+        double myNormalizationFactor = aTFIDFScore + aPagerankScore;
+
+        if (myNormalizationFactor == 0) {
+            return 0.0;
+        }
+
+        double myNormalizedTFIDF = aTFIDFScore / myNormalizationFactor;
+        double myNormalizedPagerank = aPagerankScore / myNormalizationFactor;
+
+        // TODO: If the term is in the title, boost its TFIDF * 2
+        String myDecodedUrl = URLDecoder.decode(aUrl, StandardCharsets.UTF_8);
+        UrlInfo myInfo = aInfoPerUrl.get(myDecodedUrl);
+        if (myInfo != null) {
+            String myTitle = myInfo.title().toLowerCase();
+            String mySnippet = myInfo.snippet().toLowerCase();
+            String[] myQueryTerms = aQuery.split(" ");
+            for (int i = 0; i < Math.min(5, myQueryTerms.length); i++) {
+                if (myTitle.contains(myQueryTerms[i])) {
+                    System.out.println("Title " + myTitle + " contains query term " + myQueryTerms[i] + ", boosting TFIDF");
+                    myNormalizedTFIDF *= myTitleWeightUpdate;
+                    break;
+                }
+                if (mySnippet.contains(myQueryTerms[i])) {
+                    System.out.println("Snippet " + mySnippet + " contains query term " + myQueryTerms[i] + ", boosting TFIDF");
+                    myNormalizedTFIDF *= myTitleWeightUpdate;
+                    break;
+                }
+            }
+        }
+
+        double myCombinedScore = myTFIDFWeight * myNormalizedTFIDF + (1 - myTFIDFWeight) * myNormalizedPagerank;
+        if (Double.isNaN(myCombinedScore)) {
+            System.out.println("Combined score is NaN, returning 0.0");
+            return 0.0;
+        }
+
+
+        if (myInfo != null) {
+            String myTitle = myInfo.title().toLowerCase();
+            if (myTitle == null || myTitle.isEmpty() || myTitle.equalsIgnoreCase(myDecodedUrl)) {
+                System.out.println("Title missing, decreased score from " + myCombinedScore + " to " + (myCombinedScore * 0.3));
+                myCombinedScore *= myTitleMissingUpdate;
+            }
+            String mySnippet = myInfo.snippet().toLowerCase();
+            if (mySnippet == null || mySnippet.isEmpty()) {
+                System.out.println("Snippet missing, decreased score from " + myCombinedScore + " to " + (myCombinedScore * 0.3));
+                myCombinedScore *= mySnippetMissingUpdate;
+            }
+        }
+
+        return myCombinedScore;
     }
 
     private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, UrlInfo> aInfoPerUrl) {
