@@ -178,8 +178,7 @@ public class FrontendKVSClient {
             return;
         }
         String myEntry = CacheTableEntryUtils.createEntry(aSearchResults);
-        System.out.println(myEntry);
-        aQuery.replaceAll("\\s+", "");
+        aQuery.replaceAll("[^a-zA-Z0-9]", "");;
         System.out.println(aQuery);
         Row myRow = new Row(aQuery);
         myRow.put(TableColumns.VALUE.value(), myEntry);
