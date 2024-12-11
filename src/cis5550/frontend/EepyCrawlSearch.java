@@ -86,6 +86,7 @@ public class EepyCrawlSearch {
         }
 
         List<SearchResult> myResults = buildSearchResultsFromScores(myCombinedScores, myInfoPerUrl);
+        System.out.println("results1: " + myResults);
         try {
             FrontendKVSClient.putInCache(aQuery, myResults);
         } catch (IOException e) {

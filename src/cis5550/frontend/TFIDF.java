@@ -33,6 +33,7 @@ public class TFIDF {
                 }
             }
         }
+        System.out.println(scores.size() + ": size");
 
         return scores;
     }
