@@ -1,5 +1,6 @@
 *.sh
 !crawler-script.sh
+!crawler-ec2-script.sh
 worker*
 bin
 script.sh
