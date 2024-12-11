@@ -391,11 +391,10 @@ public class Worker extends cis5550.generic.Worker {
             int myVersion = 0;
             for (String myRowAndValue : myRowsAndValuesList) {
                 String myRow = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[0];
-                String myValue = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[1];
+                String myValue = myRowAndValue.split(BATCH_ROW_VALUE_SEPARATOR)[2];
                 System.out.println(myRowAndValue);
                 System.out.println("");
                 if (myRow != null && !myRow.equals("") && myRow.length() > 0) {
-                    // System.out.println("Row:" + myRow);
                     myVersion = theData.append(myTable, myRow, myColumn, myValue.getBytes(), myDelimiter);
                 }
             }
