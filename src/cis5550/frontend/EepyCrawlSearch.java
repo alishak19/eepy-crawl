@@ -20,6 +20,13 @@ public class EepyCrawlSearch {
     private static final String PAGE_DIR = "pages";
     private static final int PORT = 80;
 
+    private static final double WEIGHT_TFIDF = 10;
+    private static final double WEIGHT_PAGERANK = 1;
+    private static final double UPDATE_IN_TITLE = 3.0;
+    private static final double UPDATE_IN_SNIPPET = 2.0;
+    private static final double PENALTY_TITLE_MISSING = 0.01;
+    private static final double PENALTY_SNIPPET_MISSING = 0.1;
+
     public static void main(String[] args) {
         port(PORT);
         LOGGER.info("Starting EepyCrawlSearch on port " + PORT);
@@ -81,7 +88,7 @@ public class EepyCrawlSearch {
             if (myPagerankScores.containsKey(myUrl)) {
                 myPagerankScore = myPagerankScores.get(myUrl);
             }
-            myCombinedScores.put(myUrl, getFinalCombinedScore(myTFIDFScore, myPagerankScore));
+            myCombinedScores.put(myUrl, getFinalCombinedScore(myTFIDFScore, myPagerankScore, aQuery, myUrl, myInfoPerUrl));
         }
 
         List<SearchResult> myResults = buildSearchResultsFromScores(myCombinedScores, myInfoPerUrl);
@@ -96,8 +103,61 @@ public class EepyCrawlSearch {
         return myResults;
     }
 
-    private static Double getFinalCombinedScore(Double aTFIDFScore, Double aPagerankScore) {
-        return aTFIDFScore + aPagerankScore;
+    private static Double getFinalCombinedScore(Double aTFIDFScore, Double aPagerankScore, String aQuery, String aUrl, Map<String, UrlInfo> aInfoPerUrl) {
+
+        if (Double.isNaN(aTFIDFScore) || Double.isInfinite(aTFIDFScore)) {
+            System.out.println("TFIDF score is NaN or infinite, returning 0.0");
+            return 0.0;
+        }
+
+        if (Double.isNaN(aPagerankScore) || Double.isInfinite(aPagerankScore)) {
+            System.out.println("Pagerank score is NaN or infinite, returning 0.0");
+            return 0.0;
+        }
+
+        String myDecodedUrl = URLDecoder.decode(aUrl, StandardCharsets.UTF_8);
+        UrlInfo myInfo = aInfoPerUrl.get(myDecodedUrl);
+
+        double myNormalizationFactor = 1;
+        double myNormalizedTFIDF = aTFIDFScore / myNormalizationFactor;
+        double myNormalizedPagerank = aPagerankScore / myNormalizationFactor;
+
+        double myCombinedScore = 0.0;
+
+        if (myInfo != null) {
+
+            String myTitle = myInfo.title().toLowerCase();
+            String mySnippet = myInfo.snippet().toLowerCase();
+            String[] myQueryTerms = aQuery.split(" ");
+
+            for (int i = 0; i < Math.min(5, myQueryTerms.length); i++) {
+                if (myTitle.contains(myQueryTerms[i])) {
+                    System.out.println("Title " + myTitle + " contains query term " + myQueryTerms[i] + ", boosting TFIDF");
+                    myNormalizedTFIDF *= UPDATE_IN_TITLE;
+                    break;
+                }
+                if (mySnippet.contains(myQueryTerms[i])) {
+                    System.out.println("Snippet " + mySnippet + " contains query term " + myQueryTerms[i] + ", boosting TFIDF");
+                    myNormalizedTFIDF *= UPDATE_IN_SNIPPET;
+                    break;
+                }
+            }
+
+            myCombinedScore = WEIGHT_TFIDF * myNormalizedTFIDF + WEIGHT_PAGERANK * myNormalizedPagerank;
+
+            if (myTitle == null || myTitle.isEmpty() || myTitle.equalsIgnoreCase(myDecodedUrl)) {
+                System.out.println("Title missing, decreased score from " + myCombinedScore + " to " + (myCombinedScore * 0.3));
+                myCombinedScore *= PENALTY_TITLE_MISSING;
+            }
+            if (mySnippet == null || mySnippet.isEmpty()) {
+                System.out.println("Snippet missing, decreased score from " + myCombinedScore + " to " + (myCombinedScore * 0.3));
+                myCombinedScore *= PENALTY_SNIPPET_MISSING;
+            }
+        }
+
+        System.out.println("Final combined score for " + aUrl + " is " + myCombinedScore);
+
+        return myCombinedScore;
     }
 
     private static List<SearchResult> buildSearchResultsFromScores(Map<String, Double> aScores, Map<String, UrlInfo> aInfoPerUrl) {
