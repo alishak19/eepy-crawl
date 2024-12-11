@@ -54,7 +54,7 @@ public class HTMLParser {
         }
         hexMatcher.appendTail(result);
 
-        String res = result.toString().replaceAll("(?<!\\\\)\"", "\\\"");
+        String res = result.toString().replaceAll("(?<!\\\\)\"", "\\\\\"");
 
         return res;
     }
