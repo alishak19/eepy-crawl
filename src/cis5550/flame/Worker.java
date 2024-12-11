@@ -11,10 +11,13 @@ import cis5550.tools.Logger;
 import cis5550.kvs.*;
 import cis5550.tools.RowColumnValueTuple;
 import cis5550.webserver.Request;
+import cis5550.jobs.datamodels.TableColumns;
 
 class Worker extends cis5550.generic.Worker {
 
     private static int BATCH_SIZE = 10;
+    private static final String INDEX_TABLE = "pt-index";
+
     public static Logger LOGGER = Logger.getLogger(Worker.class);
 
     public static void main(String args[]) {
@@ -395,7 +398,6 @@ class Worker extends cis5550.generic.Worker {
                 if (myValue != null) {
                     RowColumnValueTuple myTup = new RowColumnValueTuple(myValue._1(), myRow.key(), myValue._2());
                     myRowColValueList.add(myTup);
-                    // myKVS.put(myParams.outputTable(), myValue._1(), myRowKey, myValue._2());
                 }
 
                 if (myRowColValueList.size() > BATCH_SIZE) {
@@ -590,14 +592,14 @@ class Worker extends cis5550.generic.Worker {
                         }
                     }
                     if (myRowColValueList.size() > BATCH_SIZE) {
-                        myKVS.batchAppendToRow(myParams.outputTable(), myParams.zeroElement(), myRowColValueList);
+                        myKVS.batchAppendToRow(myParams.outputTable(), TableColumns.VALUE.value(), myRowColValueList);
                         myRowColValueList.clear();
                     }
                 }
             }
 
             if (!myRowColValueList.isEmpty()) {
-                myKVS.batchAppendToRow(myParams.outputTable(), myParams.zeroElement(), myRowColValueList);
+                myKVS.batchAppendToRow(myParams.outputTable(), TableColumns.VALUE.value(), myRowColValueList);
             }
             setResponseStatus(response, OK);
             return "OK";
