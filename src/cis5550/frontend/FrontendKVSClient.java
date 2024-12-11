@@ -180,9 +180,11 @@ public class FrontendKVSClient {
             return;
         }
         String myEntry = CacheTableEntryUtils.createEntry(aSearchResults);
+        System.out.println(myEntry);
         if (aQuery.contains(" ")) {
             aQuery.replace(" ", "");
         }
+        System.out.println(aQuery);
         Row myRow = new Row(aQuery);
         myRow.put(TableColumns.VALUE.value(), myEntry);
         KVS_CLIENT.putRow(CACHE_TABLE.getName(), myRow);
