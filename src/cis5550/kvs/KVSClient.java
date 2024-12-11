@@ -295,18 +295,7 @@ public class KVSClient implements KVS {
             for (Map.Entry<String, List<String>> entry : workerToRowsMap.entrySet()) {
                 String workerAddress = entry.getKey();
                 List<String> rowsForWorker = entry.getValue();
-
-                List<String> batchRowsForWorker = new ArrayList<>();
-                for (String row : rowsForWorker) {
-                    batchRowsForWorker.add(row);
-                    if (batchRowsForWorker.size() == BATCH_LIMIT) {
-                        batchPutOperation(tableName, workerAddress, batchRowsForWorker);
-                        batchRowsForWorker = new ArrayList<>();
-                    }
-                }
-                if (!batchRowsForWorker.isEmpty()) {
-                    batchPutOperation(tableName, workerAddress, batchRowsForWorker);
-                }
+                batchPutOperation(tableName, workerAddress, rowsForWorker);
             }
         } catch (UnsupportedEncodingException uee) {
             throw new RuntimeException("UTF-8 encoding not supported?!?");

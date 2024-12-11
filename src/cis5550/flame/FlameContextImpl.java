@@ -183,6 +183,53 @@ public class FlameContextImpl implements FlameContext, Serializable {
         return myWorkerResults.stream().reduce(aZeroElement, aLambda::op);
     }
 
+    public String invokePairRDDFold(String aInputTable, FlamePairRDD.StringPairToString aLambda,
+                             FlamePairRDD.TwoStringsToString anothaLambda,String aZeroElement) {
+        ConcurrentLinkedDeque<HTTP.Response> myResponses = new ConcurrentLinkedDeque<>();
+        List<Thread> myThreads = new LinkedList<>();
+
+        Vector<Partitioner.Partition> myPartitions = generatePartitions();
+
+        for (Partitioner.Partition myPartition : myPartitions) {
+            Thread myThread = sendOperationToWorker(
+                    FlameOperation.PAIR_FOLD,
+                    Serializer.objectToByteArray(aLambda),
+                    aInputTable,
+                    "",
+                    myPartition,
+                    aZeroElement,
+                    myResponses);
+            myThreads.add(myThread);
+            myThread.start();
+        }
+
+        for (Thread myThread : myThreads) {
+            try {
+                myThread.join();
+            } catch (InterruptedException e) {
+                LOGGER.error("Failed to join thread", e);
+            }
+        }
+
+        if (myResponses.size() != myThreads.size()) {
+            LOGGER.error("Failed to send operation to all workers");
+            return null;
+        }
+
+        List<String> myWorkerResults = new LinkedList<>();
+
+        for (HTTP.Response myResponse : myResponses) {
+            if (myResponse == null || myResponse.statusCode() != 200) {
+                LOGGER.error("Operation failed on at least one worker with status code: " + (myResponse == null ? "response is null" : myResponse.statusCode()));
+                return null;
+            }
+
+            myWorkerResults.add(new String(myResponse.body()));
+        }
+
+        return myWorkerResults.stream().reduce(aZeroElement, anothaLambda::op);
+    }
+
     private Thread sendOperationToWorker(
             FlameOperation aFlameOperation,
             byte[] aLambda,

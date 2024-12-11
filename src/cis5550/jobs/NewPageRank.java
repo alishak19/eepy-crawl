@@ -21,8 +21,8 @@ public class NewPageRank {
     private static final String CRAWL_TABLE = "pt-crawl";
     private static final String PAGERANK_TABLE = "pt-pageranks";
 
-    private static final int CONVERGENCE_PERCENTAGE = 100;
-    private static final double CONVERGENCE_THRESHOLD = 0.01;
+    private static final int CONVERGENCE_PERCENTAGE = 95;
+    private static final double CONVERGENCE_THRESHOLD = 0.05;
 
     private static final double INIT_PAGERANK = 1.0;
     private static final String COMMA = ",";
@@ -43,7 +43,8 @@ public class NewPageRank {
         }
 
         savePagerankTable(aContext, myPageRankRDD);
-        aContext.output("PageRank completed");
+        LOGGER.debug("Pagerank completed");
+        aContext.output("RAHHH");
     }
 
     private static List<String> extractUrls(String aContent) {
@@ -66,6 +67,7 @@ public class NewPageRank {
     }
 
     private static FlamePairRDD prepareInitPagerankTable(FlameContext aContext) throws Exception {
+        LOGGER.debug("Preparing Pagerank Table");
         return aContext.pairFromTable(CRAWL_TABLE, myRow -> {
             try {
                 String myUrl = myRow.get(TableColumns.URL.value());
@@ -120,7 +122,12 @@ public class NewPageRank {
 
         myPageRankCalculations.destroy();
 
-        FlamePairRDD myNextPageRankRDD = aPageRankRDD.join(myTransferTable).flatMapToPair(myPair -> {
+        FlamePairRDD myJoinedRDD = aPageRankRDD.join(myTransferTable);
+
+        aPageRankRDD.destroy();
+        myTransferTable.destroy();
+
+        FlamePairRDD myNextPageRankRDD = myJoinedRDD.flatMapToPair(myPair -> {
             String myUrlHash = myPair._1();
             List<String> myParts = List.of(myPair._2().split(COMMA));
             double myPageRank = Double.parseDouble(myParts.getFirst());
@@ -131,8 +138,7 @@ public class NewPageRank {
                     myUrlHash, myNewPageRank + COMMA + myPageRank + COMMA + String.join(COMMA, myOutlinks)));
         });
 
-        aPageRankRDD.destroy();
-        myTransferTable.destroy();
+        myJoinedRDD.destroy();
 
         return myNextPageRankRDD;
     }
@@ -140,37 +146,45 @@ public class NewPageRank {
     private static boolean hasConverged(FlamePairRDD aPageRankRDD)
             throws Exception {
 
-        FlameRDD myPageRankAgg = aPageRankRDD
-                .flatMap(myPair -> {
-                    String[] myParts = myPair._2().split(COMMA);
-                    double myPageRank = Double.parseDouble(myParts[0]);
-                    double myPreviousPageRank = Double.parseDouble(myParts[1]);
-                    double myPageRankDiff = Math.abs(myPageRank - myPreviousPageRank);
-                    if (myPageRankDiff < CONVERGENCE_THRESHOLD) {
-                        return List.of("1,1");
-                    } else {
-                        return List.of("0,1");
-                    }
-                });
+        LOGGER.debug("Checking convergence");
+        FlamePairRDD.StringPairToString foldLambda = (a, b) -> {
+            String[] myCounts = a.split(COMMA);
+            int myConvergedCount = Integer.parseInt(myCounts[0]);
+            int myTotalCount = Integer.parseInt(myCounts[1]);
 
+            String[] myParts = b._2().split(COMMA);
+            double myPageRank = Double.parseDouble(myParts[0]);
+            double myPreviousPageRank = Double.parseDouble(myParts[1]);
+            double myPageRankDiff = Math.abs(myPageRank - myPreviousPageRank);
 
-        String myMaxDiffString = myPageRankAgg.fold(
-                "0,0", (a, b) -> {
-                    String[] myParts = a.split(COMMA);
-                    String[] myOtherParts = b.split(COMMA);
-                    int myCount = Integer.parseInt(myParts[0]) + Integer.parseInt(myOtherParts[0]);
-                    int myTotal = Integer.parseInt(myParts[1]) + Integer.parseInt(myOtherParts[1]);
+            myTotalCount += 1;
+            if (myPageRankDiff < CONVERGENCE_THRESHOLD) {
+                myConvergedCount += 1;
+            }
 
-                    return myCount + COMMA + myTotal;
-                });
+            return myConvergedCount + COMMA + myTotalCount;
+        };
 
-        myPageRankAgg.destroy();
+        FlamePairRDD.TwoStringsToString aggLambda = (a, b) -> {
+            String[] myParts = a.split(COMMA);
+            String[] myOtherParts = b.split(COMMA);
+            int myCount = Integer.parseInt(myParts[0]) + Integer.parseInt(myOtherParts[0]);
+            int myTotal = Integer.parseInt(myParts[1]) + Integer.parseInt(myOtherParts[1]);
+
+            return myCount + COMMA + myTotal;
+        };
+
+        String myMaxDiffString = aPageRankRDD.fold("0,0", foldLambda, aggLambda);
 
         String[] myParts = myMaxDiffString.split(COMMA);
         int myCount = Integer.parseInt(myParts[0]);
         int myTotal = Integer.parseInt(myParts[1]);
 
-        return (myCount / myTotal * 100 >= CONVERGENCE_PERCENTAGE);
+        double myConvergedPercentage = ((double) myCount / myTotal) * 100;
+
+        LOGGER.info("Converged URLs: " + myCount + "/" + myTotal + " (" + myConvergedPercentage + "%)");
+
+        return myConvergedPercentage >= CONVERGENCE_PERCENTAGE;
     }
 
     private static void savePagerankTable(FlameContext aContext, FlamePairRDD aPageRankRDD) throws Exception {
