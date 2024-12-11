@@ -59,7 +59,7 @@ public class EepyCrawlSearch {
             LOGGER.error("Error getting cached results from KVS");
         }
 
-        Map<String, Double> myTFIDFScores = TFIDF.getTFIDFScores(aQuery);
+        Map<String, Double> myTFIDFScores = TFIDF.aggregateTFIDFScores(aQuery);
         Map<String, Double> myPagerankScores = new HashMap<>();
         try {
             myPagerankScores = FrontendKVSClient.getPagerankScores(myTFIDFScores.keySet());

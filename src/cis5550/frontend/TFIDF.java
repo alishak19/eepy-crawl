@@ -19,6 +19,24 @@ public class TFIDF {
 
     private static final double APPROX_CORPUS_SIZE = 100000.0;
 
+    public static Map<String, Double> aggregateTFIDFScores(String aQuery) {
+        Map<String, Double> scores = new HashMap<>();
+        for (String word : aQuery.split(" ")) {
+            Map<String, Double> wordScores = getTFIDFScores(word);
+
+            for (String url :  wordScores.keySet()) {
+                if (scores.containsKey(url)) {
+                    double scoreCurr = scores.get(url);
+                    scores.put(url, scoreCurr + wordScores.get(url));
+                } else {
+                    scores.put(url, wordScores.get(url));
+                }
+            }
+        }
+
+        return scores;
+    }
+
     public static Map<String, Double> getTFIDFScores(String aQuery) {
         LOGGER.info("Getting TF-IDF scores for query: " + aQuery);
         Map<String, Integer> myUrlCountData = new HashMap<>();
