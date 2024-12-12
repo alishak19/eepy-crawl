@@ -24,7 +24,7 @@ sleep 1
 # Compile and create PageRank.jar
 javac -d bin --source-path src src/cis5550/jobs/NewPageRank.java
 sleep 1
-jar cf new-pagerank.jar bin/cis5550/jobs/NewPageRank.class
+jar cf pagerank.jar bin/cis5550/jobs/NewPageRank.class
 sleep 1
 
 # Launch KVS Coordinator
