@@ -3,7 +3,6 @@ package cis5550.jobs;
 import cis5550.flame.FlameContext;
 import cis5550.flame.FlamePair;
 import cis5550.flame.FlamePairRDD;
-import cis5550.flame.FlameRDD;
 import cis5550.jobs.datamodels.TableColumns;
 import cis5550.tools.Hasher;
 import cis5550.tools.Logger;

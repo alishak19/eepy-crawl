@@ -18,8 +18,6 @@ public class EepyCrawlSearch {
     private static final Logger LOGGER = Logger.getLogger(EepyCrawlSearch.class);
 
     private static final String PAGE_DIR = "pages";
-    private static final int PORT = 80;
-
     private static final double WEIGHT_TFIDF = 10;
     private static final double WEIGHT_PAGERANK = 1;
     private static final double UPDATE_IN_TITLE = 3.0;
@@ -27,9 +25,14 @@ public class EepyCrawlSearch {
     private static final double PENALTY_TITLE_MISSING = 0.01;
     private static final double PENALTY_SNIPPET_MISSING = 0.1;
 
+    private static int port = 443;
+
     public static void main(String[] args) {
-        port(PORT);
-        LOGGER.info("Starting EepyCrawlSearch on port " + PORT);
+        if (args.length > 0) {
+            port = Integer.parseInt(args[0]);
+        }
+        port(port);
+        LOGGER.info("Starting EepyCrawlSearch on port " + port);
 
         get("/", (req, res) -> {
             res.type(ContentType.HTML.getTypeString());
