@@ -1,4 +1,4 @@
-We did not use any third party extentions.
+We did not use any third party extensions.
 
 We partitioned our crawls, and ran PageRank and Indexer on those partitions. We created one large compiled index table using appends, and merged all crawl tables (and all PageRank tables) using merge-script.py. These zip files, along with the entire set of crawls in another folder, are in Drive.
 
