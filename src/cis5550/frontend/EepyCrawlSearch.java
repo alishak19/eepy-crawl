@@ -25,14 +25,14 @@ public class EepyCrawlSearch {
     private static final double PENALTY_TITLE_MISSING = 0.01;
     private static final double PENALTY_SNIPPET_MISSING = 0.1;
 
-    private static int port = 443;
+    private static final int PORT = 80;
+    private static final int SECURE_PORT = 80;
 
     public static void main(String[] args) {
-        if (args.length > 0) {
-            port = Integer.parseInt(args[0]);
-        }
-        port(port);
-        LOGGER.info("Starting EepyCrawlSearch on port " + port);
+        port(PORT);
+        securePort(SECURE_PORT);
+        LOGGER.info("Starting EepyCrawlSearch on port " + PORT);
+        LOGGER.info("Starting EepyCrawlSearch on secure port " + SECURE_PORT);
 
         get("/", (req, res) -> {
             res.type(ContentType.HTML.getTypeString());
