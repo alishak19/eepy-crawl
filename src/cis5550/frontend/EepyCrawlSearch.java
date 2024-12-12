@@ -26,7 +26,7 @@ public class EepyCrawlSearch {
     private static final double PENALTY_SNIPPET_MISSING = 0.1;
 
     private static final int PORT = 80;
-    private static final int SECURE_PORT = 80;
+    private static final int SECURE_PORT = 443;
 
     public static void main(String[] args) {
         port(PORT);
