@@ -7,11 +7,11 @@ We partitioned our crawls and ran PageRank and Indexer on those partitions. We c
 To compile the code files on EC2, run ./crawler-ec2-script. If compiling in local, run ./script.sh. 
 
 ## EEPY CRAWL: RUN
-To run the search engine on EC2 after running the script:
+# To run the search engine on EC2 after running the script:
 
 sudo java -Xmx80g -cp bin cis5550.frontend.EepyCrawlSearch 80 > program.log 2>&1 &
 
-Job-related commands (after running the script) are listed below:
+# Job-related commands (after running the script) are listed below:
 
 Crawler: java -cp bin cis5550.flame.FlameSubmit localhost:9000 new-crawler.jar cis5550.jobs.NewCrawler
 
